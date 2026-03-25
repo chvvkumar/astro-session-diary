@@ -1,0 +1,118 @@
+import logging
+from pathlib import Path
+
+from sqlalchemy import create_engine, select
+from sqlalchemy.orm import Session
+
+from app.config import settings
+from app.models import Image, Target
+from app.services.scanner import extract_metadata
+from app.services.simbad import resolve_target_name, normalize_object_name
+from app.services.thumbnail import generate_thumbnail
+from app.worker.celery_app import celery_app
+
+logger = logging.getLogger(__name__)
+
+# Celery uses sync — create a sync engine for the worker
+# Replace asyncpg with psycopg2 for sync operations
+_sync_url = settings.database_url.replace("+asyncpg", "+psycopg2")
+_sync_engine = create_engine(_sync_url)
+
+
+@celery_app.task(bind=True, max_retries=3, default_retry_delay=30)
+def ingest_file(self, fits_path: str) -> dict:
+    """Full ingest pipeline for a single FITS file.
+
+    1. Extract metadata from FITS headers
+    2. Generate stretched JPEG thumbnail
+    3. Resolve target name via SIMBAD (with local cache)
+    4. Insert/update database record
+    """
+    path = Path(fits_path)
+    logger.info("Ingesting: %s", path.name)
+
+    try:
+        # Step 1: Extract metadata
+        meta = extract_metadata(path)
+
+        # Step 2: Generate thumbnail
+        thumb_filename = path.stem + ".jpg"
+        thumb_path = Path(settings.thumbnails_path) / thumb_filename
+        generate_thumbnail(path, thumb_path, max_width=settings.thumbnail_max_width)
+
+        # Step 3: Resolve target (sync wrapper for async SIMBAD call)
+        target_id = None
+        object_name = meta.get("object_name")
+        if object_name:
+            target_id = _resolve_or_cache_target(object_name)
+
+        # Step 4: Insert into database
+        with Session(_sync_engine) as session:
+            image = Image(
+                file_path=meta["file_path"],
+                file_name=meta["file_name"],
+                capture_date=meta.get("capture_date"),
+                thumbnail_path=str(thumb_path),
+                resolved_target_id=target_id,
+                exposure_time=meta.get("exposure_time"),
+                filter_used=meta.get("filter_used"),
+                sensor_temp=meta.get("sensor_temp"),
+                camera_gain=meta.get("camera_gain"),
+                raw_headers=meta.get("raw_headers", {}),
+            )
+            session.add(image)
+            session.commit()
+            logger.info("Ingested: %s (target=%s)", path.name, target_id)
+            return {"file": str(path), "status": "ok"}
+
+    except Exception as exc:
+        logger.error("Failed to ingest %s: %s", path, exc)
+        raise self.retry(exc=exc)
+
+
+def _resolve_or_cache_target(object_name: str) -> str | None:
+    """Check local DB for target, fall back to SIMBAD, cache result."""
+    import asyncio
+
+    normalized = normalize_object_name(object_name)
+
+    with Session(_sync_engine) as session:
+        # Check local cache: search aliases array
+        stmt = select(Target).where(Target.aliases.any(normalized))
+        existing = session.execute(stmt).scalar_one_or_none()
+        if existing:
+            return str(existing.id)
+
+        # Also check by primary_name
+        stmt = select(Target).where(Target.primary_name == object_name)
+        existing = session.execute(stmt).scalar_one_or_none()
+        if existing:
+            return str(existing.id)
+
+    # Query SIMBAD
+    loop = asyncio.new_event_loop()
+    try:
+        result = loop.run_until_complete(resolve_target_name(object_name))
+    finally:
+        loop.close()
+
+    if result is None:
+        return None
+
+    # Cache the new target
+    with Session(_sync_engine) as session:
+        # Normalize all aliases for consistent matching
+        aliases = [normalize_object_name(a) for a in result.get("aliases", [])]
+        if normalized not in aliases:
+            aliases.append(normalized)
+
+        target = Target(
+            primary_name=result["primary_name"],
+            aliases=aliases,
+            ra=result.get("ra"),
+            dec=result.get("dec"),
+            object_type=result.get("object_type"),
+        )
+        session.add(target)
+        session.commit()
+        return str(target.id)
