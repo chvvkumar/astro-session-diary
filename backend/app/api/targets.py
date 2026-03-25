@@ -4,7 +4,7 @@ import statistics
 from collections import defaultdict
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import select, or_, func, cast, Float
+from sqlalchemy import select, or_, func, cast, Float, Date
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_session
@@ -244,7 +244,7 @@ async def get_session_detail(
             select(Image)
             .where(
                 Image.raw_headers["OBJECT"].astext == object_name,
-                func.date(Image.capture_date) == date,
+                func.date(Image.capture_date) == cast(date, Date),
                 Image.image_type == "LIGHT",
             )
             .order_by(Image.capture_date)
@@ -263,7 +263,7 @@ async def get_session_detail(
             select(Image)
             .where(
                 Image.resolved_target_id == tid,
-                func.date(Image.capture_date) == date,
+                func.date(Image.capture_date) == cast(date, Date),
                 Image.image_type == "LIGHT",
             )
             .order_by(Image.capture_date)
