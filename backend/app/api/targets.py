@@ -244,7 +244,8 @@ async def get_session_detail(
             select(Image)
             .where(
                 Image.raw_headers["OBJECT"].astext == object_name,
-                func.date(Image.capture_date) == cast(date, Date),
+                Image.capture_date >= f"{date}T00:00:00",
+                Image.capture_date < f"{date}T23:59:59.999999",
                 Image.image_type == "LIGHT",
             )
             .order_by(Image.capture_date)
@@ -263,7 +264,8 @@ async def get_session_detail(
             select(Image)
             .where(
                 Image.resolved_target_id == tid,
-                func.date(Image.capture_date) == cast(date, Date),
+                Image.capture_date >= f"{date}T00:00:00",
+                Image.capture_date < f"{date}T23:59:59.999999",
                 Image.image_type == "LIGHT",
             )
             .order_by(Image.capture_date)
