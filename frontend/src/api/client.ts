@@ -1,10 +1,12 @@
 import type {
-  ImageListResponse,
-  ImageDetail,
+  TargetAggregationResponse,
+  SessionDetail,
+  EquipmentList,
   TargetSearchResult,
   ScanResult,
   ScanStatus,
-  ImageFilters,
+  ActiveFilters,
+  StatsResponse,
 } from "../types";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
@@ -20,34 +22,39 @@ async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
   return resp.json();
 }
 
-function buildQuery(filters: ImageFilters): string {
+function buildTargetQuery(filters: ActiveFilters): string {
   const params = new URLSearchParams();
-  params.set("page", String(filters.page));
-  params.set("page_size", String(filters.page_size));
-  if (filters.target_name) params.set("target_name", filters.target_name);
-  if (filters.filter_used) params.set("filter_used", filters.filter_used);
-  if (filters.image_type) params.set("image_type", filters.image_type);
-  if (filters.date_from) params.set("date_from", filters.date_from);
-  if (filters.date_to) params.set("date_to", filters.date_to);
-  if (filters.min_exposure != null) params.set("min_exposure", String(filters.min_exposure));
-  if (filters.max_exposure != null) params.set("max_exposure", String(filters.max_exposure));
-  if (filters.header_key) params.set("header_key", filters.header_key);
-  if (filters.header_value) params.set("header_value", filters.header_value);
+  if (filters.searchQuery) params.set("search", filters.searchQuery);
+  if (filters.camera) params.set("camera", filters.camera);
+  if (filters.telescope) params.set("telescope", filters.telescope);
+  if (filters.opticalFilters.length > 0) {
+    params.set("filters", filters.opticalFilters.join(","));
+  }
+  if (filters.dateRange.start) params.set("date_from", filters.dateRange.start);
+  if (filters.dateRange.end) params.set("date_to", filters.dateRange.end);
+  for (const fq of filters.fitsQueries) {
+    params.append("fits_key", fq.key);
+    params.append("fits_op", fq.operator);
+    params.append("fits_val", fq.value);
+  }
   return params.toString();
 }
 
 export const api = {
-  listImages: (filters: ImageFilters) =>
-    fetchJson<ImageListResponse>(`/images?${buildQuery(filters)}`),
+  getTargets: (filters: ActiveFilters) =>
+    fetchJson<TargetAggregationResponse>(`/targets?${buildTargetQuery(filters)}`),
 
-  getImage: (id: string) =>
-    fetchJson<ImageDetail>(`/images/${id}`),
+  getSessionDetail: (targetId: string, date: string) =>
+    fetchJson<SessionDetail>(`/targets/${targetId}/sessions/${date}`),
 
-  getAvailableFilters: () =>
-    fetchJson<string[]>("/images/filters/available"),
+  getEquipment: () =>
+    fetchJson<EquipmentList>("/targets/equipment"),
 
   searchTargets: (query: string) =>
     fetchJson<TargetSearchResult[]>(`/targets/search?q=${encodeURIComponent(query)}`),
+
+  getStats: () =>
+    fetchJson<StatsResponse>("/stats"),
 
   triggerScan: () =>
     fetchJson<ScanResult>("/scan", { method: "POST" }),

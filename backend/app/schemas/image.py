@@ -15,6 +15,10 @@ class ImageBase(BaseModel):
     sensor_temp: float | None = None
     camera_gain: int | None = None
     image_type: str | None = None
+    telescope: str | None = None
+    camera: str | None = None
+    median_hfr: float | None = None
+    eccentricity: float | None = None
 
 
 class ImageRead(ImageBase):

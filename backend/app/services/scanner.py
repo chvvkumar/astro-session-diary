@@ -18,6 +18,18 @@ def scan_directory(
             yield path
 
 
+def _first_float(header, *keys) -> float | None:
+    """Return the first non-None float value found among the given header keys."""
+    for key in keys:
+        val = header.get(key)
+        if val is not None:
+            try:
+                return float(val)
+            except (ValueError, TypeError):
+                continue
+    return None
+
+
 def extract_metadata(fits_path: Path) -> dict[str, Any]:
     """Extract structured metadata and raw headers from a FITS file."""
     with fits.open(fits_path) as hdul:
@@ -42,6 +54,10 @@ def extract_metadata(fits_path: Path) -> dict[str, Any]:
         "sensor_temp": header.get("CCD-TEMP"),
         "camera_gain": int(header.get("GAIN")) if header.get("GAIN") is not None else None,
         "image_type": header.get("IMAGETYP"),
+        "telescope": header.get("TELESCOP"),
+        "camera": header.get("INSTRUME"),
+        "median_hfr": _first_float(header, "HFR", "MEANFWHM", "FWHM"),
+        "eccentricity": _first_float(header, "ECCENTRICITY", "ELLIPTICITY"),
         "capture_date": capture_date,
         "raw_headers": raw_headers,
     }

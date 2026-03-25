@@ -1,47 +1,68 @@
 import { createSignal, createResource } from "solid-js";
 import { api } from "../api/client";
-import type { ImageFilters, ImageListResponse, ImageDetail } from "../types";
+import type { ActiveFilters, TargetAggregationResponse, SessionDetail, EquipmentList } from "../types";
 
-const defaultFilters: ImageFilters = {
-  page: 1,
-  page_size: 50,
+const defaultFilters: ActiveFilters = {
+  searchQuery: "",
+  camera: null,
+  telescope: null,
+  opticalFilters: [],
+  dateRange: { start: null, end: null },
+  fitsQueries: [],
 };
 
-const [filters, setFilters] = createSignal<ImageFilters>({ ...defaultFilters });
-const [imageList, { refetch: refetchImages }] = createResource(filters, (f) => api.listImages(f));
+const [filters, setFilters] = createSignal<ActiveFilters>({ ...defaultFilters });
+const [targetData, { refetch: refetchTargets }] = createResource(filters, (f) => api.getTargets(f));
+const [equipment] = createResource(() => api.getEquipment());
 
-const [selectedImageId, setSelectedImageId] = createSignal<string | null>(null);
-const [selectedImage] = createResource(selectedImageId, (id) =>
-  id ? api.getImage(id) : undefined
+const [expandedTargets, setExpandedTargets] = createSignal<Set<string>>(new Set());
+const [drawerContext, setDrawerContext] = createSignal<{ targetId: string; date: string } | null>(null);
+const [sessionDetail] = createResource(drawerContext, (ctx) =>
+  ctx ? api.getSessionDetail(ctx.targetId, ctx.date) : undefined
 );
 
 export function useCatalog() {
   return {
     filters,
     setFilters,
-    imageList,
-    selectedImageId,
-    setSelectedImageId,
-    selectedImage,
+    targetData,
+    equipment,
+    expandedTargets,
+    drawerContext,
+    sessionDetail,
+    refetchTargets,
 
-    updateFilter: <K extends keyof ImageFilters>(key: K, value: ImageFilters[K]) => {
-      setFilters((prev) => ({ ...prev, [key]: value, page: key === "page" ? value as number : 1 }));
+    updateFilter: <K extends keyof ActiveFilters>(key: K, value: ActiveFilters[K]) => {
+      setFilters((prev) => ({ ...prev, [key]: value }));
     },
 
-    nextPage: () => {
-      const current = filters();
-      const list = imageList();
-      if (list && current.page * current.page_size < list.total) {
-        setFilters((prev) => ({ ...prev, page: prev.page + 1 }));
-      }
+    toggleOpticalFilter: (f: string) => {
+      setFilters((prev) => {
+        const current = prev.opticalFilters;
+        const next = current.includes(f)
+          ? current.filter((x) => x !== f)
+          : [...current, f];
+        return { ...prev, opticalFilters: next };
+      });
     },
 
-    prevPage: () => {
-      setFilters((prev) => ({ ...prev, page: Math.max(1, prev.page - 1) }));
+    toggleExpanded: (targetId: string) => {
+      setExpandedTargets((prev) => {
+        const next = new Set(prev);
+        if (next.has(targetId)) next.delete(targetId);
+        else next.add(targetId);
+        return next;
+      });
+    },
+
+    openDrawer: (targetId: string, date: string) => {
+      setDrawerContext({ targetId, date });
+    },
+
+    closeDrawer: () => {
+      setDrawerContext(null);
     },
 
     resetFilters: () => setFilters({ ...defaultFilters }),
-
-    refetchImages,
   };
 }

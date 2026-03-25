@@ -5,6 +5,13 @@
   --color-astro-panel: #12122a;
   --color-astro-accent: #4f7cff;
   --color-astro-muted: #6b7280;
+  --color-filter-ha: #c44040;
+  --color-filter-oiii: #3a8fd4;
+  --color-filter-sii: #d4a43a;
+  --color-filter-l: #e0e0e0;
+  --color-filter-r: #e05050;
+  --color-filter-g: #50b050;
+  --color-filter-b: #5070e0;
 }
 
 body {

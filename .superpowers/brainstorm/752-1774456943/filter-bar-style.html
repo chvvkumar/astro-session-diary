@@ -1,0 +1,68 @@
+<h2>Filter Distribution Bar Style</h2>
+<p class="subtitle">How should the per-target filter time breakdown render on each Target Card?</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Stacked Horizontal Bar</h3>
+      <p>Single continuous bar with color segments. Percentages as inline labels or tooltip on hover. Compact, scannable.</p>
+      <div class="mockup" style="margin-top:12px">
+        <div class="mockup-body" style="background:#0a0a1a;padding:20px">
+          <div style="font-size:11px;color:#8888aa;margin-bottom:6px;font-family:monospace">FILTER DISTRIBUTION</div>
+          <div style="display:flex;height:24px;border-radius:4px;overflow:hidden;font-size:11px;font-family:monospace">
+            <div style="flex:60;background:#c44040;display:flex;align-items:center;justify-content:center;color:white;font-weight:600">Ha 60%</div>
+            <div style="flex:25;background:#3a8fd4;display:flex;align-items:center;justify-content:center;color:white;font-weight:600">OIII 25%</div>
+            <div style="flex:15;background:#d4a43a;display:flex;align-items:center;justify-content:center;color:white;font-weight:600">SII 15%</div>
+          </div>
+          <div style="font-size:10px;color:#666;margin-top:4px;font-family:monospace">13.6h Ha · 5.7h OIII · 3.4h SII</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Segmented Pill Badges</h3>
+      <p>Individual colored pills per filter with time labels. More readable at a glance, takes more vertical space.</p>
+      <div class="mockup" style="margin-top:12px">
+        <div class="mockup-body" style="background:#0a0a1a;padding:20px">
+          <div style="font-size:11px;color:#8888aa;margin-bottom:8px;font-family:monospace">FILTER DISTRIBUTION</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <div style="background:#c44040;color:white;padding:4px 12px;border-radius:12px;font-size:12px;font-family:monospace;font-weight:600">Ha · 13.6h</div>
+            <div style="background:#3a8fd4;color:white;padding:4px 12px;border-radius:12px;font-size:12px;font-family:monospace;font-weight:600">OIII · 5.7h</div>
+            <div style="background:#d4a43a;color:white;padding:4px 12px;border-radius:12px;font-size:12px;font-family:monospace;font-weight:600">SII · 3.4h</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Mini Bar + Legend</h3>
+      <p>Thin stacked bar (no labels inside) with a compact color legend below. Cleanest look, works well at narrow widths.</p>
+      <div class="mockup" style="margin-top:12px">
+        <div class="mockup-body" style="background:#0a0a1a;padding:20px">
+          <div style="display:flex;height:8px;border-radius:4px;overflow:hidden;margin-bottom:8px">
+            <div style="flex:60;background:#c44040"></div>
+            <div style="flex:25;background:#3a8fd4"></div>
+            <div style="flex:15;background:#d4a43a"></div>
+          </div>
+          <div style="display:flex;gap:16px;font-size:11px;font-family:monospace;color:#aaa">
+            <span><span style="color:#c44040">●</span> Ha 13.6h</span>
+            <span><span style="color:#3a8fd4">●</span> OIII 5.7h</span>
+            <span><span style="color:#d4a43a">●</span> SII 3.4h</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top:24px">
+  <h3>Recommendation</h3>
+  <p><strong>Option A (Stacked Horizontal Bar)</strong> — matches the design doc's description of "a horizontal, color-coded stacked bar chart." The inline percentage labels are immediately scannable without needing a separate legend, and the bar visually communicates proportions at a glance. Works well at the card widths available in the sidebar layout.</p>
+</div>

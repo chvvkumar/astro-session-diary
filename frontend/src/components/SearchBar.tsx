@@ -17,6 +17,7 @@ const SearchBar: Component = () => {
     if (value.length < 2) {
       setSuggestions([]);
       setShowSuggestions(false);
+      updateFilter("searchQuery", value);
       return;
     }
     debounceTimer = setTimeout(async () => {
@@ -27,40 +28,35 @@ const SearchBar: Component = () => {
       } catch {
         setSuggestions([]);
       }
+      updateFilter("searchQuery", value);
     }, 300);
   };
 
   const selectTarget = (target: TargetSearchResult) => {
     setQuery(target.primary_name);
     setShowSuggestions(false);
-    updateFilter("target_name", target.primary_name);
-  };
-
-  const onSubmit = (e: Event) => {
-    e.preventDefault();
-    setShowSuggestions(false);
-    updateFilter("target_name", query() || undefined);
+    updateFilter("searchQuery", target.primary_name);
   };
 
   return (
-    <form onSubmit={onSubmit} class="relative w-full max-w-md">
+    <div class="relative">
+      <label class="text-xs text-astro-muted mb-1 block">Search Targets</label>
       <input
         type="text"
         value={query()}
         onInput={(e) => onInput(e.currentTarget.value)}
         onFocus={() => suggestions().length > 0 && setShowSuggestions(true)}
         onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-        placeholder="Search targets (e.g., M31, NGC 7000)..."
-        class="w-full px-4 py-2 bg-astro-panel border border-gray-700 rounded-lg text-white placeholder-astro-muted focus:outline-none focus:ring-2 focus:ring-astro-accent"
+        placeholder="M31, NGC 7000..."
+        class="w-full px-3 py-2 bg-astro-dark border border-gray-700 rounded text-sm text-white placeholder-astro-muted focus:outline-none focus:ring-1 focus:ring-astro-accent"
       />
-
       <Show when={showSuggestions()}>
-        <div class="absolute z-50 w-full mt-1 bg-astro-panel border border-gray-700 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+        <div class="absolute z-50 w-full mt-1 bg-astro-panel border border-gray-700 rounded shadow-lg max-h-48 overflow-y-auto">
           <For each={suggestions()}>
             {(target) => (
               <button
                 type="button"
-                class="w-full text-left px-4 py-2 hover:bg-astro-accent/20 text-white text-sm"
+                class="w-full text-left px-3 py-2 hover:bg-astro-accent/20 text-white text-sm"
                 onMouseDown={() => selectTarget(target)}
               >
                 <span class="font-medium">{target.primary_name}</span>
@@ -72,7 +68,7 @@ const SearchBar: Component = () => {
           </For>
         </div>
       </Show>
-    </form>
+    </div>
   );
 };
 

@@ -1,0 +1,122 @@
+<h2>AstroLog UI — Full Design Summary</h2>
+<p class="subtitle">Review all decisions before we write the spec</p>
+
+<div class="section">
+  <h3>Philosophy</h3>
+  <p style="color:#ccc;line-height:1.6">Full replacement of the current gallery-centric frontend with a <strong>data-first target aggregation dashboard</strong>. Thumbnails are de-emphasized — only shown in the detail drawer. The UI is an automated logbook for querying imaging sessions by target, equipment, filters, and arbitrary FITS metadata.</p>
+</div>
+
+<div class="section">
+  <h3>Two-Page Application</h3>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:12px">
+    <div class="mockup">
+      <div class="mockup-header">/ — Dashboard</div>
+      <div class="mockup-body" style="font-family:monospace;font-size:10px;line-height:1.5;background:#0a0a1a;color:#8888cc;padding:12px">
+<pre style="margin:0;color:inherit">
+┌────────────────────────────────────┐
+│ AstroLog    [Dashboard] [Admin]    │
+│ ∫423h  ⊕127  ▦48k  💾2.4TB        │
+├──────────┬─────────────────────────┤
+│ FILTERS  │ M31 — Andromeda  22.8h │
+│          │ Ha·13.6h OIII·5.7h     │
+│ Search   │ ┌─────────────────────┐│
+│ Dates    │ │ 2023-11-14 │ 7.9h  ││
+│ Ha OIII  │ │ 2023-11-08 │ 5.2h  ││
+│ SII L R  │ └─────────────────────┘│
+│ G B      │                        │
+│ Camera ▼ │ NGC 7000        14.2h  │
+│ Scope  ▼ │ SII·6.4h Ha·5.0h      │
+│ FITS QRY │                        │
+└──────────┴─────────────────────────┘
+</pre>
+      </div>
+    </div>
+    <div class="mockup">
+      <div class="mockup-header">/admin — Admin & Stats</div>
+      <div class="mockup-body" style="font-family:monospace;font-size:10px;line-height:1.5;background:#0a0a1a;color:#8888cc;padding:12px">
+<pre style="margin:0;color:inherit">
+┌────────────────────────────────────┐
+│ AstroLog    [Dashboard] [Admin]    │
+├────────────────────────────────────┤
+│ SCAN  [▶ Start]  Idle  Last: 3/20 │
+│ ████████████████░░░ 847/962       │
+├────────┬────────┬──────┬──────────┤
+│ 423.5h │ 127    │48,291│ 2.4 TB   │
+├────────┴────────┴──────┴──────────┤
+│ Equipment    │ Filter Usage       │
+│ ASI2600 32k  │ Ha    142h         │
+│ RC8    28k   │ OIII   98h         │
+├──────────────┴────────────────────┤
+│ Timeline ▄█▄▄█▄▄▄█▄▄▄            │
+├──────────────┬────────────────────┤
+│ Top Targets  │ Data Quality       │
+│ 1.M31  22.8h│ Avg HFR: 2.34     │
+│ 2.NGC7k 18h │ HFR dist ▁▃▆█▇▃▁  │
+├──────────────┴────────────────────┤
+│ Storage      │ Ingest History     │
+│ FITS: 2.3TB │ 3/20 +142 files    │
+│ DB:   1.2GB │ 3/15 +89 files     │
+└──────────────┴────────────────────┘
+</pre>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>Key Decisions</h3>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px">
+    <div style="background:#12122a;padding:12px;border-radius:8px;border-left:3px solid #4f7cff">
+      <div style="color:#4f7cff;font-size:11px;font-weight:600;margin-bottom:4px">LAYOUT</div>
+      <div style="color:#ccc;font-size:13px">Sidebar Filter + Feed</div>
+      <div style="color:#888;font-size:11px">Persistent left sidebar, scrollable target feed</div>
+    </div>
+    <div style="background:#12122a;padding:12px;border-radius:8px;border-left:3px solid #c44040">
+      <div style="color:#c44040;font-size:11px;font-weight:600;margin-bottom:4px">FILTER BARS</div>
+      <div style="color:#ccc;font-size:13px">Colored Pill Badges</div>
+      <div style="color:#888;font-size:11px">Ha·13.6h style, per optical filter</div>
+    </div>
+    <div style="background:#12122a;padding:12px;border-radius:8px;border-left:3px solid #50b050">
+      <div style="color:#50b050;font-size:11px;font-weight:600;margin-bottom:4px">SESSIONS</div>
+      <div style="color:#ccc;font-size:13px">Query-time groupings</div>
+      <div style="color:#888;font-size:11px">GROUP BY date+target, filtered dynamically</div>
+    </div>
+    <div style="background:#12122a;padding:12px;border-radius:8px;border-left:3px solid #d4a43a">
+      <div style="color:#d4a43a;font-size:11px;font-weight:600;margin-bottom:4px">API STRATEGY</div>
+      <div style="color:#ccc;font-size:13px">Evolve existing endpoints</div>
+      <div style="color:#888;font-size:11px">Extend /api/targets and add session detail</div>
+    </div>
+    <div style="background:#12122a;padding:12px;border-radius:8px;border-left:3px solid #3a8fd4">
+      <div style="color:#3a8fd4;font-size:11px;font-weight:600;margin-bottom:4px">QUALITY METRICS</div>
+      <div style="color:#ccc;font-size:13px">Dedicated columns</div>
+      <div style="color:#888;font-size:11px">median_hfr, eccentricity on images table</div>
+    </div>
+    <div style="background:#12122a;padding:12px;border-radius:8px;border-left:3px solid #e0e0e0">
+      <div style="color:#e0e0e0;font-size:11px;font-weight:600;margin-bottom:4px">REACTIVITY</div>
+      <div style="color:#ccc;font-size:13px">Immediate filter application</div>
+      <div style="color:#888;font-size:11px">No "Apply" button, FITS query on Enter</div>
+    </div>
+    <div style="background:#12122a;padding:12px;border-radius:8px;border-left:3px solid #9966cc">
+      <div style="color:#9966cc;font-size:11px;font-weight:600;margin-bottom:4px">ROUTING</div>
+      <div style="color:#ccc;font-size:13px">@solidjs/router</div>
+      <div style="color:#888;font-size:11px">/ (dashboard) and /admin (stats)</div>
+    </div>
+    <div style="background:#12122a;padding:12px;border-radius:8px;border-left:3px solid #cc6644">
+      <div style="color:#cc6644;font-size:11px;font-weight:600;margin-bottom:4px">SCAN + STATS</div>
+      <div style="color:#ccc;font-size:13px">Dedicated /admin page</div>
+      <div style="color:#888;font-size:11px">Dashboard grid with full analytics</div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>Backend Changes</h3>
+  <div style="color:#ccc;font-size:13px;line-height:1.8;background:#12122a;padding:16px;border-radius:8px;margin-top:8px">
+    <div><strong style="color:#4f7cff">Migration:</strong> Add median_hfr, eccentricity, telescope, camera columns to images table</div>
+    <div><strong style="color:#4f7cff">GET /api/targets:</strong> Full aggregation endpoint with all filter params → targets + nested sessions + aggregates</div>
+    <div><strong style="color:#4f7cff">GET /api/targets/{id}/sessions/{date}:</strong> Heavy detail for drawer (thumbnail, quality metrics, raw headers)</div>
+    <div><strong style="color:#4f7cff">GET /api/targets/equipment:</strong> Distinct cameras + telescopes for dropdown population</div>
+    <div><strong style="color:#4f7cff">GET /api/stats:</strong> New endpoint for admin page analytics (equipment inventory, filter usage, timeline, quality distributions, storage, ingest history)</div>
+    <div><strong style="color:#4f7cff">Ingest pipeline:</strong> Extract telescope (TELESCOP), camera (INSTRUME), HFR, eccentricity from FITS headers during ingest</div>
+  </div>
+</div>

@@ -71,6 +71,10 @@ def ingest_file(self, fits_path: str) -> dict:
                 sensor_temp=meta.get("sensor_temp"),
                 camera_gain=meta.get("camera_gain"),
                 image_type=meta.get("image_type"),
+                telescope=meta.get("telescope"),
+                camera=meta.get("camera"),
+                median_hfr=meta.get("median_hfr"),
+                eccentricity=meta.get("eccentricity"),
                 raw_headers=meta.get("raw_headers", {}),
             )
             session.add(image)
