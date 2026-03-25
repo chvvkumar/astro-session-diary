@@ -291,7 +291,7 @@ Returns all analytics data for the admin page in a single response.
 
 ### 4.3 Existing Endpoints
 
-`GET /api/images`, `GET /api/images/{id}`, `GET /api/images/filters/available` — **removed** once the new frontend is deployed. Not needed by the new UI.
+`GET /api/images`, `GET /api/images/{id}`, `GET /api/images/filters/available` — **removed as part of this plan** since the new frontend fully replaces the old one. The old image endpoints are dead code once the new target aggregation UI is deployed.
 
 `POST /api/scan`, `GET /api/scan/status` — **unchanged**, used by the admin page's ScanManager component.
 
@@ -319,10 +319,12 @@ In `worker/tasks.py` `ingest_file` task, extract additional fields from FITS hea
 |--------|----------------|-------|
 | `telescope` | `TELESCOP` | Telescope name string |
 | `camera` | `INSTRUME` | Camera/instrument name string |
-| `median_hfr` | `HFR` or similar | May vary by capture software (N.I.N.A. uses specific keys) |
-| `eccentricity` | `ECCENTRICITY` or similar | Same — software-dependent |
+| `median_hfr` | Try keys in order: `HFR`, `MEANFWHM`, `FWHM` | Leave null if none found. N.I.N.A. typically writes `HFR`. |
+| `eccentricity` | Try keys in order: `ECCENTRICITY`, `ELLIPTICITY` | Leave null if none found. |
 
 The existing `camera_gain` field already extracts `GAIN`. The new `camera` field extracts `INSTRUME` (the instrument/camera model name, distinct from gain).
+
+**Fallback strategy:** During ingest, attempt each key in the listed order. If none are present in the FITS header, store `null`. This is acceptable — quality metrics are optional display data, not filtering requirements.
 
 ---
 
