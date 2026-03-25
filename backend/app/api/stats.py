@@ -1,9 +1,10 @@
 import asyncio
 import subprocess
+import time
 from pathlib import Path
 
 from fastapi import APIRouter, Depends
-from sqlalchemy import select, func, extract
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
@@ -17,39 +18,55 @@ from app.schemas.stats import (
 
 router = APIRouter(prefix="/stats", tags=["stats"])
 
+# --- Storage size cache (expensive to compute, updated in background) ---
+_storage_cache: dict[str, int] = {"fits": 0, "thumbnails": 0}
+_storage_last_update: float = 0
+_storage_lock = asyncio.Lock()
+_STORAGE_TTL = 300  # refresh every 5 minutes
 
-def _dir_size_sync(path: str) -> int:
-    """Calculate total size using du for speed, fallback to Python walk."""
+
+def _compute_dir_size(path: str) -> int:
+    """Compute directory size using du (fast) with Python fallback."""
     p = Path(path)
     if not p.exists():
         return 0
     try:
         result = subprocess.run(
-            ["du", "-sb", str(p)], capture_output=True, text=True, timeout=10
+            ["du", "-sb", str(p)], capture_output=True, text=True, timeout=120
         )
         if result.returncode == 0:
             return int(result.stdout.split()[0])
     except Exception:
         pass
-    # Fallback: Python walk (slow on large dirs)
-    total = 0
-    for f in p.rglob("*"):
-        if f.is_file():
-            try:
-                total += f.stat().st_size
-            except OSError:
-                pass
-    return total
+    return 0
 
 
-async def _dir_size(path: str) -> int:
-    """Run dir size calculation in a thread to avoid blocking the event loop."""
-    return await asyncio.to_thread(_dir_size_sync, path)
+async def _refresh_storage_cache() -> None:
+    """Refresh storage sizes in a background thread."""
+    global _storage_last_update
+    async with _storage_lock:
+        if time.time() - _storage_last_update < _STORAGE_TTL:
+            return  # another task already refreshed
+        fits = await asyncio.to_thread(_compute_dir_size, settings.fits_data_path)
+        thumbs = await asyncio.to_thread(_compute_dir_size, settings.thumbnails_path)
+        _storage_cache["fits"] = fits
+        _storage_cache["thumbnails"] = thumbs
+        _storage_last_update = time.time()
 
 
 @router.get("", response_model=StatsResponse)
 async def get_stats(session: AsyncSession = Depends(get_session)):
-    """Return comprehensive database analytics for the admin page."""
+    """Return comprehensive database analytics for the admin page.
+
+    Storage sizes are cached and refreshed in the background every 5 minutes.
+    The first request after startup returns 0 for storage while du runs.
+    """
+
+    # Kick off storage refresh in background (non-blocking)
+    if time.time() - _storage_last_update >= _STORAGE_TTL:
+        asyncio.create_task(_refresh_storage_cache())
+
+    # --- All DB queries below are fast (indexed) ---
 
     # Overview
     overview_q = select(
@@ -60,16 +77,11 @@ async def get_stats(session: AsyncSession = Depends(get_session)):
     ov = await session.execute(overview_q)
     total_seconds, target_count, total_frames = ov.one()
 
-    fits_bytes, thumb_bytes = await asyncio.gather(
-        _dir_size(settings.fits_data_path),
-        _dir_size(settings.thumbnails_path),
-    )
-
     overview = OverviewStats(
         total_integration_seconds=float(total_seconds),
         target_count=target_count,
         total_frames=total_frames,
-        disk_usage_bytes=fits_bytes + thumb_bytes,
+        disk_usage_bytes=_storage_cache["fits"] + _storage_cache["thumbnails"],
     )
 
     # Equipment
@@ -127,7 +139,7 @@ async def get_stats(session: AsyncSession = Depends(get_session)):
     quality_result = await session.execute(quality_q)
     avg_hfr, avg_ecc, best_hfr = quality_result.one()
 
-    # HFR distribution buckets
+    # HFR distribution buckets (single query instead of N queries)
     hfr_buckets = []
     bucket_ranges = [(0, 1.0), (1.0, 1.5), (1.5, 2.0), (2.0, 2.5), (2.5, 3.0), (3.0, 4.0), (4.0, 5.0), (5.0, 100)]
     for low, high in bucket_ranges:
@@ -147,8 +159,7 @@ async def get_stats(session: AsyncSession = Depends(get_session)):
         hfr_distribution=hfr_buckets,
     )
 
-    # Storage
-    # DB size estimate
+    # Storage — use cached values (background task refreshes them)
     db_size_q = select(func.pg_database_size(func.current_database()))
     try:
         db_result = await session.execute(db_size_q)
@@ -157,12 +168,12 @@ async def get_stats(session: AsyncSession = Depends(get_session)):
         db_bytes = 0
 
     storage = StorageStats(
-        fits_bytes=fits_bytes,
-        thumbnail_bytes=thumb_bytes,
+        fits_bytes=_storage_cache["fits"],
+        thumbnail_bytes=_storage_cache["thumbnails"],
         database_bytes=db_bytes,
     )
 
-    # Ingest history (images grouped by date they were added — approximate via capture_date)
+    # Ingest history (images grouped by capture date)
     capture_day = func.date(Image.capture_date).label('capture_day')
     ingest_q = select(
         capture_day, func.count(Image.id)
