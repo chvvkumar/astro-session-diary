@@ -2,6 +2,7 @@ import re
 import uuid
 import statistics
 from collections import defaultdict
+from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select, or_, func, cast, Float, Date
@@ -244,8 +245,8 @@ async def get_session_detail(
             select(Image)
             .where(
                 Image.raw_headers["OBJECT"].astext == object_name,
-                Image.capture_date >= f"{date}T00:00:00",
-                Image.capture_date < f"{date}T23:59:59.999999",
+                Image.capture_date >= datetime.fromisoformat(date),
+                Image.capture_date < datetime.fromisoformat(date) + timedelta(days=1),
                 Image.image_type == "LIGHT",
             )
             .order_by(Image.capture_date)
@@ -264,8 +265,8 @@ async def get_session_detail(
             select(Image)
             .where(
                 Image.resolved_target_id == tid,
-                Image.capture_date >= f"{date}T00:00:00",
-                Image.capture_date < f"{date}T23:59:59.999999",
+                Image.capture_date >= datetime.fromisoformat(date),
+                Image.capture_date < datetime.fromisoformat(date) + timedelta(days=1),
                 Image.image_type == "LIGHT",
             )
             .order_by(Image.capture_date)
