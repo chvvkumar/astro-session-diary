@@ -179,7 +179,7 @@ if [ "$SETUP_BACKEND" = true ]; then
         echo "Example:  /docker/astro_cataloger"
         echo "          /data/astro"
         echo ""
-        ask_directory "Parent data folder" "" DATA_ROOT
+        ask_directory "Parent data folder" "/docker/astro_cataloger" DATA_ROOT
 
         FITS_PATH=""
         THUMBNAILS_PATH="${DATA_ROOT}/thumbnails"
