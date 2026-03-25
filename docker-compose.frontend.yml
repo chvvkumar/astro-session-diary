@@ -1,0 +1,9 @@
+services:
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: ${API_URL:-http://192.168.1.50:8000/api}
+    ports:
+      - "3000:80"
+    restart: unless-stopped
