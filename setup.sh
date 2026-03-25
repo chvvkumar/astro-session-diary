@@ -166,12 +166,16 @@ if [ "$SETUP_BACKEND" = true ]; then
         # loop back to ask again
     done
 
-    # Count FITS files (safe — never kills the script)
-    FITS_COUNT=$(find "$FITS_PATH" -maxdepth 3 -type f \( -iname '*.fits' -o -iname '*.fit' -o -iname '*.fts' \) 2>/dev/null | head -100 | wc -l || echo "0")
+    # Quick FITS file check (safe — never kills the script)
+    FITS_COUNT=$(find "$FITS_PATH" -type f \( -iname '*.fits' -o -iname '*.fit' -o -iname '*.fts' \) 2>/dev/null | head -100 | wc -l || echo "0")
     if [ "$FITS_COUNT" -gt 0 ] 2>/dev/null; then
-        success "Found FITS files in $FITS_PATH (at least $FITS_COUNT)"
+        if [ "$FITS_COUNT" -ge 100 ]; then
+            success "Found 100+ FITS files in $FITS_PATH"
+        else
+            success "Found $FITS_COUNT FITS file(s) in $FITS_PATH"
+        fi
     else
-        warn "No FITS files found in '$FITS_PATH' (searched 3 levels deep)."
+        warn "No FITS files found in '$FITS_PATH'."
         info "You can add files later; the scanner will pick them up."
     fi
 
