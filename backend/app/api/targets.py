@@ -76,8 +76,8 @@ async def list_targets_aggregated(
     fits_val: list[str] | None = Query(None),
 ):
     """Return targets with aggregated session data, filtered by query params."""
-    # Base query: only LIGHT frames with a resolved target
-    base_filter = [Image.image_type == "LIGHT", Image.resolved_target_id.isnot(None)]
+    # Base query: only LIGHT frames that have a known object name
+    base_filter = [Image.image_type == "LIGHT"]
 
     if camera:
         base_filter.append(Image.camera == camera)
@@ -92,10 +92,11 @@ async def list_targets_aggregated(
         base_filter.append(Image.capture_date <= date_to)
     if search:
         pattern = f"%{search}%"
+        # Search in target name OR OBJECT header for unresolved images
         base_filter.append(
             or_(
                 Target.primary_name.ilike(pattern),
-                Target.aliases.any(func.upper(search)),
+                Image.raw_headers["OBJECT"].astext.ilike(pattern),
             )
         )
 
@@ -120,27 +121,40 @@ async def list_targets_aggregated(
             elif op_str == "contains":
                 base_filter.append(json_field.ilike(f"%{val}%"))
 
-    # Query images joined with targets
+    # Query images with optional target join
     query = (
         select(Image, Target)
-        .join(Target, Image.resolved_target_id == Target.id)
+        .outerjoin(Target, Image.resolved_target_id == Target.id)
         .where(*base_filter)
-        .order_by(Target.primary_name, Image.capture_date.desc())
+        .order_by(Image.capture_date.desc())
     )
     result = await session.execute(query)
     rows = result.all()
 
     # Build target aggregations in Python
+    # Group by resolved target ID, or by OBJECT header name for unresolved images
     targets_map: dict[str, dict] = {}
     sessions_map: dict[str, dict[str, dict]] = defaultdict(dict)
 
     for image, target in rows:
-        tid = str(target.id)
+        # Determine grouping key: resolved target or OBJECT header
+        if target:
+            tid = str(target.id)
+            name = target.primary_name
+            aliases = target.aliases or []
+        else:
+            object_name = (image.raw_headers or {}).get("OBJECT")
+            if not object_name:
+                continue  # skip images with no object name at all
+            tid = f"obj:{object_name}"  # synthetic ID for unresolved objects
+            name = object_name
+            aliases = []
+
         if tid not in targets_map:
             targets_map[tid] = {
                 "target_id": tid,
-                "primary_name": target.primary_name,
-                "aliases": target.aliases or [],
+                "primary_name": name,
+                "aliases": aliases,
                 "total_integration_seconds": 0,
                 "total_frames": 0,
                 "filter_distribution": defaultdict(float),
