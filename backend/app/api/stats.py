@@ -1,4 +1,5 @@
-import os
+import asyncio
+import subprocess
 from pathlib import Path
 
 from fastapi import APIRouter, Depends
@@ -17,15 +18,33 @@ from app.schemas.stats import (
 router = APIRouter(prefix="/stats", tags=["stats"])
 
 
-def _dir_size(path: str) -> int:
-    """Calculate total size of files in a directory."""
-    total = 0
+def _dir_size_sync(path: str) -> int:
+    """Calculate total size using du for speed, fallback to Python walk."""
     p = Path(path)
-    if p.exists():
-        for f in p.rglob("*"):
-            if f.is_file():
+    if not p.exists():
+        return 0
+    try:
+        result = subprocess.run(
+            ["du", "-sb", str(p)], capture_output=True, text=True, timeout=10
+        )
+        if result.returncode == 0:
+            return int(result.stdout.split()[0])
+    except Exception:
+        pass
+    # Fallback: Python walk (slow on large dirs)
+    total = 0
+    for f in p.rglob("*"):
+        if f.is_file():
+            try:
                 total += f.stat().st_size
+            except OSError:
+                pass
     return total
+
+
+async def _dir_size(path: str) -> int:
+    """Run dir size calculation in a thread to avoid blocking the event loop."""
+    return await asyncio.to_thread(_dir_size_sync, path)
 
 
 @router.get("", response_model=StatsResponse)
@@ -41,8 +60,10 @@ async def get_stats(session: AsyncSession = Depends(get_session)):
     ov = await session.execute(overview_q)
     total_seconds, target_count, total_frames = ov.one()
 
-    fits_bytes = _dir_size(settings.fits_data_path)
-    thumb_bytes = _dir_size(settings.thumbnails_path)
+    fits_bytes, thumb_bytes = await asyncio.gather(
+        _dir_size(settings.fits_data_path),
+        _dir_size(settings.thumbnails_path),
+    )
 
     overview = OverviewStats(
         total_integration_seconds=float(total_seconds),
