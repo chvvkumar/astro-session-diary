@@ -135,36 +135,98 @@ if [ "$SETUP_BACKEND" = true ]; then
     ask "PostgreSQL password"  "astro"         PG_PASS
     ask "PostgreSQL database"  "astro_catalog" PG_DB
 
-    header "Host A — FITS Data Location"
+    header "Host A — Data Storage Locations"
 
-    echo "The worker needs read access to your FITS image files."
-    echo "Provide the absolute path on this machine to the root of your FITS library."
+    echo "The application needs three data directories:"
     echo ""
-    echo "Example:  /mnt/astro-data/fits"
-    echo "          /home/user/astrophotography"
+    echo "  1. FITS files     — your astrophotography images (read-only)"
+    echo "  2. Thumbnails     — generated JPEG previews"
+    echo "  3. Database       — PostgreSQL data files"
     echo ""
 
-    FITS_PATH=""
-    while true; do
-        ask "Path to FITS files on this host" "" FITS_PATH
+    # Helper to ask for a directory path and optionally create it
+    ask_directory() {
+        local prompt="$1"
+        local default="$2"
+        local var="$3"
+        local result=""
 
-        if [ -z "$FITS_PATH" ]; then
-            warn "Path cannot be empty."
-            continue
+        while true; do
+            ask "$prompt" "$default" result
+
+            if [ -z "$result" ]; then
+                warn "Path cannot be empty."
+                continue
+            fi
+
+            if [ -d "$result" ]; then
+                break
+            fi
+
+            warn "Directory '$result' does not exist."
+            if ask_yes_no "Create it?" "y"; then
+                mkdir -p "$result" || { error "Failed to create directory."; continue; }
+                success "Created $result"
+                break
+            fi
+        done
+
+        eval "$var=\"\$result\""
+    }
+
+    if ask_yes_no "Store all data under one parent folder?" "y"; then
+        echo ""
+        echo "Example:  /docker/astro_cataloger"
+        echo "          /data/astro"
+        echo ""
+        ask_directory "Parent data folder" "" DATA_ROOT
+
+        FITS_PATH=""
+        THUMBNAILS_PATH="${DATA_ROOT}/thumbnails"
+        PG_DATA_PATH="${DATA_ROOT}/postgres"
+
+        echo ""
+        echo "FITS files are read-only — they are typically on a separate drive or NAS."
+        echo ""
+        if ask_yes_no "Are your FITS files already somewhere else (not under ${DATA_ROOT})?" "y"; then
+            ask_directory "Path to FITS files" "" FITS_PATH
+        else
+            FITS_PATH="${DATA_ROOT}/fits"
         fi
 
-        if [ -d "$FITS_PATH" ]; then
-            break
+        # Create subdirectories
+        mkdir -p "$THUMBNAILS_PATH" 2>/dev/null || true
+        mkdir -p "$PG_DATA_PATH" 2>/dev/null || true
+        if [ -n "$FITS_PATH" ] && [ ! -d "$FITS_PATH" ]; then
+            mkdir -p "$FITS_PATH" 2>/dev/null || true
         fi
 
-        warn "Directory '$FITS_PATH' does not exist."
-        if ask_yes_no "Create it?" "n"; then
-            mkdir -p "$FITS_PATH" || { error "Failed to create directory."; continue; }
-            success "Created $FITS_PATH"
-            break
-        fi
-        # loop back to ask again
-    done
+        success "Data root: $DATA_ROOT"
+
+    else
+        echo ""
+        echo "Configure each path individually."
+        echo ""
+
+        # FITS files
+        echo "Your FITS image library (read-only access):"
+        ask_directory "Path to FITS files" "" FITS_PATH
+
+        # Thumbnails
+        echo ""
+        echo "Generated JPEG thumbnails (will grow as files are ingested):"
+        ask_directory "Thumbnails storage path" "" THUMBNAILS_PATH
+
+        # PostgreSQL
+        echo ""
+        echo "PostgreSQL database files:"
+        ask_directory "Database storage path" "" PG_DATA_PATH
+    fi
+
+    echo ""
+    success "FITS files:     $FITS_PATH"
+    success "Thumbnails:     $THUMBNAILS_PATH"
+    success "Database:       $PG_DATA_PATH"
 
     # Quick FITS file check (safe — never kills the script)
     FITS_COUNT=$(find "$FITS_PATH" -type f \( -iname '*.fits' -o -iname '*.fit' -o -iname '*.fts' \) 2>/dev/null | head -100 | wc -l || echo "0")
@@ -258,6 +320,8 @@ ASTRO_THUMBNAIL_MAX_WIDTH=${THUMB_WIDTH}
 
 # Host paths (mapped into containers)
 FITS_DATA_HOST_PATH=${FITS_PATH}
+THUMBNAILS_HOST_PATH=${THUMBNAILS_PATH}
+POSTGRES_DATA_HOST_PATH=${PG_DATA_PATH}
 ENVEOF
 
     success "Created $ENV_FILE"
@@ -372,7 +436,11 @@ ENVEOF
     echo "    FastAPI ............ http://localhost:${API_PORT}"
     echo "    Celery Worker ...... ${WORKER_CONCURRENCY} processes"
     echo ""
-    echo -e "  ${BOLD}FITS data:${NC}     $FITS_PATH"
+    echo -e "  ${BOLD}Data locations:${NC}"
+    echo "    FITS files ......... $FITS_PATH"
+    echo "    Thumbnails ......... $THUMBNAILS_PATH"
+    echo "    Database ........... $PG_DATA_PATH"
+    echo ""
     echo -e "  ${BOLD}API docs:${NC}      http://localhost:${API_PORT}/docs"
     echo -e "  ${BOLD}CORS origin:${NC}   $CORS_ORIGIN"
     echo ""

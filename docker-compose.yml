@@ -6,7 +6,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-astro}
       POSTGRES_DB: ${POSTGRES_DB:-astro_catalog}
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - ${POSTGRES_DATA_HOST_PATH:-postgres_data}:/var/lib/postgresql/data
     ports:
       - "5432:5432"
     healthcheck:
@@ -37,7 +37,7 @@ services:
       ASTRO_THUMBNAILS_PATH: /app/data/thumbnails
     volumes:
       - ./backend:/app
-      - thumbnails_data:/app/data/thumbnails
+      - ${THUMBNAILS_HOST_PATH:-thumbnails_data}:/app/data/thumbnails
       - ${FITS_DATA_HOST_PATH:-./sample_fits}:/app/data/fits:ro
     ports:
       - "8000:8000"
@@ -59,7 +59,7 @@ services:
       ASTRO_THUMBNAILS_PATH: /app/data/thumbnails
     volumes:
       - ./backend:/app
-      - thumbnails_data:/app/data/thumbnails
+      - ${THUMBNAILS_HOST_PATH:-thumbnails_data}:/app/data/thumbnails
       - ${FITS_DATA_HOST_PATH:-./sample_fits}:/app/data/fits:ro
     depends_on:
       postgres:
@@ -68,5 +68,7 @@ services:
         condition: service_healthy
 
 volumes:
+  # Named volumes used as fallbacks when host paths are not set in .env
+  # When POSTGRES_DATA_HOST_PATH / THUMBNAILS_HOST_PATH are set, bind mounts are used instead
   postgres_data:
   thumbnails_data:
