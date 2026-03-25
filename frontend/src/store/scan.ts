@@ -27,11 +27,19 @@ export function useScan() {
     pollStatus: () => {
       if (pollInterval) return;
       pollInterval = setInterval(async () => {
-        const status = await api.getScanStatus();
-        setScanStatus(status);
-        if (!status.running && pollInterval) {
-          clearInterval(pollInterval);
-          pollInterval = null;
+        try {
+          const status = await api.getScanStatus();
+          setScanStatus(status);
+          if (!status.running && pollInterval) {
+            clearInterval(pollInterval);
+            pollInterval = null;
+          }
+        } catch {
+          // Network error — stop polling
+          if (pollInterval) {
+            clearInterval(pollInterval);
+            pollInterval = null;
+          }
         }
       }, 2000);
     },

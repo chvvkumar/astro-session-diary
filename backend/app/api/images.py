@@ -50,7 +50,9 @@ async def list_images(
         query = query.join(Target).where(Target.primary_name.ilike(f"%{target_name}%"))
         count_query = count_query.join(Target).where(Target.primary_name.ilike(f"%{target_name}%"))
     if header_key and header_value:
-        # JSONB containment query
+        import re
+        if not re.match(r'^[A-Z0-9_-]{1,8}$', header_key):
+            raise HTTPException(status_code=400, detail="Invalid FITS header key format")
         query = query.where(Image.raw_headers[header_key].astext == header_value)
         count_query = count_query.where(Image.raw_headers[header_key].astext == header_value)
 

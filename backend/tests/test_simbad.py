@@ -5,8 +5,8 @@ from app.services.simbad import resolve_target_name, normalize_object_name
 
 
 def test_normalize_object_name():
-    assert normalize_object_name("m 31") == "M31"
-    assert normalize_object_name("  ngc  224 ") == "NGC224"
+    assert normalize_object_name("m 31") == "M 31"
+    assert normalize_object_name("  ngc  224 ") == "NGC 224"
     assert normalize_object_name("IC1396") == "IC1396"
     assert normalize_object_name("Andromeda Galaxy") == "ANDROMEDA GALAXY"
 

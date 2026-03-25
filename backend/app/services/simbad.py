@@ -10,8 +10,8 @@ SIMBAD_TAP_URL = "https://simbad.u-strasbg.fr/simbad/sim-id"
 
 
 def normalize_object_name(name: str) -> str:
-    """Normalize a target name: strip whitespace, uppercase, collapse spaces."""
-    cleaned = re.sub(r"\s+", "", name.strip()).upper()
+    """Normalize a target name: strip outer whitespace, uppercase, collapse inner spaces."""
+    cleaned = re.sub(r"\s+", " ", name.strip()).upper()
     return cleaned
 
 
