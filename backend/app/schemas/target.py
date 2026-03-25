@@ -31,7 +31,7 @@ class SessionSummary(BaseModel):
 
 
 class TargetAggregation(BaseModel):
-    target_id: uuid.UUID
+    target_id: str
     primary_name: str
     aliases: list[str] = []
     total_integration_seconds: float
