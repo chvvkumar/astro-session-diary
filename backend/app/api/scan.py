@@ -12,7 +12,7 @@ from app.services.scanner import scan_directory
 from app.services.scan_state import (
     get_scan_state, start_scanning, set_ingesting, set_idle,
 )
-from app.worker.tasks import ingest_file
+from app.worker.tasks import ingest_file, regenerate_thumbnail
 
 router = APIRouter(prefix="/scan", tags=["scan"])
 
@@ -56,6 +56,43 @@ async def trigger_scan(
             "status": "ingesting",
             "new_files_queued": len(new_files),
             "already_known": len(known_paths),
+        }
+    finally:
+        await r.aclose()
+
+
+@router.post("/regenerate-thumbnails")
+async def regenerate_thumbnails(
+    session: AsyncSession = Depends(get_session),
+):
+    """Queue all existing images for thumbnail regeneration."""
+    r = get_async_redis()
+    try:
+        state = await get_scan_state(r)
+        if state.state in ("scanning", "ingesting"):
+            return {"status": "already_running", **state.to_dict()}
+
+        await start_scanning(r)
+
+        result = await session.execute(
+            select(Image.id, Image.file_path, Image.thumbnail_path)
+        )
+        rows = result.all()
+
+        if not rows:
+            await set_idle(r)
+            return {"status": "complete", "queued": 0}
+
+        await set_ingesting(r, total=len(rows))
+
+        for image_id, file_path, thumb_path in rows:
+            if file_path and thumb_path:
+                regenerate_thumbnail.delay(str(image_id), file_path, thumb_path)
+
+        return {
+            "status": "ingesting",
+            "queued": len(rows),
+            "message": "Regenerating all thumbnails with MTF stretch",
         }
     finally:
         await r.aclose()

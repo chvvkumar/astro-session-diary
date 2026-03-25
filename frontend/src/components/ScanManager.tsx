@@ -2,7 +2,7 @@ import { Component, Show, createSignal, onCleanup } from "solid-js";
 import { useScan } from "../store/scan";
 
 const ScanManager: Component = () => {
-  const { scanStatus, scanError, isActive, startScan, stopPolling } = useScan();
+  const { scanStatus, scanError, isActive, startScan, startRegeneration, stopPolling } = useScan();
   const [expanded, setExpanded] = createSignal(false);
 
   onCleanup(stopPolling);
@@ -46,13 +46,22 @@ const ScanManager: Component = () => {
     <div class="bg-astro-panel rounded-lg p-4 space-y-3">
       <div class="flex justify-between items-center">
         <h3 class="text-white font-medium">Scan & Ingest</h3>
-        <button
-          onClick={() => startScan()}
-          disabled={isActive()}
-          class="px-4 py-1.5 bg-astro-accent text-white rounded text-sm font-medium disabled:opacity-50 hover:bg-astro-accent/80 transition-colors"
-        >
-          {isActive() ? "Scanning..." : "Scan Directory"}
-        </button>
+        <div class="flex gap-2">
+          <button
+            onClick={() => startRegeneration()}
+            disabled={isActive()}
+            class="px-3 py-1.5 border border-[#2d2d2d] text-astro-muted rounded text-sm disabled:opacity-50 hover:text-white hover:border-astro-accent transition-colors"
+          >
+            Regen Thumbnails
+          </button>
+          <button
+            onClick={() => startScan()}
+            disabled={isActive()}
+            class="px-4 py-1.5 bg-astro-accent text-white rounded text-sm font-medium disabled:opacity-50 hover:bg-astro-accent/80 transition-colors"
+          >
+            {isActive() ? "Scanning..." : "Scan Directory"}
+          </button>
+        </div>
       </div>
 
       <Show when={scanError()}>

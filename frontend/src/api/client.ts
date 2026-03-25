@@ -62,6 +62,9 @@ export const api = {
   getScanStatus: () =>
     fetchJson<ScanStatus>("/scan/status"),
 
+  regenerateThumbnails: () =>
+    fetchJson<ScanResult>("/scan/regenerate-thumbnails", { method: "POST" }),
+
   thumbnailUrl: (path: string) => {
     const base = import.meta.env.VITE_API_URL?.replace("/api", "") || "http://localhost:8000";
     const filename = path.split("/").pop();

@@ -90,6 +90,24 @@ def ingest_file(self, fits_path: str) -> dict:
         raise self.retry(exc=exc)
 
 
+@celery_app.task(bind=True, max_retries=3, default_retry_delay=10)
+def regenerate_thumbnail(self, image_id: str, fits_path: str, thumb_path: str) -> dict:
+    """Regenerate a single thumbnail using the current stretch algorithm."""
+    path = Path(fits_path)
+    output = Path(thumb_path)
+    logger.info("Regenerating thumbnail: %s", path.name)
+
+    try:
+        generate_thumbnail(path, output, max_width=settings.thumbnail_max_width)
+        increment_completed_sync(_redis)
+        return {"file": str(path), "status": "ok"}
+    except Exception as exc:
+        logger.error("Failed to regenerate thumbnail for %s: %s", path, exc)
+        if self.request.retries >= self.max_retries:
+            increment_failed_sync(_redis)
+        raise self.retry(exc=exc)
+
+
 def _resolve_or_cache_target(object_name: str) -> str | None:
     """Check local DB for target, fall back to SIMBAD, cache result."""
     import asyncio

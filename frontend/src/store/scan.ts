@@ -75,6 +75,16 @@ export function useScan() {
       startPolling();
     },
 
+    startRegeneration: async () => {
+      setScanError(null);
+      try {
+        await api.regenerateThumbnails();
+      } catch {
+        // POST may timeout but regeneration still starts server-side
+      }
+      startPolling();
+    },
+
     stopPolling,
   };
 }
