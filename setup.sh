@@ -8,7 +8,10 @@
 #
 # Run:  bash setup.sh
 # ──────────────────────────────────────────────────────────────────────────────
-set -euo pipefail
+set -uo pipefail
+# NOTE: We do NOT use `set -e` globally. Commands that are allowed to fail use
+# explicit `|| true` guards, and critical commands check $? manually. This
+# avoids silent exits mid-script that confuse the user.
 
 # ── Colors & helpers ─────────────────────────────────────────────────────────
 RED='\033[0;31m'
@@ -25,22 +28,31 @@ error()   { echo -e "${RED}✖${NC}  $*"; }
 header()  { echo -e "\n${BOLD}━━━ $* ━━━${NC}\n"; }
 
 ask() {
-    local prompt="$1" default="$2" var="$3"
+    local prompt="$1"
+    local default="${2:-}"
+    local var="$3"
+    local value=""
     if [ -n "$default" ]; then
         read -rp "$(echo -e "${CYAN}?${NC}  ${prompt} [${default}]: ")" value
-        eval "$var=\"${value:-$default}\""
+        value="${value:-$default}"
     else
         read -rp "$(echo -e "${CYAN}?${NC}  ${prompt}: ")" value
-        eval "$var=\"$value\""
     fi
+    eval "$var=\"\$value\""
 }
 
 ask_yes_no() {
-    local prompt="$1" default="${2:-y}"
-    local yn
+    local prompt="$1"
+    local default="${2:-y}"
+    local yn=""
     read -rp "$(echo -e "${CYAN}?${NC}  ${prompt} [${default}]: ")" yn
     yn="${yn:-$default}"
     [[ "$yn" =~ ^[Yy] ]]
+}
+
+die() {
+    error "$@"
+    exit 1
 }
 
 # ── Pre-flight checks ───────────────────────────────────────────────────────
@@ -50,24 +62,13 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 info "Working directory: $SCRIPT_DIR"
 
-if ! command -v docker &>/dev/null; then
-    error "Docker is not installed. Please install Docker first."
-    echo "  https://docs.docker.com/get-docker/"
-    exit 1
-fi
+command -v docker &>/dev/null || die "Docker is not installed. See https://docs.docker.com/get-docker/"
 success "Docker found: $(docker --version)"
 
-if ! docker compose version &>/dev/null; then
-    error "Docker Compose (v2) is not available."
-    echo "  Ensure you have 'docker compose' (not the old docker-compose)."
-    exit 1
-fi
+docker compose version &>/dev/null || die "Docker Compose v2 not available. Ensure 'docker compose' works."
 success "Docker Compose found: $(docker compose version --short)"
 
-if ! docker info &>/dev/null 2>&1; then
-    error "Docker daemon is not running. Please start Docker and try again."
-    exit 1
-fi
+docker info &>/dev/null 2>&1 || die "Docker daemon is not running. Please start Docker and try again."
 success "Docker daemon is running"
 
 # ── Choose what to set up ────────────────────────────────────────────────────
@@ -94,22 +95,18 @@ echo "  3) Both on this machine"
 echo ""
 read -rp "$(echo -e "${CYAN}?${NC}  Choose [1/2/3]: ")" DEPLOY_CHOICE
 
-case "$DEPLOY_CHOICE" in
+case "${DEPLOY_CHOICE:-}" in
     1) SETUP_BACKEND=true ;;
     2) SETUP_FRONTEND=true ;;
     3) SETUP_BACKEND=true; SETUP_FRONTEND=true ;;
-    *)
-        error "Invalid choice. Please run the script again."
-        exit 1
-        ;;
+    *) die "Invalid choice. Please run the script again." ;;
 esac
 
 # ── Detect this machine's LAN IP ────────────────────────────────────────────
 detect_lan_ip() {
-    # Try common methods to find a non-loopback IPv4 address
     local ip=""
     if command -v ip &>/dev/null; then
-        ip=$(ip -4 route get 1.1.1.1 2>/dev/null | grep -oP 'src \K[\d.]+' || true)
+        ip=$(ip -4 route get 1.1.1.1 2>/dev/null | sed -n 's/.*src \([0-9.]*\).*/\1/p' || true)
     fi
     if [ -z "$ip" ] && command -v hostname &>/dev/null; then
         ip=$(hostname -I 2>/dev/null | awk '{print $1}' || true)
@@ -121,6 +118,11 @@ detect_lan_ip() {
 }
 
 HOST_IP=$(detect_lan_ip)
+
+# Initialise variables that may be referenced across sections
+BACKEND_URL=""
+API_PORT=""
+FE_PORT=""
 
 # ══════════════════════════════════════════════════════════════════════════════
 #   HOST A — Backend Setup
@@ -140,22 +142,33 @@ if [ "$SETUP_BACKEND" = true ]; then
     echo ""
     echo "Example:  /mnt/astro-data/fits"
     echo "          /home/user/astrophotography"
-    echo "          D:/AstroImages (on Windows via Docker Desktop)"
     echo ""
-    ask "Path to FITS files on this host" "" FITS_PATH
 
-    while [ ! -d "$FITS_PATH" ]; do
+    FITS_PATH=""
+    while true; do
+        ask "Path to FITS files on this host" "" FITS_PATH
+
+        if [ -z "$FITS_PATH" ]; then
+            warn "Path cannot be empty."
+            continue
+        fi
+
+        if [ -d "$FITS_PATH" ]; then
+            break
+        fi
+
         warn "Directory '$FITS_PATH' does not exist."
         if ask_yes_no "Create it?" "n"; then
-            mkdir -p "$FITS_PATH"
+            mkdir -p "$FITS_PATH" || { error "Failed to create directory."; continue; }
             success "Created $FITS_PATH"
-        else
-            ask "Path to FITS files on this host" "" FITS_PATH
+            break
         fi
+        # loop back to ask again
     done
 
-    FITS_COUNT=$(find "$FITS_PATH" -maxdepth 3 -type f \( -iname '*.fits' -o -iname '*.fit' -o -iname '*.fts' \) 2>/dev/null | head -100 | wc -l)
-    if [ "$FITS_COUNT" -gt 0 ]; then
+    # Count FITS files (safe — never kills the script)
+    FITS_COUNT=$(find "$FITS_PATH" -maxdepth 3 -type f \( -iname '*.fits' -o -iname '*.fit' -o -iname '*.fts' \) 2>/dev/null | head -100 | wc -l || echo "0")
+    if [ "$FITS_COUNT" -gt 0 ] 2>/dev/null; then
         success "Found FITS files in $FITS_PATH (at least $FITS_COUNT)"
     else
         warn "No FITS files found in '$FITS_PATH' (searched 3 levels deep)."
@@ -195,7 +208,7 @@ if [ "$SETUP_BACKEND" = true ]; then
 
     ENV_FILE="$SCRIPT_DIR/.env"
 
-    cat > "$ENV_FILE" <<EOF
+    cat > "$ENV_FILE" <<ENVEOF
 # ──────────────────────────────────────────────────────────────
 # Astro FITS Cataloger — Host A Environment
 # Generated by setup.sh on $(date -u +"%Y-%m-%d %H:%M:%S UTC")
@@ -216,7 +229,7 @@ ASTRO_THUMBNAIL_MAX_WIDTH=${THUMB_WIDTH}
 
 # Host paths (mapped into containers)
 FITS_DATA_HOST_PATH=${FITS_PATH}
-EOF
+ENVEOF
 
     success "Created $ENV_FILE"
 
@@ -227,7 +240,6 @@ EOF
     fi
 
     # ── Update docker-compose env vars to use .env credentials ───────────────
-    # The docker-compose.yml has hardcoded astro:astro — update if user changed them
     if [ "$PG_USER" != "astro" ] || [ "$PG_PASS" != "astro" ] || [ "$PG_DB" != "astro_catalog" ]; then
         DB_URL="postgresql+asyncpg://${PG_USER}:${PG_PASS}@postgres:5432/${PG_DB}"
         sed -i "s|postgresql+asyncpg://astro:astro@postgres:5432/astro_catalog|${DB_URL}|g" "$SCRIPT_DIR/docker-compose.yml"
@@ -238,7 +250,9 @@ EOF
     header "Host A — Building Containers"
 
     info "Building backend Docker images (this may take a few minutes on first run)..."
-    docker compose build api worker
+    if ! docker compose build api worker; then
+        die "Docker build failed. Check the output above for errors."
+    fi
 
     success "Build complete!"
 
@@ -248,8 +262,10 @@ EOF
     docker compose up -d postgres redis
 
     echo -n "  Waiting for PostgreSQL"
+    PG_READY=false
     for i in $(seq 1 30); do
         if docker compose exec -T postgres pg_isready -U "$PG_USER" &>/dev/null; then
+            PG_READY=true
             break
         fi
         echo -n "."
@@ -257,20 +273,17 @@ EOF
     done
     echo ""
 
-    if docker compose exec -T postgres pg_isready -U "$PG_USER" &>/dev/null; then
+    if [ "$PG_READY" = true ]; then
         success "PostgreSQL is ready"
     else
-        error "PostgreSQL failed to start within 30 seconds."
-        echo "  Check logs: docker compose logs postgres"
-        exit 1
+        die "PostgreSQL failed to start within 30 seconds.\n  Check logs: docker compose logs postgres"
     fi
 
-    if docker compose exec -T redis redis-cli ping 2>/dev/null | grep -q PONG; then
+    REDIS_PONG=$(docker compose exec -T redis redis-cli ping 2>/dev/null || true)
+    if echo "$REDIS_PONG" | grep -q "PONG" 2>/dev/null; then
         success "Redis is ready"
     else
-        error "Redis failed to start."
-        echo "  Check logs: docker compose logs redis"
-        exit 1
+        die "Redis failed to start.\n  Check logs: docker compose logs redis"
     fi
 
     # ── Run Alembic migrations ───────────────────────────────────────────────
@@ -278,18 +291,13 @@ EOF
 
     info "Generating and running database migrations..."
 
-    # Generate initial migration inside the API container
-    docker compose run --rm -T api bash -c "
-        cd /app && \
-        alembic revision --autogenerate -m 'initial schema: targets and images' 2>&1 && \
-        alembic upgrade head 2>&1
-    "
-
-    if [ $? -eq 0 ]; then
+    if docker compose run --rm -T api bash -c \
+        "cd /app && alembic revision --autogenerate -m 'initial schema: targets and images' 2>&1 && alembic upgrade head 2>&1"; then
         success "Database schema created successfully"
     else
         warn "Migration had issues. You may need to run manually:"
-        echo "  docker compose exec api alembic upgrade head"
+        echo "  docker compose run --rm api alembic revision --autogenerate -m 'initial'"
+        echo "  docker compose run --rm api alembic upgrade head"
     fi
 
     # ── Start API and Worker ─────────────────────────────────────────────────
@@ -299,8 +307,10 @@ EOF
     docker compose up -d api worker
 
     echo -n "  Waiting for API"
+    API_READY=false
     for i in $(seq 1 20); do
         if curl -sf "http://localhost:${API_PORT}/api/scan/status" &>/dev/null; then
+            API_READY=true
             break
         fi
         echo -n "."
@@ -308,7 +318,7 @@ EOF
     done
     echo ""
 
-    if curl -sf "http://localhost:${API_PORT}/api/scan/status" &>/dev/null; then
+    if [ "$API_READY" = true ]; then
         success "API is responding at http://localhost:${API_PORT}"
     else
         warn "API not responding yet. It may still be starting up."
@@ -316,8 +326,8 @@ EOF
     fi
 
     # ── Verify worker ────────────────────────────────────────────────────────
-    WORKER_STATUS=$(docker compose ps worker --format '{{.Status}}' 2>/dev/null || true)
-    if echo "$WORKER_STATUS" | grep -qi "up"; then
+    WORKER_STATUS=$(docker compose ps worker --format '{{.Status}}' 2>/dev/null || echo "unknown")
+    if echo "$WORKER_STATUS" | grep -qi "up" 2>/dev/null; then
         success "Celery worker is running (concurrency=$WORKER_CONCURRENCY)"
     else
         warn "Worker may still be starting."
@@ -349,9 +359,11 @@ EOF
         info "Scanning $FITS_PATH for FITS files..."
         SCAN_RESULT=$(curl -sf -X POST "http://localhost:${API_PORT}/api/scan" 2>/dev/null || true)
         if [ -n "$SCAN_RESULT" ]; then
-            NEW_FILES=$(echo "$SCAN_RESULT" | grep -oP '"new_files_queued":\s*\K\d+' || echo "0")
+            # Extract new_files_queued — works with grep -o (no PCRE needed)
+            NEW_FILES=$(echo "$SCAN_RESULT" | sed -n 's/.*"new_files_queued"[[:space:]]*:[[:space:]]*\([0-9]*\).*/\1/p' || echo "0")
+            NEW_FILES="${NEW_FILES:-0}"
             success "Scan complete! Queued $NEW_FILES files for processing."
-            if [ "$NEW_FILES" -gt 0 ]; then
+            if [ "$NEW_FILES" -gt 0 ] 2>/dev/null; then
                 info "The worker is now ingesting files in the background."
                 echo "  Watch progress: docker compose logs -f worker"
             fi
@@ -371,8 +383,7 @@ if [ "$SETUP_FRONTEND" = true ]; then
 
     header "Host B — Frontend Configuration"
 
-    if [ "$SETUP_BACKEND" = true ]; then
-        # Both on same machine — reuse values
+    if [ "$SETUP_BACKEND" = true ] && [ -n "$BACKEND_URL" ]; then
         info "Using backend URL from Host A setup: ${BACKEND_URL}/api"
         API_URL="${BACKEND_URL}/api"
     else
@@ -391,8 +402,10 @@ if [ "$SETUP_FRONTEND" = true ]; then
     info "Building frontend with API URL: $API_URL"
     info "This compiles the SolidJS app and packages it with Nginx..."
 
-    API_URL="$API_URL" docker compose -f docker-compose.frontend.yml build \
-        --build-arg "VITE_API_URL=$API_URL"
+    if ! API_URL="$API_URL" docker compose -f docker-compose.frontend.yml build \
+        --build-arg "VITE_API_URL=$API_URL"; then
+        die "Frontend build failed. Check the output above for errors."
+    fi
 
     success "Frontend build complete!"
 
@@ -406,8 +419,10 @@ if [ "$SETUP_FRONTEND" = true ]; then
     docker compose -f docker-compose.frontend.yml up -d
 
     echo -n "  Waiting for Nginx"
+    FE_READY=false
     for i in $(seq 1 15); do
         if curl -sf "http://localhost:${FE_PORT}/" &>/dev/null; then
+            FE_READY=true
             break
         fi
         echo -n "."
@@ -415,10 +430,11 @@ if [ "$SETUP_FRONTEND" = true ]; then
     done
     echo ""
 
-    if curl -sf "http://localhost:${FE_PORT}/" &>/dev/null; then
+    if [ "$FE_READY" = true ]; then
         success "Frontend is serving at http://localhost:${FE_PORT}"
     else
-        warn "Frontend not responding yet. Check: docker compose -f docker-compose.frontend.yml logs"
+        warn "Frontend not responding yet."
+        echo "  Check: docker compose -f docker-compose.frontend.yml logs"
     fi
 
     header "Host B — Setup Complete!"
@@ -433,13 +449,12 @@ if [ "$SETUP_FRONTEND" = true ]; then
     echo ""
 
     # Verify API connectivity from frontend's perspective
-    API_BASE="${API_URL%/api}"
     if curl -sf "${API_URL}/scan/status" &>/dev/null; then
         success "Frontend can reach the API at $API_URL"
     else
         warn "Cannot reach API at $API_URL from this machine."
-        echo "  Make sure Host A is running and the firewall allows port ${API_URL##*:}"
-        echo "  The frontend will still load, but won't show data until the API is reachable."
+        echo "  Make sure Host A is running and the firewall allows traffic."
+        echo "  The frontend will load, but won't show data until the API is reachable."
     fi
 
 fi  # end SETUP_FRONTEND
@@ -461,11 +476,11 @@ elif [ "$SETUP_BACKEND" = true ]; then
     echo "  Host A is ready. Now run this script on Host B to set up the frontend,"
     echo "  or run it again here and choose option 2."
     echo ""
-    echo "  The frontend will need this API URL: ${BOLD}${BACKEND_URL}/api${NC}"
+    echo -e "  The frontend will need this API URL: ${BOLD}${BACKEND_URL}/api${NC}"
     echo ""
 elif [ "$SETUP_FRONTEND" = true ]; then
     echo "  Host B is ready and serving the frontend."
-    echo "  Make sure Host A is running at: ${BOLD}${API_URL}${NC}"
+    echo -e "  Make sure Host A is running at: ${BOLD}${API_URL:-unknown}${NC}"
     echo ""
 fi
 
