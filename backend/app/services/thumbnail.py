@@ -65,7 +65,8 @@ def _stretch_channel(data: np.ndarray) -> np.ndarray:
     normed = (data - shadows) / scale
     normed = np.clip(normed, 0.0, 1.0)
 
-    # For uniform images (all zeros after normalization), return mid-grey
+    # Uniform images: after _normalize_to_unit, all pixels become 0.
+    # MTF(0, m) = 0 for any m, so return mid-grey directly instead.
     if mad == 0:
         return np.full(data.shape, 128, dtype=np.uint8)
 
@@ -75,7 +76,11 @@ def _stretch_channel(data: np.ndarray) -> np.ndarray:
 
 
 def _normalize_to_unit(data: np.ndarray) -> np.ndarray:
-    """Normalize a 2D array to [0, 1] range based on its min/max."""
+    """Normalize a 2D array to [0, 1] range based on its min/max.
+
+    Required because raw FITS ADU values can be in the thousands;
+    the MTF shadows/midtone math expects [0, 1] input.
+    """
     dmin = float(np.min(data))
     dmax = float(np.max(data))
     if dmax > dmin:
