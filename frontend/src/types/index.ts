@@ -18,6 +18,7 @@ export interface Image {
   filter_used: string | null;
   sensor_temp: number | null;
   camera_gain: number | null;
+  image_type: string | null;
   raw_headers: Record<string, unknown> | null;
 }
 
@@ -53,6 +54,7 @@ export interface ScanStatus {
 export interface ImageFilters {
   target_name?: string;
   filter_used?: string;
+  image_type?: string;
   date_from?: string;
   date_to?: string;
   min_exposure?: number;

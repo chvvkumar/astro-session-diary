@@ -25,6 +25,7 @@ class Image(Base):
     filter_used: Mapped[str | None] = mapped_column(String(50), nullable=True)
     sensor_temp: Mapped[float | None] = mapped_column(Float, nullable=True)
     camera_gain: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    image_type: Mapped[str | None] = mapped_column(String(20), nullable=True)
 
     # Complete raw FITS headers as JSONB
     raw_headers: Mapped[dict | None] = mapped_column(JSONB, nullable=True, default=dict)
@@ -35,5 +36,6 @@ class Image(Base):
         Index("ix_images_capture_date", "capture_date"),
         Index("ix_images_filter_used", "filter_used"),
         Index("ix_images_resolved_target_id", "resolved_target_id"),
+        Index("ix_images_image_type", "image_type"),
         Index("ix_images_raw_headers", "raw_headers", postgresql_using="gin"),
     )

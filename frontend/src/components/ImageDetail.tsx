@@ -4,12 +4,12 @@ import { api } from "../api/client";
 import HeaderTable from "./HeaderTable";
 
 const ImageDetail: Component = () => {
-  const { selectedImage, setSelectedImageId } = useCatalog();
+  const { selectedImage, selectedImageId, setSelectedImageId } = useCatalog();
 
   const close = () => setSelectedImageId(null);
 
   return (
-    <Show when={selectedImage()}>
+    <Show when={selectedImageId() && selectedImage()}>
       {(detail) => (
         <div
           class="fixed inset-0 z-50 flex items-center justify-center bg-black/80"
@@ -51,17 +51,28 @@ const ImageDetail: Component = () => {
                   <MetaField label="Object Type" value={detail().target?.object_type} />
                   <MetaField label="Filter" value={detail().filter_used} />
                   <MetaField label="Exposure" value={detail().exposure_time ? `${detail().exposure_time}s` : null} />
-                  <MetaField label="Sensor Temp" value={detail().sensor_temp ? `${detail().sensor_temp}°C` : null} />
-                  <MetaField label="Gain" value={detail().camera_gain?.toString()} />
+                  <MetaField label="Sensor Temp" value={detail().sensor_temp != null ? `${detail().sensor_temp}°C` : null} />
+                  <MetaField label="Gain" value={detail().camera_gain != null ? String(detail().camera_gain) : null} />
                   <MetaField
                     label="Captured"
                     value={detail().capture_date ? new Date(detail().capture_date!).toLocaleString() : null}
                   />
-                  <MetaField label="RA / Dec" value={
-                    detail().target?.ra != null
-                      ? `${detail().target!.ra!.toFixed(4)} / ${detail().target!.dec!.toFixed(4)}`
-                      : null
-                  } />
+                  <MetaField label="RA / Dec" value={(() => {
+                    if (detail().target?.ra != null) {
+                      return `${detail().target!.ra!.toFixed(4)} / ${detail().target!.dec!.toFixed(4)}`;
+                    }
+                    const ra = detail().raw_headers?.RA;
+                    const dec = detail().raw_headers?.DEC;
+                    if (ra != null && dec != null) {
+                      return `${Number(ra).toFixed(4)} / ${Number(dec).toFixed(4)}`;
+                    }
+                    const objRa = detail().raw_headers?.OBJCTRA;
+                    const objDec = detail().raw_headers?.OBJCTDEC;
+                    if (objRa && objDec) {
+                      return `${objRa} / ${objDec}`;
+                    }
+                    return null;
+                  })()} />
                 </div>
 
                 <div class="text-xs text-astro-muted break-all">

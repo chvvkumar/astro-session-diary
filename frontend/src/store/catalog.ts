@@ -8,7 +8,7 @@ const defaultFilters: ImageFilters = {
 };
 
 const [filters, setFilters] = createSignal<ImageFilters>({ ...defaultFilters });
-const [imageList] = createResource(filters, (f) => api.listImages(f));
+const [imageList, { refetch: refetchImages }] = createResource(filters, (f) => api.listImages(f));
 
 const [selectedImageId, setSelectedImageId] = createSignal<string | null>(null);
 const [selectedImage] = createResource(selectedImageId, (id) =>
@@ -41,5 +41,7 @@ export function useCatalog() {
     },
 
     resetFilters: () => setFilters({ ...defaultFilters }),
+
+    refetchImages,
   };
 }

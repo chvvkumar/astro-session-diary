@@ -5,7 +5,12 @@
       "Bash(git commit:*)",
       "Bash(npm run:*)",
       "Bash(git log:*)",
-      "Bash(chmod +x c:/Users/Kumar/git/astro-session-diary/setup.sh)"
+      "Bash(chmod +x c:/Users/Kumar/git/astro-session-diary/setup.sh)",
+      "Bash(curl -s http://192.168.1.161:8000/api/scan/status)",
+      "Bash(curl -sf --connect-timeout 5 http://192.168.1.161:8000/api/scan/status)",
+      "Bash(curl -sf --connect-timeout 5 \"http://192.168.1.161:8000/api/images?page=1&page_size=1\")",
+      "Bash(curl -sf --connect-timeout 5 -o /dev/null -w \"%{http_code}\" \"http://192.168.1.161:8000/thumbnails/1200.00s_110G_50of_0010_ac25fb73d090.jpg\")",
+      "Bash(curl -sf --connect-timeout 5 -I -H \"Origin: http://astrodb.lan:3000\" \"http://192.168.1.161:8000/thumbnails/1200.00s_110G_50of_0010_ac25fb73d090.jpg\")"
     ]
   }
 }

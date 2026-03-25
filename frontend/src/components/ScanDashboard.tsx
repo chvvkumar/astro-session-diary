@@ -1,14 +1,17 @@
 import { Component, Show, onCleanup } from "solid-js";
 import { useScan } from "../store/scan";
+import { useCatalog } from "../store/catalog";
 
 const ScanDashboard: Component = () => {
   const { scanStatus, lastScanResult, isScanning, startScan, pollStatus, stopPolling } = useScan();
+  const { refetchImages } = useCatalog();
 
   onCleanup(stopPolling);
 
   const handleScan = async () => {
     pollStatus();
     await startScan();
+    refetchImages();
   };
 
   return (

@@ -14,6 +14,7 @@ class ImageBase(BaseModel):
     filter_used: str | None = None
     sensor_temp: float | None = None
     camera_gain: int | None = None
+    image_type: str | None = None
 
 
 class ImageRead(ImageBase):
@@ -39,6 +40,7 @@ class ImageListResponse(BaseModel):
 class ImageFilterParams(BaseModel):
     target_name: str | None = None
     filter_used: str | None = None
+    image_type: str | None = None
     date_from: datetime | None = None
     date_to: datetime | None = None
     min_exposure: float | None = None

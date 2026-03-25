@@ -26,6 +26,7 @@ function buildQuery(filters: ImageFilters): string {
   params.set("page_size", String(filters.page_size));
   if (filters.target_name) params.set("target_name", filters.target_name);
   if (filters.filter_used) params.set("filter_used", filters.filter_used);
+  if (filters.image_type) params.set("image_type", filters.image_type);
   if (filters.date_from) params.set("date_from", filters.date_from);
   if (filters.date_to) params.set("date_to", filters.date_to);
   if (filters.min_exposure != null) params.set("min_exposure", String(filters.min_exposure));
@@ -41,6 +42,9 @@ export const api = {
 
   getImage: (id: string) =>
     fetchJson<ImageDetail>(`/images/${id}`),
+
+  getAvailableFilters: () =>
+    fetchJson<string[]>("/images/filters/available"),
 
   searchTargets: (query: string) =>
     fetchJson<TargetSearchResult[]>(`/targets/search?q=${encodeURIComponent(query)}`),

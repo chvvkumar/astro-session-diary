@@ -34,6 +34,9 @@ const GalleryCard: Component<Props> = (props) => {
           <span>{props.image.filter_used || "—"}</span>
           <span>{props.image.exposure_time ? `${props.image.exposure_time}s` : "—"}</span>
         </div>
+        {props.image.image_type && props.image.image_type !== "LIGHT" && (
+          <span class="text-xs text-yellow-400/70">{props.image.image_type}</span>
+        )}
         {props.image.capture_date && (
           <p class="text-astro-muted mt-0.5">
             {new Date(props.image.capture_date).toLocaleDateString()}

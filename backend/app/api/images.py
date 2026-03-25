@@ -19,6 +19,7 @@ async def list_images(
     page_size: int = Query(50, ge=1, le=200),
     target_name: str | None = Query(None),
     filter_used: str | None = Query(None),
+    image_type: str | None = Query(None),
     date_from: str | None = Query(None),
     date_to: str | None = Query(None),
     min_exposure: float | None = Query(None),
@@ -34,6 +35,9 @@ async def list_images(
     if filter_used:
         query = query.where(Image.filter_used == filter_used)
         count_query = count_query.where(Image.filter_used == filter_used)
+    if image_type:
+        query = query.where(Image.image_type == image_type)
+        count_query = count_query.where(Image.image_type == image_type)
     if date_from:
         query = query.where(Image.capture_date >= date_from)
         count_query = count_query.where(Image.capture_date >= date_from)
@@ -72,6 +76,15 @@ async def list_images(
         page=page,
         page_size=page_size,
     )
+
+
+@router.get("/filters/available")
+async def get_available_filters(session: AsyncSession = Depends(get_session)):
+    """Return distinct filter_used values from the database."""
+    result = await session.execute(
+        select(Image.filter_used).where(Image.filter_used.isnot(None)).distinct().order_by(Image.filter_used)
+    )
+    return [row[0] for row in result.all()]
 
 
 @router.get("/{image_id}", response_model=ImageDetail)

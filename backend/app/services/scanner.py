@@ -40,7 +40,8 @@ def extract_metadata(fits_path: Path) -> dict[str, Any]:
         "exposure_time": header.get("EXPTIME"),
         "filter_used": header.get("FILTER"),
         "sensor_temp": header.get("CCD-TEMP"),
-        "camera_gain": header.get("GAIN"),
+        "camera_gain": int(header.get("GAIN")) if header.get("GAIN") is not None else None,
+        "image_type": header.get("IMAGETYP"),
         "capture_date": capture_date,
         "raw_headers": raw_headers,
     }

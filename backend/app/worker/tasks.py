@@ -19,6 +19,10 @@ logger = logging.getLogger(__name__)
 _sync_url = settings.database_url.replace("+asyncpg", "+psycopg2")
 _sync_engine = create_engine(_sync_url)
 
+# Ensure database tables exist when worker starts
+from app.models import Base
+Base.metadata.create_all(_sync_engine)
+
 
 @celery_app.task(bind=True, max_retries=3, default_retry_delay=30)
 def ingest_file(self, fits_path: str) -> dict:
@@ -61,6 +65,7 @@ def ingest_file(self, fits_path: str) -> dict:
                 filter_used=meta.get("filter_used"),
                 sensor_temp=meta.get("sensor_temp"),
                 camera_gain=meta.get("camera_gain"),
+                image_type=meta.get("image_type"),
                 raw_headers=meta.get("raw_headers", {}),
             )
             session.add(image)

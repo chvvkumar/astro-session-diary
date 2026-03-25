@@ -1,8 +1,10 @@
-import { Component } from "solid-js";
+import { Component, createResource, For } from "solid-js";
 import { useCatalog } from "../store/catalog";
+import { api } from "../api/client";
 
 const FilterPanel: Component = () => {
   const { filters, updateFilter, resetFilters } = useCatalog();
+  const [availableFilters] = createResource(() => api.getAvailableFilters());
 
   return (
     <div class="bg-astro-panel rounded-lg p-4 space-y-4">
@@ -16,6 +18,22 @@ const FilterPanel: Component = () => {
         </button>
       </div>
 
+      {/* Image type */}
+      <div>
+        <label class="text-xs text-astro-muted block mb-1">Image Type</label>
+        <select
+          value={filters().image_type || ""}
+          onChange={(e) => updateFilter("image_type", e.currentTarget.value || undefined)}
+          class="w-full px-2 py-1.5 bg-astro-dark border border-gray-700 rounded text-white text-sm"
+        >
+          <option value="">All Types</option>
+          <option value="LIGHT">Light</option>
+          <option value="DARK">Dark</option>
+          <option value="FLAT">Flat</option>
+          <option value="BIAS">Bias</option>
+        </select>
+      </div>
+
       {/* Filter type */}
       <div>
         <label class="text-xs text-astro-muted block mb-1">Filter</label>
@@ -25,13 +43,9 @@ const FilterPanel: Component = () => {
           class="w-full px-2 py-1.5 bg-astro-dark border border-gray-700 rounded text-white text-sm"
         >
           <option value="">All Filters</option>
-          <option value="L">Luminance</option>
-          <option value="R">Red</option>
-          <option value="G">Green</option>
-          <option value="B">Blue</option>
-          <option value="Ha">H-alpha</option>
-          <option value="OIII">OIII</option>
-          <option value="SII">SII</option>
+          <For each={availableFilters() ?? []}>
+            {(f) => <option value={f}>{f}</option>}
+          </For>
         </select>
       </div>
 
