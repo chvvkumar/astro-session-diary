@@ -226,26 +226,49 @@ async def list_targets_aggregated(
 
 # --- 4. Session detail (LAST — has path parameters) ---
 
-@router.get("/{target_id}/sessions/{date}", response_model=SessionDetailResponse)
+@router.get("/{target_id:path}/sessions/{date}", response_model=SessionDetailResponse)
 async def get_session_detail(
-    target_id: uuid.UUID,
+    target_id: str,
     date: str,
     session: AsyncSession = Depends(get_session),
 ):
-    """Return detailed session data for a target on a specific date."""
-    target = await session.get(Target, target_id)
-    if not target:
-        raise HTTPException(status_code=404, detail="Target not found")
+    """Return detailed session data for a target on a specific date.
 
-    query = (
-        select(Image)
-        .where(
-            Image.resolved_target_id == target_id,
-            func.date(Image.capture_date) == date,
-            Image.image_type == "LIGHT",
+    target_id can be a UUID (resolved target) or 'obj:ObjectName' (unresolved).
+    """
+    if target_id.startswith("obj:"):
+        # Unresolved target — query by OBJECT header name
+        object_name = target_id[4:]
+        target_name = object_name
+        query = (
+            select(Image)
+            .where(
+                Image.raw_headers["OBJECT"].astext == object_name,
+                func.date(Image.capture_date) == date,
+                Image.image_type == "LIGHT",
+            )
+            .order_by(Image.capture_date)
         )
-        .order_by(Image.capture_date)
-    )
+    else:
+        # Resolved target — query by UUID
+        try:
+            tid = uuid.UUID(target_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid target ID")
+        target = await session.get(Target, tid)
+        if not target:
+            raise HTTPException(status_code=404, detail="Target not found")
+        target_name = target.primary_name
+        query = (
+            select(Image)
+            .where(
+                Image.resolved_target_id == tid,
+                func.date(Image.capture_date) == date,
+                Image.image_type == "LIGHT",
+            )
+            .order_by(Image.capture_date)
+        )
+
     result = await session.execute(query)
     images = result.scalars().all()
 
@@ -272,7 +295,7 @@ async def get_session_detail(
         thumb_url = f"/thumbnails/{filename}"
 
     return SessionDetailResponse(
-        target_name=target.primary_name,
+        target_name=target_name,
         session_date=date,
         thumbnail_url=thumb_url,
         frame_count=len(images),

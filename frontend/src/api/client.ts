@@ -45,7 +45,7 @@ export const api = {
     fetchJson<TargetAggregationResponse>(`/targets?${buildTargetQuery(filters)}`),
 
   getSessionDetail: (targetId: string, date: string) =>
-    fetchJson<SessionDetail>(`/targets/${targetId}/sessions/${date}`),
+    fetchJson<SessionDetail>(`/targets/${encodeURIComponent(targetId)}/sessions/${date}`),
 
   getEquipment: () =>
     fetchJson<EquipmentList>("/targets/equipment"),
