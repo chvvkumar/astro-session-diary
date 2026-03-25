@@ -13,7 +13,7 @@ const DetailDrawer: Component = () => {
       <div class="fixed inset-0 z-40 bg-black/50" onClick={closeDrawer} />
 
       {/* Drawer panel */}
-      <div class="fixed inset-y-0 right-0 z-50 w-96 bg-astro-panel border-l border-gray-800 overflow-y-auto">
+      <div class="fixed inset-y-0 right-0 z-50 w-96 bg-astro-panel border-l border-[#2d2d2d] overflow-y-auto">
         <div class="p-4 space-y-4">
           {/* Header */}
           <div class="flex justify-between items-center">

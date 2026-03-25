@@ -6,7 +6,7 @@ const CommandBar: Component = () => {
   const { targetData, resetFilters } = useCatalog();
 
   return (
-    <div class="sticky top-0 z-10 bg-astro-dark/95 backdrop-blur border-b border-gray-800 px-4 py-3 flex items-center justify-between">
+    <div class="sticky top-0 z-10 bg-astro-dark/95 backdrop-blur border-b border-[#2d2d2d] px-4 py-3 flex items-center justify-between">
       <Show when={targetData()}>
         {(data) => <AggregateWidgets aggregates={data().aggregates} />}
       </Show>

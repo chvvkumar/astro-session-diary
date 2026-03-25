@@ -7,7 +7,7 @@ const IngestHistory: Component<{ history: { date: string; files_added: number }[
       <div class="max-h-48 overflow-y-auto">
         <For each={props.history}>
           {(entry) => (
-            <div class="flex justify-between text-xs py-1 border-b border-gray-800/30">
+            <div class="flex justify-between text-xs py-1 border-b border-[#2d2d2d]/30">
               <span class="text-white">{entry.date}</span>
               <span class="text-astro-muted">+{entry.files_added} files</span>
             </div>

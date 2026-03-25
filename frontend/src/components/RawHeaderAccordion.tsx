@@ -9,7 +9,7 @@ const RawHeaderAccordion: Component<{ headers: Record<string, unknown> | null }>
   };
 
   return (
-    <div class="border-t border-gray-800 pt-2">
+    <div class="border-t border-[#2d2d2d] pt-2">
       <button
         onClick={() => setOpen((v) => !v)}
         class="text-xs text-astro-accent hover:underline w-full text-left"
@@ -28,7 +28,7 @@ const RawHeaderAccordion: Component<{ headers: Record<string, unknown> | null }>
             <tbody>
               <For each={entries()}>
                 {([key, value]) => (
-                  <tr class="border-t border-gray-800/30">
+                  <tr class="border-t border-[#2d2d2d]/30">
                     <td class="py-1 px-2 text-astro-muted font-mono">{key}</td>
                     <td class="py-1 px-2 text-white font-mono break-all">{String(value)}</td>
                   </tr>

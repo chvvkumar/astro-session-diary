@@ -3,7 +3,7 @@ import { A } from "@solidjs/router";
 
 const NavBar: Component = () => {
   return (
-    <header class="border-b border-gray-800 px-6 py-3 flex items-center gap-6">
+    <header class="border-b border-[#2d2d2d] px-6 py-3 flex items-center gap-6">
       <h1 class="text-white font-bold text-lg whitespace-nowrap">AstroLog</h1>
       <nav class="flex gap-4">
         <A
