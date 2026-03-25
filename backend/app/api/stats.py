@@ -76,14 +76,13 @@ async def get_stats(session: AsyncSession = Depends(get_session)):
     filter_usage = {r[0]: float(r[1]) for r in filter_result.all()}
 
     # Timeline (monthly integration)
+    month_label = func.to_char(Image.capture_date, 'YYYY-MM').label('month')
     timeline_q = select(
-        func.to_char(Image.capture_date, 'YYYY-MM'),
+        month_label,
         func.coalesce(func.sum(Image.exposure_time), 0),
     ).where(
         Image.capture_date.isnot(None), Image.image_type == "LIGHT"
-    ).group_by(
-        func.to_char(Image.capture_date, 'YYYY-MM')
-    ).order_by(func.to_char(Image.capture_date, 'YYYY-MM'))
+    ).group_by(month_label).order_by(month_label)
     timeline_result = await session.execute(timeline_q)
     timeline = [TimelineEntry(month=r[0], integration_seconds=float(r[1])) for r in timeline_result.all()]
 
@@ -143,13 +142,12 @@ async def get_stats(session: AsyncSession = Depends(get_session)):
     )
 
     # Ingest history (images grouped by date they were added — approximate via capture_date)
+    capture_day = func.date(Image.capture_date).label('capture_day')
     ingest_q = select(
-        func.date(Image.capture_date), func.count(Image.id)
+        capture_day, func.count(Image.id)
     ).where(
         Image.capture_date.isnot(None)
-    ).group_by(
-        func.date(Image.capture_date)
-    ).order_by(func.date(Image.capture_date).desc()).limit(30)
+    ).group_by(capture_day).order_by(capture_day.desc()).limit(30)
     ingest_result = await session.execute(ingest_q)
     ingest_history = [
         IngestEntry(date=str(r[0]), files_added=r[1]) for r in ingest_result.all()
