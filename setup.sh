@@ -193,11 +193,36 @@ if [ "$SETUP_BACKEND" = true ]; then
     echo "Where will the frontend (Host B) run?"
     echo "If both are on this machine, use the same IP."
     echo ""
-    ask "Frontend host IP" "$BACKEND_IP" FRONTEND_IP
-    ask "Frontend port"    "3000"        FRONTEND_PORT
+    ask "Frontend host IP or hostname" "$BACKEND_IP" FRONTEND_IP
+    ask "Frontend port"                "3000"        FRONTEND_PORT
 
     CORS_ORIGIN="http://${FRONTEND_IP}:${FRONTEND_PORT}"
-    info "CORS will allow: ${CORS_ORIGIN}"
+
+    # Detect machine hostname — browsers often use hostname.lan instead of raw IP
+    MACHINE_HOSTNAME=$(hostname -f 2>/dev/null || hostname 2>/dev/null || true)
+    MACHINE_SHORT=$(hostname -s 2>/dev/null || true)
+    CORS_EXTRA=""
+
+    # Offer to add hostname-based origins if the user gave an IP address
+    if [[ "$FRONTEND_IP" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]] && [ -n "$MACHINE_HOSTNAME" ]; then
+        echo ""
+        info "Machine hostname: $MACHINE_HOSTNAME"
+        echo "  Browsers accessing via hostname (e.g. http://${MACHINE_SHORT}.lan:${FRONTEND_PORT})"
+        echo "  need that hostname in the CORS allow-list too."
+        echo ""
+        ask "Additional hostname for CORS (blank to skip)" "${MACHINE_SHORT}.lan" CORS_HOSTNAME
+        if [ -n "$CORS_HOSTNAME" ]; then
+            CORS_EXTRA="http://${CORS_HOSTNAME}:${FRONTEND_PORT}"
+        fi
+    fi
+
+    if [ -n "$CORS_EXTRA" ]; then
+        CORS_ORIGINS_JSON="[\"${CORS_ORIGIN}\",\"${CORS_EXTRA}\"]"
+        info "CORS will allow: ${CORS_ORIGIN} and ${CORS_EXTRA}"
+    else
+        CORS_ORIGINS_JSON="[\"${CORS_ORIGIN}\"]"
+        info "CORS will allow: ${CORS_ORIGIN}"
+    fi
 
     header "Host A — Worker Configuration"
 
@@ -226,7 +251,7 @@ POSTGRES_DB=${PG_DB}
 # Application
 ASTRO_DATABASE_URL=postgresql+asyncpg://${PG_USER}:${PG_PASS}@postgres:5432/${PG_DB}
 ASTRO_REDIS_URL=redis://redis:6379/0
-ASTRO_CORS_ORIGINS=["${CORS_ORIGIN}"]
+ASTRO_CORS_ORIGINS=${CORS_ORIGINS_JSON}
 ASTRO_FITS_DATA_PATH=/app/data/fits
 ASTRO_THUMBNAILS_PATH=/app/data/thumbnails
 ASTRO_THUMBNAIL_MAX_WIDTH=${THUMB_WIDTH}

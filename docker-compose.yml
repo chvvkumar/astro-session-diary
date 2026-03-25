@@ -29,6 +29,7 @@ services:
     build:
       context: ./backend
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    env_file: .env
     environment:
       ASTRO_DATABASE_URL: postgresql+asyncpg://astro:astro@postgres:5432/astro_catalog
       ASTRO_REDIS_URL: redis://redis:6379/0
@@ -50,6 +51,7 @@ services:
     build:
       context: ./backend
     command: celery -A app.worker.celery_app worker --loglevel=info --concurrency=4
+    env_file: .env
     environment:
       ASTRO_DATABASE_URL: postgresql+asyncpg://astro:astro@postgres:5432/astro_catalog
       ASTRO_REDIS_URL: redis://redis:6379/0
