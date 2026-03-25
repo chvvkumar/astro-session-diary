@@ -24,7 +24,7 @@ class FitsEventHandler(FileSystemEventHandler):
             self.callback(str(path))
 
 
-def start_watcher(watch_path: str, callback) -> None:
+def start_watcher(watch_path: str, callback) -> "Observer":
     """Start a filesystem watcher on the given path.
     Call this from a dedicated thread in the worker container.
     """

@@ -1,3 +1,4 @@
+import asyncio
 from pathlib import Path
 
 from fastapi import APIRouter, Depends
@@ -34,7 +35,7 @@ async def trigger_scan(
     known_paths = {row[0] for row in result.all()}
 
     fits_root = Path(settings.fits_data_path)
-    new_files = list(scan_directory(fits_root, known_paths=known_paths))
+    new_files = await asyncio.to_thread(lambda: list(scan_directory(fits_root, known_paths=known_paths)))
     _scan_state["total"] = len(new_files)
 
     for fits_path in new_files:

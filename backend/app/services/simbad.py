@@ -17,8 +17,15 @@ def normalize_object_name(name: str) -> str:
 
 async def _query_simbad(object_name: str) -> dict[str, Any] | None:
     """Query SIMBAD for an object by name. Returns structured data or None."""
+    # Sanitize object name — strip newlines and control characters
+    import string
+    safe_chars = string.printable.replace('\n', '').replace('\r', '').replace('\t', '')
+    sanitized = ''.join(c for c in object_name if c in safe_chars).strip()
+    if not sanitized:
+        return None
+
     params = {
-        "Ident": object_name,
+        "Ident": sanitized,
         "output.format": "ASCII",
     }
     try:
@@ -26,7 +33,7 @@ async def _query_simbad(object_name: str) -> dict[str, Any] | None:
             # Use the SIMBAD script interface for structured results
             script = f"""
                 format object "%MAIN_ID|%OTYPELIST|%COO(d;A)|%COO(d;D)"
-                query id {object_name}
+                query id {sanitized}
             """
             resp = await client.post(
                 "https://simbad.cds.unistra.fr/simbad/sim-script",
@@ -38,7 +45,7 @@ async def _query_simbad(object_name: str) -> dict[str, Any] | None:
             text = resp.text
             # Parse the response — look for data lines after ::data::
             if "::error::" in text:
-                logger.info("SIMBAD found no match for '%s'", object_name)
+                logger.info("SIMBAD found no match for '%s'", sanitized)
                 return None
 
             data_section = text.split("::data::")[-1].strip()
@@ -58,7 +65,7 @@ async def _query_simbad(object_name: str) -> dict[str, Any] | None:
             # Fetch aliases via a second query
             alias_script = f"""
                 format object "%IDLIST[%*]"
-                query id {object_name}
+                query id {sanitized}
             """
             alias_resp = await client.post(
                 "https://simbad.cds.unistra.fr/simbad/sim-script",
@@ -79,7 +86,7 @@ async def _query_simbad(object_name: str) -> dict[str, Any] | None:
             }
 
     except (httpx.HTTPError, ValueError, IndexError) as e:
-        logger.warning("SIMBAD query failed for '%s': %s", object_name, e)
+        logger.warning("SIMBAD query failed for '%s': %s", sanitized, e)
         return None
 
 

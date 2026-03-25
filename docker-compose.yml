@@ -37,6 +37,7 @@ services:
     volumes:
       - ./backend:/app
       - thumbnails_data:/app/data/thumbnails
+      - ${FITS_DATA_HOST_PATH:-./sample_fits}:/app/data/fits:ro
     ports:
       - "8000:8000"
     depends_on:

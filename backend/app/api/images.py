@@ -3,6 +3,7 @@ import uuid
 from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy import select, func, cast, String
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.database import get_session
 from app.models import Image, Target
@@ -77,7 +78,7 @@ async def get_image(
     session: AsyncSession = Depends(get_session),
 ):
     """Get full image detail including target info and raw headers."""
-    query = select(Image).where(Image.id == image_id)
+    query = select(Image).options(selectinload(Image.target)).where(Image.id == image_id)
     result = await session.execute(query)
     image = result.scalar_one_or_none()
     if image is None:

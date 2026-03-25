@@ -2,6 +2,7 @@ import logging
 from pathlib import Path
 
 from sqlalchemy import create_engine, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.config import settings
@@ -36,7 +37,9 @@ def ingest_file(self, fits_path: str) -> dict:
         meta = extract_metadata(path)
 
         # Step 2: Generate thumbnail
-        thumb_filename = path.stem + ".jpg"
+        import hashlib
+        path_hash = hashlib.md5(str(path).encode()).hexdigest()[:12]
+        thumb_filename = f"{path.stem}_{path_hash}.jpg"
         thumb_path = Path(settings.thumbnails_path) / thumb_filename
         generate_thumbnail(path, thumb_path, max_width=settings.thumbnail_max_width)
 
@@ -99,9 +102,8 @@ def _resolve_or_cache_target(object_name: str) -> str | None:
     if result is None:
         return None
 
-    # Cache the new target
+    # Cache the new target (handle race condition with other workers)
     with Session(_sync_engine) as session:
-        # Normalize all aliases for consistent matching
         aliases = [normalize_object_name(a) for a in result.get("aliases", [])]
         if normalized not in aliases:
             aliases.append(normalized)
@@ -113,6 +115,13 @@ def _resolve_or_cache_target(object_name: str) -> str | None:
             dec=result.get("dec"),
             object_type=result.get("object_type"),
         )
-        session.add(target)
-        session.commit()
-        return str(target.id)
+        try:
+            session.add(target)
+            session.commit()
+            return str(target.id)
+        except IntegrityError:
+            session.rollback()
+            # Another worker inserted this target — re-query
+            stmt = select(Target).where(Target.primary_name == result["primary_name"])
+            existing = session.execute(stmt).scalar_one_or_none()
+            return str(existing.id) if existing else None
