@@ -4,18 +4,17 @@ from pathlib import Path
 from fastapi import APIRouter, Depends
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from celery.result import AsyncResult
 
-from app.config import settings
+from app.config import settings, get_async_redis
 from app.database import get_session
 from app.models import Image
 from app.services.scanner import scan_directory
+from app.services.scan_state import (
+    get_scan_state, start_scanning, set_ingesting, set_idle,
+)
 from app.worker.tasks import ingest_file
 
 router = APIRouter(prefix="/scan", tags=["scan"])
-
-# In-memory scan state (simple approach; could use Redis for multi-worker)
-_scan_state = {"running": False, "total": 0, "queued": 0}
 
 
 @router.post("")
@@ -23,35 +22,51 @@ async def trigger_scan(
     session: AsyncSession = Depends(get_session),
 ):
     """Walk the FITS directory, queue new files for ingestion."""
-    if _scan_state["running"]:
-        return {"status": "already_running", **_scan_state}
+    r = get_async_redis()
+    try:
+        state = await get_scan_state(r)
+        if state.state in ("scanning", "ingesting"):
+            return {"status": "already_running", **state.to_dict()}
 
-    _scan_state["running"] = True
-    _scan_state["total"] = 0
-    _scan_state["queued"] = 0
+        await start_scanning(r)
 
-    # Get known paths from DB
-    result = await session.execute(select(Image.file_path))
-    known_paths = {row[0] for row in result.all()}
+        # Get known paths from DB
+        result = await session.execute(select(Image.file_path))
+        known_paths = {row[0] for row in result.all()}
 
-    fits_root = Path(settings.fits_data_path)
-    new_files = await asyncio.to_thread(lambda: list(scan_directory(fits_root, known_paths=known_paths)))
-    _scan_state["total"] = len(new_files)
+        fits_root = Path(settings.fits_data_path)
+        new_files = await asyncio.to_thread(
+            lambda: list(scan_directory(fits_root, known_paths=known_paths))
+        )
 
-    for fits_path in new_files:
-        ingest_file.delay(str(fits_path))
-        _scan_state["queued"] += 1
+        if not new_files:
+            await set_idle(r)
+            return {
+                "status": "complete",
+                "new_files_queued": 0,
+                "already_known": len(known_paths),
+            }
 
-    _scan_state["running"] = False
+        await set_ingesting(r, total=len(new_files))
 
-    return {
-        "status": "complete",
-        "new_files_queued": len(new_files),
-        "already_known": len(known_paths),
-    }
+        for fits_path in new_files:
+            ingest_file.delay(str(fits_path))
+
+        return {
+            "status": "ingesting",
+            "new_files_queued": len(new_files),
+            "already_known": len(known_paths),
+        }
+    finally:
+        await r.aclose()
 
 
 @router.get("/status")
 async def scan_status():
-    """Return current scan state."""
-    return _scan_state
+    """Return current scan state from Redis."""
+    r = get_async_redis()
+    try:
+        state = await get_scan_state(r)
+        return state.to_dict()
+    finally:
+        await r.aclose()

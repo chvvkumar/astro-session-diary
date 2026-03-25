@@ -43,12 +43,19 @@ export interface ScanResult {
   status: string;
   new_files_queued: number;
   already_known: number;
+  state?: string;
+  total?: number;
+  completed?: number;
+  failed?: number;
 }
 
 export interface ScanStatus {
-  running: boolean;
+  state: "idle" | "scanning" | "ingesting" | "complete";
   total: number;
-  queued: number;
+  completed: number;
+  failed: number;
+  started_at: number | null;
+  completed_at: number | null;
 }
 
 export interface ImageFilters {

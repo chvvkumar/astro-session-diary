@@ -23,6 +23,11 @@ _sync_engine = create_engine(_sync_url)
 from app.models import Base
 Base.metadata.create_all(_sync_engine)
 
+from app.config import get_sync_redis
+from app.services.scan_state import increment_completed_sync, increment_failed_sync
+
+_redis = get_sync_redis()
+
 
 @celery_app.task(bind=True, max_retries=3, default_retry_delay=30)
 def ingest_file(self, fits_path: str) -> dict:
@@ -71,10 +76,13 @@ def ingest_file(self, fits_path: str) -> dict:
             session.add(image)
             session.commit()
             logger.info("Ingested: %s (target=%s)", path.name, target_id)
+            increment_completed_sync(_redis)
             return {"file": str(path), "status": "ok"}
 
     except Exception as exc:
         logger.error("Failed to ingest %s: %s", path, exc)
+        if self.request.retries >= self.max_retries:
+            increment_failed_sync(_redis)
         raise self.retry(exc=exc)
 
 
