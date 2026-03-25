@@ -46,7 +46,7 @@ function stopPolling() {
 }
 
 export function useScan() {
-  // On first mount, check server state — resume polling if scan is active
+  // On every mount, check server state — resume polling if scan is active
   onMount(async () => {
     await fetchStatus();
     const s = scanStatus();
@@ -68,10 +68,11 @@ export function useScan() {
       setScanError(null);
       try {
         await api.triggerScan();
-        startPolling();
-      } catch (e: unknown) {
-        setScanError(e instanceof Error ? e.message : "Scan failed");
+      } catch {
+        // POST /scan may timeout on large directories, but scan still starts server-side
       }
+      // Always start polling after triggering — the scan runs regardless of POST response
+      startPolling();
     },
 
     stopPolling,
