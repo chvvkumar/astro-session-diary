@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(npm run:*)",
+      "Bash(git log:*)",
+      "Bash(chmod +x c:/Users/Kumar/git/astro-session-diary/setup.sh)"
+    ]
+  }
+}
