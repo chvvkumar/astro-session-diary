@@ -131,6 +131,11 @@ COMMON_NAME_MAP: dict[str, str] = {
     "caldwell 4": "NGC 7023",
     "caldwell 38": "NGC 4565",
     "triangulum pinwheel": "M 33",
+    "andromeda galaxy": "M 31",
+    "markarian's chain": "NAME Markarian Chain",
+    "spaghetti nebula": "SNR G180.0-01.7",
+    "seagull nebula": "IC 2177",
+    "seagull's wings": "IC 2177",
 }
 
 # Strip "Panel N" suffix to get the base object name
