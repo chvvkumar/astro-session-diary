@@ -108,11 +108,21 @@ def regenerate_thumbnail(self, image_id: str, fits_path: str, thumb_path: str) -
         raise self.retry(exc=exc)
 
 
+# In-memory cache of object names that SIMBAD couldn't resolve.
+# Avoids repeated HTTP round-trips for the same unresolvable name
+# (e.g., "FlatWizard", "Target", "Moon_fast" on every calibration frame).
+_simbad_negative_cache: set[str] = set()
+
+
 def _resolve_or_cache_target(object_name: str) -> str | None:
     """Check local DB for target, fall back to SIMBAD, cache result."""
     import asyncio
 
     normalized = normalize_object_name(object_name)
+
+    # Check negative cache first (fastest path)
+    if normalized in _simbad_negative_cache:
+        return None
 
     with Session(_sync_engine) as session:
         # Check local cache: search aliases array
@@ -135,6 +145,7 @@ def _resolve_or_cache_target(object_name: str) -> str | None:
         loop.close()
 
     if result is None:
+        _simbad_negative_cache.add(normalized)
         return None
 
     # Cache the new target (handle race condition with other workers)
