@@ -9,7 +9,7 @@ import type {
   StatsResponse,
 } from "../types";
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
+const API_BASE = import.meta.env.VITE_API_URL || "/api";
 
 async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
   const resp = await fetch(`${API_BASE}${path}`, {
@@ -66,8 +66,7 @@ export const api = {
     fetchJson<ScanResult>("/scan/regenerate-thumbnails", { method: "POST" }),
 
   thumbnailUrl: (path: string) => {
-    const base = import.meta.env.VITE_API_URL?.replace("/api", "") || "http://localhost:8000";
     const filename = path.split("/").pop();
-    return `${base}/thumbnails/${filename}`;
+    return `/thumbnails/${filename}`;
   },
 };
