@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.models import Image, Target
+from app.models.user_settings import UserSettings, SETTINGS_ROW_ID
 from app.services.scanner import extract_metadata
 from app.services.simbad import resolve_target_name, normalize_object_name
 from app.services.thumbnail import generate_thumbnail
@@ -73,14 +74,16 @@ def auto_scan_tick():
     """Heartbeat task: check if an auto-scan is due and dispatch if so."""
     import time
 
-    # Check if auto-scan is enabled
-    enabled = _redis.get("autoscan:enabled")
-    if enabled != "true":
+    # Read auto-scan config from DB (migrated from Redis)
+    with Session(_sync_engine) as db_session:
+        row = db_session.execute(
+            select(UserSettings).where(UserSettings.id == SETTINGS_ROW_ID)
+        ).scalar_one_or_none()
+
+    if row is None or not (row.general or {}).get("auto_scan_enabled", True):
         return
 
-    # Check interval
-    interval_str = _redis.get("autoscan:interval") or "60"
-    interval_minutes = int(interval_str)
+    interval_minutes = (row.general or {}).get("auto_scan_interval", 240)
     last_run_str = _redis.get("autoscan:last_run")
     now = time.time()
 

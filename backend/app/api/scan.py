@@ -207,35 +207,46 @@ VALID_INTERVALS = {60, 120, 240, 480, 720, 1440}
 
 
 @router.get("/autoscan")
-async def get_autoscan():
-    """Return current auto-scan settings."""
-    r = get_async_redis()
-    try:
-        enabled = await r.get("autoscan:enabled")
-        interval = await r.get("autoscan:interval")
-        return {
-            "enabled": enabled == "true",
-            "interval_minutes": int(interval) if interval else 60,
-        }
-    finally:
-        await r.aclose()
+async def get_autoscan(session: AsyncSession = Depends(get_session)):
+    """Return current auto-scan settings (deprecated — use /settings/general)."""
+    from app.models.user_settings import UserSettings, SETTINGS_ROW_ID
+    result = await session.execute(
+        select(UserSettings).where(UserSettings.id == SETTINGS_ROW_ID)
+    )
+    row = result.scalar_one_or_none()
+    general = row.general if row else {}
+    return {
+        "enabled": general.get("auto_scan_enabled", True),
+        "interval_minutes": general.get("auto_scan_interval", 60),
+    }
 
 
 @router.put("/autoscan")
 async def set_autoscan(
     enabled: bool = Query(...),
     interval_minutes: int = Query(...),
+    session: AsyncSession = Depends(get_session),
 ):
-    """Update auto-scan settings."""
+    """Update auto-scan settings (deprecated — use /settings/general)."""
     if interval_minutes not in VALID_INTERVALS:
         raise HTTPException(status_code=400, detail=f"Invalid interval. Must be one of: {sorted(VALID_INTERVALS)}")
-    r = get_async_redis()
-    try:
-        await r.set("autoscan:enabled", "true" if enabled else "false")
-        await r.set("autoscan:interval", str(interval_minutes))
-        return {
-            "enabled": enabled,
-            "interval_minutes": interval_minutes,
-        }
-    finally:
-        await r.aclose()
+
+    from app.models.user_settings import UserSettings, SETTINGS_ROW_ID
+    result = await session.execute(
+        select(UserSettings).where(UserSettings.id == SETTINGS_ROW_ID)
+    )
+    row = result.scalar_one_or_none()
+    if row is None:
+        row = UserSettings(id=SETTINGS_ROW_ID)
+        session.add(row)
+
+    row.general = {
+        **(row.general or {}),
+        "auto_scan_enabled": enabled,
+        "auto_scan_interval": interval_minutes,
+    }
+    await session.commit()
+    return {
+        "enabled": enabled,
+        "interval_minutes": interval_minutes,
+    }
