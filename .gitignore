@@ -34,6 +34,7 @@ thumbnails/
 .claude/
 .superpowers/
 .playwright-mcp/
+docs/superpowers/
 
 # Log files
 *.log
