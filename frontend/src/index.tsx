@@ -6,15 +6,20 @@ import App from "./App";
 import DashboardPage from "./pages/DashboardPage";
 import AdminPage from "./pages/AdminPage";
 import TargetDetailPage from "./pages/TargetDetailPage";
+import { SettingsProvider } from "./components/SettingsProvider";
+import { SettingsPage } from "./pages/SettingsPage";
 
 const root = document.getElementById("root");
 render(
   () => (
-    <Router root={App}>
-      <Route path="/" component={DashboardPage} />
-      <Route path="/targets/:targetId" component={TargetDetailPage} />
-      <Route path="/admin" component={AdminPage} />
-    </Router>
+    <SettingsProvider>
+      <Router root={App}>
+        <Route path="/" component={DashboardPage} />
+        <Route path="/targets/:targetId" component={TargetDetailPage} />
+        <Route path="/admin" component={AdminPage} />
+        <Route path="/settings" component={SettingsPage} />
+      </Router>
+    </SettingsProvider>
   ),
   root!,
 );
