@@ -30,15 +30,13 @@ const AdminPage: Component = () => {
           <>
             <DatabaseOverview overview={data().overview} />
 
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-3 gap-4">
               <FilterUsageChart usage={data().filter_usage} />
               <EquipmentInventory cameras={data().equipment.cameras} telescopes={data().equipment.telescopes} />
-            </div>
-
-            <div class="grid grid-cols-2 gap-4">
-              <ImagingTimeline timeline={data().timeline} />
               <TopTargets targets={data().top_targets} />
             </div>
+
+            <ImagingTimeline timeline={data().timeline} />
 
             <div class="grid grid-cols-2 gap-4">
               <DataQuality
