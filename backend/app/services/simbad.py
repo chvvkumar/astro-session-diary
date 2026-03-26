@@ -49,7 +49,8 @@ async def _query_simbad(object_name: str) -> dict[str, Any] | None:
                 return None
 
             data_section = text.split("::data::")[-1].strip()
-            lines = [l.strip() for l in data_section.splitlines() if l.strip() and not l.startswith("~")]
+            lines = [l.strip() for l in data_section.splitlines()
+                     if l.strip() and not l.startswith("~") and not set(l.strip()).issubset({":"})]
             if not lines:
                 return None
 
@@ -75,7 +76,8 @@ async def _query_simbad(object_name: str) -> dict[str, Any] | None:
             aliases = []
             if alias_resp.status_code == 200:
                 alias_data = alias_resp.text.split("::data::")[-1].strip()
-                aliases = [a.strip() for a in alias_data.splitlines() if a.strip() and not a.startswith("~")]
+                aliases = [a.strip() for a in alias_data.splitlines()
+                           if a.strip() and not a.startswith("~") and not set(a.strip()).issubset({":"})]
 
             return {
                 "primary_name": main_id,
