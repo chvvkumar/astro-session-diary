@@ -124,15 +124,15 @@ async def backfill_targets(
     """
     # Step 1: Get distinct unresolved object names
     result = await session.execute(
-        select(
-            text("raw_headers->>'OBJECT'"),
-            func.count(Image.id),
-        )
-        .where(Image.resolved_target_id.is_(None))
-        .where(text("raw_headers->>'OBJECT' IS NOT NULL"))
-        .where(text("raw_headers->>'OBJECT' != ''"))
-        .group_by(text("raw_headers->>'OBJECT'"))
-        .order_by(func.count(Image.id).desc())
+        text("""
+            SELECT raw_headers->>'OBJECT' AS obj, COUNT(*) AS cnt
+            FROM images
+            WHERE resolved_target_id IS NULL
+              AND raw_headers->>'OBJECT' IS NOT NULL
+              AND raw_headers->>'OBJECT' != ''
+            GROUP BY raw_headers->>'OBJECT'
+            ORDER BY cnt DESC
+        """)
     )
     unresolved = result.all()
 
@@ -198,11 +198,13 @@ async def backfill_targets(
 
         # Bulk-update all images with this object name
         update_result = await session.execute(
-            update(Image)
-            .where(Image.resolved_target_id.is_(None))
-            .where(text("raw_headers->>'OBJECT' = :obj_name"))
-            .values(resolved_target_id=target.id),
-            {"obj_name": object_name},
+            text("""
+                UPDATE images
+                SET resolved_target_id = :target_id
+                WHERE resolved_target_id IS NULL
+                  AND raw_headers->>'OBJECT' = :obj_name
+            """),
+            {"target_id": target.id, "obj_name": object_name},
         )
         updated = update_result.rowcount
         total_images_updated += updated
