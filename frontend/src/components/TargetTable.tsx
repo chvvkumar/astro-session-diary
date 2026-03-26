@@ -1,26 +1,90 @@
-import { Component, For, createMemo } from "solid-js";
+import { Component, For, createMemo, createSignal } from "solid-js";
 import type { TargetAggregation } from "../types";
 import TargetRow from "./TargetRow";
 
+type SortKey = "name" | "integration" | "lastSession" | "equipment";
+type SortDir = "asc" | "desc";
+
+function getLastSession(t: TargetAggregation): string {
+  if (t.sessions.length === 0) return "";
+  return [...t.sessions].sort((a, b) => b.session_date.localeCompare(a.session_date))[0].session_date;
+}
+
+function getDisplayName(t: TargetAggregation): string {
+  return t.aliases[0] || t.primary_name;
+}
+
 const TargetTable: Component<{ targets: TargetAggregation[] }> = (props) => {
+  const [sortKey, setSortKey] = createSignal<SortKey>("integration");
+  const [sortDir, setSortDir] = createSignal<SortDir>("desc");
+
+  const toggleSort = (key: SortKey) => {
+    if (sortKey() === key) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir(key === "name" ? "asc" : "desc");
+    }
+  };
+
+  const sortedTargets = createMemo(() => {
+    const key = sortKey();
+    const dir = sortDir();
+    const sorted = [...props.targets].sort((a, b) => {
+      let cmp = 0;
+      switch (key) {
+        case "name":
+          cmp = getDisplayName(a).localeCompare(getDisplayName(b));
+          break;
+        case "integration":
+          cmp = a.total_integration_seconds - b.total_integration_seconds;
+          break;
+        case "lastSession":
+          cmp = getLastSession(a).localeCompare(getLastSession(b));
+          break;
+        case "equipment":
+          cmp = a.equipment.join(" ").localeCompare(b.equipment.join(" "));
+          break;
+      }
+      return dir === "asc" ? cmp : -cmp;
+    });
+    return sorted;
+  });
+
   const maxIntegration = createMemo(() =>
     Math.max(1, ...props.targets.map((t) => t.total_integration_seconds))
   );
+
+  const arrow = (key: SortKey) => {
+    if (sortKey() !== key) return " \u2195";
+    return sortDir() === "asc" ? " \u2191" : " \u2193";
+  };
+
+  const headerClass = "text-left py-2 px-3 font-medium cursor-pointer select-none hover:text-white transition-colors";
+  const plainHeaderClass = "text-left py-2 px-3 font-medium";
 
   return (
     <table class="w-full text-sm border-collapse">
       <thead>
         <tr class="text-astro-muted text-[11px] uppercase tracking-wider border-b border-[#2d2d2d]">
-          <th class="text-left py-2 px-3 font-medium">Target Name</th>
-          <th class="text-left py-2 px-3 font-medium">Designation</th>
-          <th class="text-left py-2 px-3 font-medium">Palette</th>
-          <th class="text-left py-2 px-3 font-medium">Integration Time</th>
-          <th class="text-left py-2 px-3 font-medium">Equipment Profile</th>
-          <th class="text-left py-2 px-3 font-medium">Last Session</th>
+          <th class={headerClass} onClick={() => toggleSort("name")}>
+            Target Name{arrow("name")}
+          </th>
+          <th class={plainHeaderClass}>Designation</th>
+          <th class={plainHeaderClass}>Palette</th>
+          <th class={headerClass} onClick={() => toggleSort("integration")}>
+            Integration Time{arrow("integration")}
+          </th>
+          <th class={headerClass} onClick={() => toggleSort("equipment")}>
+            Equipment Profile{arrow("equipment")}
+          </th>
+          <th class={headerClass} onClick={() => toggleSort("lastSession")}>
+            Last Session{arrow("lastSession")}
+          </th>
         </tr>
       </thead>
       <tbody>
-        <For each={props.targets}>
+        <For each={sortedTargets()}>
           {(target) => (
             <TargetRow target={target} maxIntegration={maxIntegration()} />
           )}

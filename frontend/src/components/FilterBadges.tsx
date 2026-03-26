@@ -19,6 +19,13 @@ const SHORT_LABEL: Record<string, string> = {
   G: "G",
   B: "B",
   OSC: "OSC",
+  IR: "IR",
+  Duoband: "Duo",
+  "L-Ultimate": "L-Ult",
+  "L-Extreme": "L-Ext",
+  "L-Pro": "L-Pro",
+  Ultimate: "Ult",
+  Extreme: "Ext",
 };
 
 function formatHours(seconds: number): string {
@@ -41,7 +48,11 @@ const FilterBadges: Component<{ distribution: Record<string, number>; compact?: 
               </span>
             }
           >
-            <span class={`w-6 h-6 rounded text-[10px] font-bold flex items-center justify-center ${COLOR_MAP[name] || "bg-gray-600"} text-white`}>
+            <span
+              class={`h-6 rounded text-[10px] font-bold flex items-center justify-center ${COLOR_MAP[name] || "bg-gray-600"} text-white`}
+              classList={{ "w-6": (SHORT_LABEL[name] || name).length <= 1, "px-1.5": (SHORT_LABEL[name] || name).length > 1 }}
+              title={name}
+            >
               {SHORT_LABEL[name] || name}
             </span>
           </Show>
