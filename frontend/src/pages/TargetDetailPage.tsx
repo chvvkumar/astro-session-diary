@@ -25,26 +25,38 @@ const TargetDetailPage: Component = () => {
   const [expandedSessions, setExpandedSessions] = createSignal<Set<string>>(new Set());
   const [sessionCache, setSessionCache] = createSignal<Record<string, SessionDetail>>({});
 
-  createEffect(() => {
-    const sessionDate = searchParams.session;
-    if (sessionDate && typeof sessionDate === "string" && targetDetail()) {
-      setExpandedSessions(new Set([sessionDate]));
-    }
-  });
-
-  const toggleSession = (date: string) => {
-    setExpandedSessions((prev) => {
-      const next = new Set(prev);
-      if (next.has(date)) next.delete(date);
-      else next.add(date);
-      return next;
-    });
-  };
-
   const loadSessionDetail = async (date: string) => {
     if (sessionCache()[date]) return;
     const detail = await api.getSessionDetail(params.targetId, date);
     setSessionCache((prev) => ({ ...prev, [date]: detail }));
+  };
+
+  // Auto-expand first session or session from query param, and load its data
+  createEffect(() => {
+    const td = targetDetail();
+    if (!td) return;
+    const sessionDate = searchParams.session;
+    if (sessionDate && typeof sessionDate === "string") {
+      setExpandedSessions(new Set([sessionDate]));
+      loadSessionDetail(sessionDate);
+    } else if (td.sessions.length > 0) {
+      const first = td.sessions[0].session_date;
+      setExpandedSessions(new Set([first]));
+      loadSessionDetail(first);
+    }
+  });
+
+  const toggleSession = (date: string) => {
+    const wasExpanded = expandedSessions().has(date);
+    setExpandedSessions((prev) => {
+      const next = new Set(prev);
+      if (wasExpanded) next.delete(date);
+      else next.add(date);
+      return next;
+    });
+    if (!wasExpanded) {
+      loadSessionDetail(date);
+    }
   };
 
   return (
@@ -136,12 +148,7 @@ const TargetDetailPage: Component = () => {
                   <SessionAccordionCard
                     session={session}
                     isExpanded={expandedSessions().has(session.session_date)}
-                    onToggle={() => {
-                      toggleSession(session.session_date);
-                      if (!expandedSessions().has(session.session_date)) {
-                        loadSessionDetail(session.session_date);
-                      }
-                    }}
+                    onToggle={() => toggleSession(session.session_date)}
                     detail={sessionCache()[session.session_date] ?? null}
                     autoScroll={searchParams.session === session.session_date}
                   />
