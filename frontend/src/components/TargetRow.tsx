@@ -12,7 +12,6 @@ function formatIntegration(seconds: number): string {
 
 const TargetRow: Component<{
   target: TargetAggregation;
-  maxIntegration: number;
 }> = (props) => {
   const { expandedTargets, toggleExpanded, openDrawer } = useCatalog();
 
@@ -20,9 +19,6 @@ const TargetRow: Component<{
 
   const displayName = () =>
     props.target.aliases[0] || props.target.primary_name;
-
-  const percentage = () =>
-    (props.target.total_integration_seconds / props.maxIntegration) * 100;
 
   const lastSession = createMemo(() => {
     const sorted = [...props.target.sessions].sort(
@@ -44,16 +40,8 @@ const TargetRow: Component<{
         <td class="py-2.5 px-3">
           <FilterBadges distribution={props.target.filter_distribution} compact />
         </td>
-        <td class="py-2.5 px-3">
-          <span class="text-white text-xs">
-            {formatIntegration(props.target.total_integration_seconds)}
-          </span>
-          <div class="w-24 h-1 bg-[#333] rounded-full mt-1">
-            <div
-              class="h-full bg-astro-muted rounded-full"
-              style={{ width: `${percentage()}%` }}
-            />
-          </div>
+        <td class="py-2.5 px-3 text-white text-xs">
+          {formatIntegration(props.target.total_integration_seconds)}
         </td>
         <td class="py-2.5 px-3 text-astro-accent text-xs">
           {props.target.equipment.join(" \u00b7 ")}

@@ -51,10 +51,6 @@ const TargetTable: Component<{ targets: TargetAggregation[] }> = (props) => {
     return sorted;
   });
 
-  const maxIntegration = createMemo(() =>
-    Math.max(1, ...props.targets.map((t) => t.total_integration_seconds))
-  );
-
   const arrow = (key: SortKey) => {
     if (sortKey() !== key) return " \u2195";
     return sortDir() === "asc" ? " \u2191" : " \u2193";
@@ -86,7 +82,7 @@ const TargetTable: Component<{ targets: TargetAggregation[] }> = (props) => {
       <tbody>
         <For each={sortedTargets()}>
           {(target) => (
-            <TargetRow target={target} maxIntegration={maxIntegration()} />
+            <TargetRow target={target} />
           )}
         </For>
       </tbody>
