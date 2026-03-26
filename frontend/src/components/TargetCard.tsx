@@ -9,7 +9,7 @@ function formatHours(seconds: number): string {
 }
 
 const TargetCard: Component<{ target: TargetAggregation }> = (props) => {
-  const { expandedTargets, toggleExpanded, openDrawer } = useCatalog();
+  const { expandedTargets, toggleExpanded } = useCatalog();
   const isOpen = () => expandedTargets().has(props.target.target_id);
 
   return (
@@ -41,7 +41,9 @@ const TargetCard: Component<{ target: TargetAggregation }> = (props) => {
       <Show when={isOpen()}>
         <SessionTable
           sessions={props.target.sessions}
-          onDeepDive={(date) => openDrawer(props.target.target_id, date)}
+          onDeepDive={(date) => {
+            window.location.href = `/targets/${encodeURIComponent(props.target.target_id)}?session=${date}`;
+          }}
         />
       </Show>
     </div>

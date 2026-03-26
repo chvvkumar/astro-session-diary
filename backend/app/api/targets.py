@@ -14,6 +14,7 @@ from app.schemas import TargetSearchResult
 from app.schemas.target import (
     TargetAggregationResponse, TargetAggregation, SessionSummary,
     AggregateStats, EquipmentResponse, SessionDetailResponse,
+    TargetDetailResponse, SessionOverview, FilterDetail, SessionInsight, FrameRecord,
 )
 
 router = APIRouter(prefix="/targets", tags=["targets"])
@@ -70,6 +71,112 @@ async def get_fits_keys(session: AsyncSession = Depends(get_session)):
         text("SELECT DISTINCT key FROM images, jsonb_object_keys(raw_headers) AS key ORDER BY key")
     )
     return [row[0] for row in result.all()]
+
+
+# --- 2c. Target detail (before path-parameter routes) ---
+
+@router.get("/{target_id:path}/detail", response_model=TargetDetailResponse)
+async def get_target_detail(
+    target_id: str,
+    session: AsyncSession = Depends(get_session),
+):
+    """Return target identity with cumulative stats and session overviews."""
+    if target_id.startswith("obj:"):
+        object_name = target_id[4:]
+        target_name = object_name
+        target_obj = None
+        query = (
+            select(Image)
+            .where(
+                Image.raw_headers["OBJECT"].astext == object_name,
+                Image.image_type == "LIGHT",
+            )
+            .order_by(Image.capture_date)
+        )
+    else:
+        try:
+            tid = uuid.UUID(target_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid target ID")
+        target_obj = await session.get(Target, tid)
+        if not target_obj:
+            raise HTTPException(status_code=404, detail="Target not found")
+        target_name = target_obj.primary_name
+        query = (
+            select(Image)
+            .where(
+                Image.resolved_target_id == tid,
+                Image.image_type == "LIGHT",
+            )
+            .order_by(Image.capture_date)
+        )
+
+    result = await session.execute(query)
+    images = result.scalars().all()
+
+    if not images:
+        raise HTTPException(status_code=404, detail="No images found for this target")
+
+    sessions_map: dict[str, list] = defaultdict(list)
+    all_hfr = []
+    all_ecc = []
+    equipment_set: set[str] = set()
+    filters_set: set[str] = set()
+    total_exp = 0.0
+
+    for img in images:
+        date_key = img.capture_date.strftime("%Y-%m-%d") if img.capture_date else "unknown"
+        sessions_map[date_key].append(img)
+        total_exp += img.exposure_time or 0
+        if img.median_hfr is not None:
+            all_hfr.append(img.median_hfr)
+        if img.eccentricity is not None:
+            all_ecc.append(img.eccentricity)
+        if img.camera:
+            equipment_set.add(img.camera)
+        if img.telescope:
+            equipment_set.add(img.telescope)
+        if img.filter_used:
+            filters_set.add(img.filter_used)
+
+    session_overviews = []
+    for date_key in sorted(sessions_map.keys(), reverse=True):
+        sess_images = sessions_map[date_key]
+        sess_hfr = [i.median_hfr for i in sess_images if i.median_hfr is not None]
+        sess_ecc = [i.eccentricity for i in sess_images if i.eccentricity is not None]
+        sess_filters = sorted({i.filter_used for i in sess_images if i.filter_used})
+        sess_exp = sum(i.exposure_time or 0 for i in sess_images)
+        session_overviews.append(SessionOverview(
+            session_date=date_key,
+            integration_seconds=sess_exp,
+            frame_count=len(sess_images),
+            median_hfr=statistics.median(sess_hfr) if sess_hfr else None,
+            median_eccentricity=statistics.median(sess_ecc) if sess_ecc else None,
+            filters_used=sess_filters,
+            camera=sess_images[0].camera,
+            telescope=sess_images[0].telescope,
+        ))
+
+    sorted_dates = sorted(sessions_map.keys())
+
+    return TargetDetailResponse(
+        target_id=target_id,
+        primary_name=target_name,
+        aliases=target_obj.aliases if target_obj else [],
+        object_type=target_obj.object_type if target_obj else None,
+        ra=target_obj.ra if target_obj else None,
+        dec=target_obj.dec if target_obj else None,
+        total_integration_seconds=total_exp,
+        total_frames=len(images),
+        avg_hfr=statistics.mean(all_hfr) if all_hfr else None,
+        avg_eccentricity=statistics.mean(all_ecc) if all_ecc else None,
+        filters_used=sorted(filters_set),
+        equipment=sorted(equipment_set),
+        first_session_date=sorted_dates[0] if sorted_dates else "",
+        last_session_date=sorted_dates[-1] if sorted_dates else "",
+        session_count=len(sessions_map),
+        sessions=session_overviews,
+    )
 
 
 # --- 3. Aggregation (THIRD — after fixed paths, before path params) ---
@@ -240,20 +347,87 @@ async def list_targets_aggregated(
 
 # --- 4. Session detail (LAST — has path parameters) ---
 
+
+def _compute_insights(
+    *,
+    median_hfr: float | None,
+    median_ecc: float | None,
+    hfr_values: list[float],
+    ecc_values: list[float],
+    temp_values: list[float],
+    target_avg_hfr: float | None,
+    is_best_hfr: bool,
+    first_frame,
+    last_frame,
+) -> list[SessionInsight]:
+    insights = []
+
+    if first_frame.capture_date and last_frame.capture_date:
+        duration = last_frame.capture_date - first_frame.capture_date
+        hours = duration.total_seconds() / 3600
+        minutes = (duration.total_seconds() % 3600) / 60
+        insights.append(SessionInsight(
+            level="info",
+            message=f"Session duration: {int(hours)}h {int(minutes)}m ({first_frame.capture_date.strftime('%H:%M')} \u2192 {last_frame.capture_date.strftime('%H:%M')})",
+        ))
+
+    if median_hfr is not None and target_avg_hfr is not None:
+        if is_best_hfr:
+            insights.append(SessionInsight(
+                level="good",
+                message=f"Best HFR session for this target (median {median_hfr:.2f} vs target avg {target_avg_hfr:.2f})",
+            ))
+        elif median_hfr > target_avg_hfr * 1.3:
+            insights.append(SessionInsight(
+                level="warning",
+                message=f"Poor HFR session (median {median_hfr:.2f} vs target avg {target_avg_hfr:.2f})",
+            ))
+
+    if temp_values:
+        temp_range = max(temp_values) - min(temp_values)
+        if temp_range < 1.0:
+            insights.append(SessionInsight(
+                level="good",
+                message=f"Stable sensor temperature ({min(temp_values):.0f}\u00b0C \u00b1 {temp_range:.1f}\u00b0C)",
+            ))
+        elif temp_range >= 3.0:
+            insights.append(SessionInsight(
+                level="warning",
+                message=f"Unstable sensor temperature (range: {min(temp_values):.0f}\u00b0C to {max(temp_values):.0f}\u00b0C)",
+            ))
+
+    if median_hfr is not None and len(hfr_values) > 2:
+        threshold = median_hfr * 1.5
+        outlier_count = sum(1 for v in hfr_values if v > threshold)
+        if outlier_count > 0:
+            insights.append(SessionInsight(
+                level="warning",
+                message=f"{outlier_count} frame{'s' if outlier_count > 1 else ''} with HFR outlier{'s' if outlier_count > 1 else ''} (> {threshold:.1f})",
+            ))
+
+    if median_ecc is not None and len(ecc_values) > 2:
+        threshold = median_ecc * 1.5
+        outlier_count = sum(1 for v in ecc_values if v > threshold)
+        if outlier_count > 0:
+            insights.append(SessionInsight(
+                level="warning",
+                message=f"{outlier_count} frame{'s' if outlier_count > 1 else ''} with eccentricity outlier{'s' if outlier_count > 1 else ''} (> {threshold:.2f})",
+            ))
+
+    return insights
+
+
 @router.get("/{target_id:path}/sessions/{date}", response_model=SessionDetailResponse)
 async def get_session_detail(
     target_id: str,
     date: str,
     session: AsyncSession = Depends(get_session),
 ):
-    """Return detailed session data for a target on a specific date.
-
-    target_id can be a UUID (resolved target) or 'obj:ObjectName' (unresolved).
-    """
+    """Return detailed session data for a target on a specific date."""
     if target_id.startswith("obj:"):
-        # Unresolved target — query by OBJECT header name
         object_name = target_id[4:]
         target_name = object_name
+        target_obj = None
         query = (
             select(Image)
             .where(
@@ -264,16 +438,22 @@ async def get_session_detail(
             )
             .order_by(Image.capture_date)
         )
+        all_images_query = (
+            select(Image)
+            .where(
+                Image.raw_headers["OBJECT"].astext == object_name,
+                Image.image_type == "LIGHT",
+            )
+        )
     else:
-        # Resolved target — query by UUID
         try:
             tid = uuid.UUID(target_id)
         except ValueError:
             raise HTTPException(status_code=400, detail="Invalid target ID")
-        target = await session.get(Target, tid)
-        if not target:
+        target_obj = await session.get(Target, tid)
+        if not target_obj:
             raise HTTPException(status_code=404, detail="Target not found")
-        target_name = target.primary_name
+        target_name = target_obj.primary_name
         query = (
             select(Image)
             .where(
@@ -284,6 +464,13 @@ async def get_session_detail(
             )
             .order_by(Image.capture_date)
         )
+        all_images_query = (
+            select(Image)
+            .where(
+                Image.resolved_target_id == tid,
+                Image.image_type == "LIGHT",
+            )
+        )
 
     result = await session.execute(query)
     images = result.scalars().all()
@@ -291,10 +478,16 @@ async def get_session_detail(
     if not images:
         raise HTTPException(status_code=404, detail="No images found for this session")
 
+    all_result = await session.execute(all_images_query)
+    all_images = all_result.scalars().all()
+    all_hfr_values = [i.median_hfr for i in all_images if i.median_hfr is not None]
+    target_avg_hfr = statistics.mean(all_hfr_values) if all_hfr_values else None
+
     total_exp = sum(img.exposure_time or 0 for img in images)
     filters_used: dict[str, int] = {}
     hfr_values = []
     ecc_values = []
+    temp_values = []
 
     for img in images:
         if img.filter_used:
@@ -303,6 +496,8 @@ async def get_session_detail(
             hfr_values.append(img.median_hfr)
         if img.eccentricity is not None:
             ecc_values.append(img.eccentricity)
+        if img.sensor_temp is not None:
+            temp_values.append(img.sensor_temp)
 
     ref_image = images[0]
     thumb_url = None
@@ -310,18 +505,90 @@ async def get_session_detail(
         filename = ref_image.thumbnail_path.split("/")[-1].split("\\")[-1]
         thumb_url = f"/thumbnails/{filename}"
 
+    median_hfr = statistics.median(hfr_values) if hfr_values else None
+    median_ecc = statistics.median(ecc_values) if ecc_values else None
+
+    filter_groups: dict[str, list] = defaultdict(list)
+    for img in images:
+        if img.filter_used:
+            filter_groups[img.filter_used].append(img)
+
+    filter_details = []
+    for fname, fimages in sorted(filter_groups.items()):
+        f_hfr = [i.median_hfr for i in fimages if i.median_hfr is not None]
+        f_ecc = [i.eccentricity for i in fimages if i.eccentricity is not None]
+        f_exp = sum(i.exposure_time or 0 for i in fimages)
+        filter_details.append(FilterDetail(
+            filter_name=fname,
+            frame_count=len(fimages),
+            integration_seconds=f_exp,
+            median_hfr=statistics.median(f_hfr) if f_hfr else None,
+            median_eccentricity=statistics.median(f_ecc) if f_ecc else None,
+            exposure_time=fimages[0].exposure_time,
+        ))
+
+    frames = []
+    for img in images:
+        frames.append(FrameRecord(
+            timestamp=img.capture_date.isoformat() if img.capture_date else "",
+            filter_used=img.filter_used,
+            exposure_time=img.exposure_time,
+            median_hfr=img.median_hfr,
+            eccentricity=img.eccentricity,
+            sensor_temp=img.sensor_temp,
+            gain=img.camera_gain,
+            file_name=img.file_name,
+        ))
+
+    is_best_hfr = False
+    if median_hfr is not None:
+        all_session_dates: dict[str, list[float]] = defaultdict(list)
+        for img in all_images:
+            if img.median_hfr is not None and img.capture_date:
+                dk = img.capture_date.strftime("%Y-%m-%d")
+                all_session_dates[dk].append(img.median_hfr)
+        all_session_medians = [statistics.median(v) for v in all_session_dates.values() if v]
+        if all_session_medians:
+            is_best_hfr = median_hfr <= min(all_session_medians)
+
+    insights = _compute_insights(
+        median_hfr=median_hfr,
+        median_ecc=median_ecc,
+        hfr_values=hfr_values,
+        ecc_values=ecc_values,
+        temp_values=temp_values,
+        target_avg_hfr=target_avg_hfr,
+        is_best_hfr=is_best_hfr,
+        first_frame=images[0],
+        last_frame=images[-1],
+    )
+
     return SessionDetailResponse(
         target_name=target_name,
         session_date=date,
         thumbnail_url=thumb_url,
         frame_count=len(images),
         integration_seconds=total_exp,
-        median_hfr=statistics.median(hfr_values) if hfr_values else None,
-        median_eccentricity=statistics.median(ecc_values) if ecc_values else None,
+        median_hfr=median_hfr,
+        median_eccentricity=median_ecc,
         filters_used=filters_used,
         equipment={
             "camera": ref_image.camera,
             "telescope": ref_image.telescope,
         },
         raw_reference_header=ref_image.raw_headers,
+        min_hfr=min(hfr_values) if hfr_values else None,
+        max_hfr=max(hfr_values) if hfr_values else None,
+        min_eccentricity=min(ecc_values) if ecc_values else None,
+        max_eccentricity=max(ecc_values) if ecc_values else None,
+        sensor_temp=statistics.median(temp_values) if temp_values else None,
+        sensor_temp_min=min(temp_values) if temp_values else None,
+        sensor_temp_max=max(temp_values) if temp_values else None,
+        gain=ref_image.camera_gain,
+        exposure_time=ref_image.exposure_time,
+        first_frame_time=images[0].capture_date.isoformat() if images[0].capture_date else None,
+        last_frame_time=images[-1].capture_date.isoformat() if images[-1].capture_date else None,
+        filter_details=filter_details,
+        insights=insights,
+        frames=frames,
     )

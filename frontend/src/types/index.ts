@@ -43,6 +43,78 @@ export interface SessionDetail {
   filters_used: Record<string, number>;
   equipment: { camera: string | null; telescope: string | null };
   raw_reference_header: Record<string, unknown> | null;
+  // New fields
+  min_hfr: number | null;
+  max_hfr: number | null;
+  min_eccentricity: number | null;
+  max_eccentricity: number | null;
+  sensor_temp: number | null;
+  sensor_temp_min: number | null;
+  sensor_temp_max: number | null;
+  gain: number | null;
+  exposure_time: number | null;
+  first_frame_time: string | null;
+  last_frame_time: string | null;
+  filter_details: FilterDetail[];
+  insights: SessionInsight[];
+  frames: FrameRecord[];
+}
+
+// === Target Detail (Deep Dive Page) ===
+
+export interface SessionOverview {
+  session_date: string;
+  integration_seconds: number;
+  frame_count: number;
+  median_hfr: number | null;
+  median_eccentricity: number | null;
+  filters_used: string[];
+  camera: string | null;
+  telescope: string | null;
+}
+
+export interface TargetDetailResponse {
+  target_id: string;
+  primary_name: string;
+  aliases: string[];
+  object_type: string | null;
+  ra: number | null;
+  dec: number | null;
+  total_integration_seconds: number;
+  total_frames: number;
+  avg_hfr: number | null;
+  avg_eccentricity: number | null;
+  filters_used: string[];
+  equipment: string[];
+  first_session_date: string;
+  last_session_date: string;
+  session_count: number;
+  sessions: SessionOverview[];
+}
+
+export interface FilterDetail {
+  filter_name: string;
+  frame_count: number;
+  integration_seconds: number;
+  median_hfr: number | null;
+  median_eccentricity: number | null;
+  exposure_time: number | null;
+}
+
+export interface SessionInsight {
+  level: "good" | "warning" | "info";
+  message: string;
+}
+
+export interface FrameRecord {
+  timestamp: string;
+  filter_used: string | null;
+  exposure_time: number | null;
+  median_hfr: number | null;
+  eccentricity: number | null;
+  sensor_temp: number | null;
+  gain: number | null;
+  file_name: string;
 }
 
 // === Equipment ===

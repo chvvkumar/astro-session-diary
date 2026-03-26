@@ -7,6 +7,7 @@ import type {
   ScanStatus,
   ActiveFilters,
   StatsResponse,
+  TargetDetailResponse,
 } from "../types";
 
 const API_BASE = import.meta.env.VITE_API_URL || "/api";
@@ -46,6 +47,9 @@ export const api = {
 
   getSessionDetail: (targetId: string, date: string) =>
     fetchJson<SessionDetail>(`/targets/${encodeURIComponent(targetId)}/sessions/${date}`),
+
+  getTargetDetail: (targetId: string) =>
+    fetchJson<TargetDetailResponse>(`/targets/${encodeURIComponent(targetId)}/detail`),
 
   getEquipment: () =>
     fetchJson<EquipmentList>("/targets/equipment"),

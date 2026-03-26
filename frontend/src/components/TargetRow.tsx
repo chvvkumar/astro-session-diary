@@ -1,4 +1,5 @@
 import { Component, Show, createMemo } from "solid-js";
+import { A } from "@solidjs/router";
 import type { TargetAggregation } from "../types";
 import { useCatalog } from "../store/catalog";
 import FilterBadges from "./FilterBadges";
@@ -13,7 +14,7 @@ function formatIntegration(seconds: number): string {
 const TargetRow: Component<{
   target: TargetAggregation;
 }> = (props) => {
-  const { expandedTargets, toggleExpanded, openDrawer } = useCatalog();
+  const { expandedTargets, toggleExpanded } = useCatalog();
 
   const isOpen = () => expandedTargets().has(props.target.target_id);
 
@@ -24,7 +25,7 @@ const TargetRow: Component<{
     const sorted = [...props.target.sessions].sort(
       (a, b) => b.session_date.localeCompare(a.session_date)
     );
-    return sorted[0]?.session_date ?? "—";
+    return sorted[0]?.session_date ?? "\u2014";
   });
 
   return (
@@ -33,7 +34,15 @@ const TargetRow: Component<{
         class="border-b border-[#2d2d2d] cursor-pointer hover:bg-[#2a2a2a] transition-colors"
         onClick={() => toggleExpanded(props.target.target_id)}
       >
-        <td class="py-2.5 px-3 font-bold text-white">{displayName()}</td>
+        <td class="py-2.5 px-3 font-bold text-white">
+          <A
+            href={`/targets/${encodeURIComponent(props.target.target_id)}`}
+            class="hover:text-astro-accent transition-colors"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {displayName()}
+          </A>
+        </td>
         <td class="py-2.5 px-3 font-mono text-astro-muted text-xs">
           {props.target.primary_name}
         </td>
@@ -53,7 +62,9 @@ const TargetRow: Component<{
           <td colspan="6" class="px-3 py-2">
             <SessionTable
               sessions={props.target.sessions}
-              onDeepDive={(date) => openDrawer(props.target.target_id, date)}
+              onDeepDive={(date) => {
+                window.location.href = `/targets/${encodeURIComponent(props.target.target_id)}?session=${date}`;
+              }}
             />
           </td>
         </tr>

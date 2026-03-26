@@ -2,7 +2,6 @@ import { Component } from "solid-js";
 import Sidebar from "../components/Sidebar";
 import CommandBar from "../components/CommandBar";
 import TargetFeed from "../components/TargetFeed";
-import DetailDrawer from "../components/DetailDrawer";
 
 const DashboardPage: Component = () => {
   return (
@@ -12,7 +11,6 @@ const DashboardPage: Component = () => {
         <CommandBar />
         <TargetFeed />
       </main>
-      <DetailDrawer />
     </div>
   );
 };

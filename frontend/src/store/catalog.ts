@@ -1,6 +1,6 @@
 import { createSignal, createResource } from "solid-js";
 import { api } from "../api/client";
-import type { ActiveFilters, TargetAggregationResponse, SessionDetail, EquipmentList } from "../types";
+import type { ActiveFilters, TargetAggregationResponse, EquipmentList } from "../types";
 
 const defaultFilters: ActiveFilters = {
   searchQuery: "",
@@ -16,10 +16,6 @@ const [targetData, { refetch: refetchTargets }] = createResource(filters, (f) =>
 const [equipment] = createResource(() => api.getEquipment());
 
 const [expandedTargets, setExpandedTargets] = createSignal<Set<string>>(new Set());
-const [drawerContext, setDrawerContext] = createSignal<{ targetId: string; date: string } | null>(null);
-const [sessionDetail] = createResource(drawerContext, (ctx) =>
-  ctx ? api.getSessionDetail(ctx.targetId, ctx.date) : undefined
-);
 
 export function useCatalog() {
   return {
@@ -28,8 +24,6 @@ export function useCatalog() {
     targetData,
     equipment,
     expandedTargets,
-    drawerContext,
-    sessionDetail,
     refetchTargets,
 
     updateFilter: <K extends keyof ActiveFilters>(key: K, value: ActiveFilters[K]) => {
@@ -53,14 +47,6 @@ export function useCatalog() {
         else next.add(targetId);
         return next;
       });
-    },
-
-    openDrawer: (targetId: string, date: string) => {
-      setDrawerContext({ targetId, date });
-    },
-
-    closeDrawer: () => {
-      setDrawerContext(null);
     },
 
     resetFilters: () => setFilters({ ...defaultFilters }),
