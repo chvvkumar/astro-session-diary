@@ -296,18 +296,23 @@ else
     die "Redis failed to start.\n  Check logs: docker compose logs redis"
 fi
 
-# ── Run Alembic migrations ───────────────────────────────────────────────────
-header "Database Migrations"
+# ── Database Schema ──────────────────────────────────────────────────────────
+header "Database Schema"
 
-info "Generating and running database migrations..."
+info "Initializing database schema..."
 
-if docker compose run --rm -T app bash -c \
-    "cd /app && alembic revision --autogenerate -m 'initial schema: targets and images' 2>&1 && alembic upgrade head 2>&1"; then
-    success "Database schema created successfully"
+# The Celery worker creates tables via Base.metadata.create_all() on startup.
+# We just need to stamp Alembic so it knows the DB is at the latest state.
+# First start the app briefly so create_all runs, then stamp.
+docker compose up -d app
+sleep 5
+docker compose stop app
+
+if docker compose run --rm -T app alembic stamp head 2>&1; then
+    success "Database schema initialized and Alembic stamped"
 else
-    warn "Migration had issues. You may need to run manually:"
-    echo "  docker compose run --rm app alembic revision --autogenerate -m 'initial'"
-    echo "  docker compose run --rm app alembic upgrade head"
+    warn "Alembic stamp had issues. You may need to run manually:"
+    echo "  docker compose run --rm app alembic stamp head"
 fi
 
 # ── Start Application ────────────────────────────────────────────────────────
