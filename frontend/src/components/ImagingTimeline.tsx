@@ -16,7 +16,7 @@ const ImagingTimeline: Component<{ timeline: TimelineEntry[] }> = (props) => {
     // "2023-02" → "Feb 23"
     const [y, m] = month.split("-");
     const names = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-    return `${names[parseInt(m, 10) - 1]} ${y.slice(2)}`;
+    return `${names[parseInt(m, 10) - 1]} ${y}`;
   };
 
   return (
