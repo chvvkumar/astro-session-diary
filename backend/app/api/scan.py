@@ -1,7 +1,7 @@
 import asyncio
 import logging
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -201,3 +201,41 @@ async def backfill_targets(
         "failed_names": failed_names,
         "images_updated": total_images_updated,
     }
+
+
+VALID_INTERVALS = {60, 120, 240, 480, 720, 1440}
+
+
+@router.get("/autoscan")
+async def get_autoscan():
+    """Return current auto-scan settings."""
+    r = get_async_redis()
+    try:
+        enabled = await r.get("autoscan:enabled")
+        interval = await r.get("autoscan:interval")
+        return {
+            "enabled": enabled == "true",
+            "interval_minutes": int(interval) if interval else 60,
+        }
+    finally:
+        await r.aclose()
+
+
+@router.put("/autoscan")
+async def set_autoscan(
+    enabled: bool = Query(...),
+    interval_minutes: int = Query(...),
+):
+    """Update auto-scan settings."""
+    if interval_minutes not in VALID_INTERVALS:
+        raise HTTPException(status_code=400, detail=f"Invalid interval. Must be one of: {sorted(VALID_INTERVALS)}")
+    r = get_async_redis()
+    try:
+        await r.set("autoscan:enabled", "true" if enabled else "false")
+        await r.set("autoscan:interval", str(interval_minutes))
+        return {
+            "enabled": enabled,
+            "interval_minutes": interval_minutes,
+        }
+    finally:
+        await r.aclose()

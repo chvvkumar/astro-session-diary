@@ -74,6 +74,15 @@ export const api = {
   regenerateThumbnails: () =>
     fetchJson<ScanResult>("/scan/regenerate-thumbnails", { method: "POST" }),
 
+  getAutoScan: () =>
+    fetchJson<{ enabled: boolean; interval_minutes: number }>("/scan/autoscan"),
+
+  setAutoScan: (enabled: boolean, interval_minutes: number) =>
+    fetchJson<{ enabled: boolean; interval_minutes: number }>(
+      `/scan/autoscan?enabled=${enabled}&interval_minutes=${interval_minutes}`,
+      { method: "PUT" }
+    ),
+
   thumbnailUrl: (path: string) => {
     const filename = path.split("/").pop();
     return `/thumbnails/${filename}`;

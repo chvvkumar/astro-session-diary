@@ -1,5 +1,6 @@
-import { Component, Show, createSignal, onCleanup } from "solid-js";
+import { Component, Show, For, createSignal, createResource, onCleanup } from "solid-js";
 import { useScan } from "../store/scan";
+import { api } from "../api/client";
 
 type FrameFilter = "all" | "light_only";
 
@@ -7,6 +8,17 @@ const ScanManager: Component = () => {
   const { scanStatus, scanError, isActive, startScan, startRegeneration, stopPolling } = useScan();
   const [expanded, setExpanded] = createSignal(false);
   const [frameFilter, setFrameFilter] = createSignal<FrameFilter>("all");
+
+  const INTERVALS = [
+    { value: 60, label: "1 hour" },
+    { value: 120, label: "2 hours" },
+    { value: 240, label: "4 hours" },
+    { value: 480, label: "8 hours" },
+    { value: 720, label: "12 hours" },
+    { value: 1440, label: "24 hours" },
+  ];
+
+  const [autoScan, { refetch: refetchAutoScan }] = createResource(() => api.getAutoScan());
 
   onCleanup(stopPolling);
 
@@ -144,6 +156,47 @@ const ScanManager: Component = () => {
           </Show>
         </div>
       </Show>
+
+      {/* Auto-Scan Settings */}
+      <div class="border-t border-gray-700 pt-3 space-y-2">
+        <div class="flex justify-between items-center">
+          <span class="text-sm text-white">Auto-Scan</span>
+          <button
+            onClick={async () => {
+              const current = autoScan();
+              if (!current) return;
+              await api.setAutoScan(!current.enabled, current.interval_minutes);
+              refetchAutoScan();
+            }}
+            class={`relative w-10 h-5 rounded-full transition-colors ${
+              autoScan()?.enabled ? "bg-astro-accent" : "bg-gray-600"
+            }`}
+          >
+            <span
+              class={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${
+                autoScan()?.enabled ? "translate-x-5" : ""
+              }`}
+            />
+          </button>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="text-xs text-astro-muted">Interval:</span>
+          <select
+            value={autoScan()?.interval_minutes ?? 60}
+            onChange={async (e) => {
+              const current = autoScan();
+              if (!current) return;
+              await api.setAutoScan(current.enabled, parseInt(e.currentTarget.value));
+              refetchAutoScan();
+            }}
+            class="flex-1 px-2 py-1 bg-astro-dark border border-gray-700 rounded text-xs text-white focus:outline-none"
+          >
+            <For each={INTERVALS}>
+              {(opt) => <option value={opt.value}>{opt.label}</option>}
+            </For>
+          </select>
+        </div>
+      </div>
     </div>
   );
 };

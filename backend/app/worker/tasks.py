@@ -68,6 +68,40 @@ def run_scan(self, include_calibration: bool = True) -> dict:
     }
 
 
+@celery_app.task
+def auto_scan_tick():
+    """Heartbeat task: check if an auto-scan is due and dispatch if so."""
+    import time
+
+    # Check if auto-scan is enabled
+    enabled = _redis.get("autoscan:enabled")
+    if enabled != "true":
+        return
+
+    # Check interval
+    interval_str = _redis.get("autoscan:interval") or "60"
+    interval_minutes = int(interval_str)
+    last_run_str = _redis.get("autoscan:last_run")
+    now = time.time()
+
+    if last_run_str:
+        last_run = float(last_run_str)
+        if now - last_run < interval_minutes * 60:
+            return
+
+    # Check if a scan is already running
+    from app.services.scan_state import _parse_snapshot, SCAN_KEY
+    data = _redis.hgetall(SCAN_KEY)
+    snap = _parse_snapshot(data)
+    if snap.state in ("scanning", "ingesting"):
+        return
+
+    # Dispatch scan
+    _redis.set("autoscan:last_run", str(now))
+    logger.info("Auto-scan triggered (interval=%dm)", interval_minutes)
+    run_scan.delay(include_calibration=True)
+
+
 @celery_app.task(bind=True, max_retries=3, default_retry_delay=30)
 def ingest_file(self, fits_path: str) -> dict:
     """Full ingest pipeline for a single FITS file.

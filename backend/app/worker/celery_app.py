@@ -16,6 +16,12 @@ celery_app.conf.update(
     enable_utc=True,
     task_track_started=True,
     worker_prefetch_multiplier=1,
+    beat_schedule={
+        "auto-scan-tick": {
+            "task": "app.worker.tasks.auto_scan_tick",
+            "schedule": 60.0,
+        },
+    },
 )
 
 celery_app.autodiscover_tasks(["app.worker"])
