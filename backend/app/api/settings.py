@@ -74,6 +74,21 @@ def _row_to_response(row: UserSettings) -> SettingsResponse:
     return SettingsResponse(general=general, filters=filters, equipment=equipment)
 
 
+def _build_known_names(config: dict) -> set[str]:
+    """Build a set of all canonical names and their aliases from a config dict."""
+    known: set[str] = set()
+    for canonical, conf in config.items():
+        known.add(canonical)
+        for alias in conf.get("aliases", []):
+            known.add(alias)
+    return known
+
+
+def _group_already_merged(group: SuggestionGroup, known: set[str]) -> bool:
+    """Return True if every member of the group is already a known name or alias."""
+    return all(name in known for name in group.group)
+
+
 def _levenshtein(a: str, b: str) -> int:
     """Pure-Python Levenshtein distance."""
     if a == b:
@@ -218,6 +233,12 @@ async def suggest_filters(session: AsyncSession = Depends(get_session)):
     result = await session.execute(q)
     rows = result.all()  # list of (name, count)
     suggestions = _group_by_similarity(rows)
+
+    # Exclude groups already handled by saved aliases
+    row = await _get_or_create_settings(session)
+    known = _build_known_names(row.filters or {})
+    suggestions = [s for s in suggestions if not _group_already_merged(s, known)]
+
     return SuggestionsResponse(suggestions=suggestions)
 
 
@@ -244,4 +265,13 @@ async def suggest_equipment(session: AsyncSession = Depends(get_session)):
         _group_by_similarity(camera_rows)
         + _group_by_similarity(telescope_rows)
     )
+
+    # Exclude groups already handled by saved aliases
+    row = await _get_or_create_settings(session)
+    eq = row.equipment or {}
+    known = set()
+    for section in ("cameras", "telescopes"):
+        known |= _build_known_names(eq.get(section, {}))
+    all_suggestions = [s for s in all_suggestions if not _group_already_merged(s, known)]
+
     return SuggestionsResponse(suggestions=all_suggestions)
