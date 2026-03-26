@@ -66,23 +66,25 @@ export function useScan() {
 
     startScan: async (options?: { includeCalibration?: boolean }) => {
       setScanError(null);
+      // Immediately show scanning state so the UI responds instantly
+      setScanStatus((prev) => ({ ...prev, state: "scanning", completed: 0, failed: 0, total: 0 }));
+      startPolling();
       try {
         await api.triggerScan(options);
       } catch {
         // POST /scan may timeout on large directories, but scan still starts server-side
       }
-      // Always start polling after triggering — the scan runs regardless of POST response
-      startPolling();
     },
 
     startRegeneration: async () => {
       setScanError(null);
+      setScanStatus((prev) => ({ ...prev, state: "scanning", completed: 0, failed: 0, total: 0 }));
+      startPolling();
       try {
         await api.regenerateThumbnails();
       } catch {
         // POST may timeout but regeneration still starts server-side
       }
-      startPolling();
     },
 
     stopPolling,
