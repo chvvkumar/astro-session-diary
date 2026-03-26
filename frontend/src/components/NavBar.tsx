@@ -21,6 +21,13 @@ const NavBar: Component = () => {
         >
           Admin & Stats
         </A>
+        <A
+          href="/settings"
+          class="text-astro-muted hover:text-white transition-colors text-sm"
+          activeClass="text-white font-medium"
+        >
+          Settings
+        </A>
       </nav>
     </header>
   );
