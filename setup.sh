@@ -27,29 +27,6 @@ warn()    { echo -e "${YELLOW}⚠${NC}  $*"; }
 error()   { echo -e "${RED}✖${NC}  $*"; }
 header()  { echo -e "\n${BOLD}━━━ $* ━━━${NC}\n"; }
 
-ask() {
-    local prompt="$1"
-    local default="${2:-}"
-    local var="$3"
-    local value=""
-    if [ -n "$default" ]; then
-        read -rp "$(echo -e "${CYAN}?${NC}  ${prompt} [${default}]: ")" value
-        value="${value:-$default}"
-    else
-        read -rp "$(echo -e "${CYAN}?${NC}  ${prompt}: ")" value
-    fi
-    eval "$var=\"\$value\""
-}
-
-ask_yes_no() {
-    local prompt="$1"
-    local default="${2:-y}"
-    local yn=""
-    read -rp "$(echo -e "${CYAN}?${NC}  ${prompt} [${default}]: ")" yn
-    yn="${yn:-$default}"
-    [[ "$yn" =~ ^[Yy] ]]
-}
-
 die() {
     error "$@"
     exit 1
@@ -88,108 +65,31 @@ detect_lan_ip() {
 
 HOST_IP=$(detect_lan_ip)
 
-# ── Database Configuration ───────────────────────────────────────────────────
-header "Database Configuration"
+# ── Configuration ────────────────────────────────────────────────────────────
+header "Configuration"
 
-ask "PostgreSQL username"  "astro"         PG_USER
-ask "PostgreSQL password"  "astro"         PG_PASS
-ask "PostgreSQL database"  "astro_catalog" PG_DB
+# Hardcoded paths
+PG_USER="astro"
+PG_PASS="astro"
+PG_DB="astro_catalog"
+FITS_PATH="/astro_incoming"
+THUMBNAILS_PATH="/docker/astro_cataloger/thumbnails"
+PG_DATA_PATH="/docker/astro_cataloger/postgres"
+APP_PORT="8080"
+WORKER_CONCURRENCY="4"
+THUMB_WIDTH="800"
 
-# ── Data Storage Locations ───────────────────────────────────────────────────
-header "Data Storage Locations"
-
-echo "The application needs three data directories:"
-echo ""
-echo "  1. FITS files     — your astrophotography images (read-only)"
-echo "  2. Thumbnails     — generated JPEG previews"
-echo "  3. Database       — PostgreSQL data files"
-echo ""
-
-# Helper to ask for a directory path and optionally create it
-ask_directory() {
-    local prompt="$1"
-    local default="$2"
-    local var="$3"
-    local result=""
-
-    while true; do
-        ask "$prompt" "$default" result
-
-        if [ -z "$result" ]; then
-            warn "Path cannot be empty."
-            continue
-        fi
-
-        if [ -d "$result" ]; then
-            break
-        fi
-
-        warn "Directory '$result' does not exist."
-        if ask_yes_no "Create it?" "y"; then
-            mkdir -p "$result" || { error "Failed to create directory."; continue; }
-            success "Created $result"
-            break
-        fi
-    done
-
-    eval "$var=\"\$result\""
-}
-
-if ask_yes_no "Store all data under one parent folder?" "y"; then
-    echo ""
-    echo "Example:  /docker/astro_cataloger"
-    echo "          /data/astro"
-    echo ""
-    ask_directory "Parent data folder" "/docker/astro_cataloger" DATA_ROOT
-
-    FITS_PATH=""
-    THUMBNAILS_PATH="${DATA_ROOT}/thumbnails"
-    PG_DATA_PATH="${DATA_ROOT}/postgres"
-
-    echo ""
-    echo "FITS files are read-only — they are typically on a separate drive or NAS."
-    echo ""
-    if ask_yes_no "Are your FITS files already somewhere else (not under ${DATA_ROOT})?" "y"; then
-        ask_directory "Path to FITS files" "" FITS_PATH
-    else
-        FITS_PATH="${DATA_ROOT}/fits"
-    fi
-
-    # Create subdirectories
-    mkdir -p "$THUMBNAILS_PATH" 2>/dev/null || true
-    mkdir -p "$PG_DATA_PATH" 2>/dev/null || true
-    if [ -n "$FITS_PATH" ] && [ ! -d "$FITS_PATH" ]; then
-        mkdir -p "$FITS_PATH" 2>/dev/null || true
-    fi
-
-    success "Data root: $DATA_ROOT"
-
-else
-    echo ""
-    echo "Configure each path individually."
-    echo ""
-
-    # FITS files
-    echo "Your FITS image library (read-only access):"
-    ask_directory "Path to FITS files" "" FITS_PATH
-
-    # Thumbnails
-    echo ""
-    echo "Generated JPEG thumbnails (will grow as files are ingested):"
-    ask_directory "Thumbnails storage path" "" THUMBNAILS_PATH
-
-    # PostgreSQL
-    echo ""
-    echo "PostgreSQL database files:"
-    ask_directory "Database storage path" "" PG_DATA_PATH
-fi
-
-echo ""
+success "PostgreSQL:     ${PG_USER}@${PG_DB}"
 success "FITS files:     $FITS_PATH"
 success "Thumbnails:     $THUMBNAILS_PATH"
 success "Database:       $PG_DATA_PATH"
+success "App port:       $APP_PORT"
 
-# Quick FITS file check (safe — never kills the script)
+# Create directories if needed
+mkdir -p "$THUMBNAILS_PATH" 2>/dev/null || true
+mkdir -p "$PG_DATA_PATH" 2>/dev/null || true
+
+# Quick FITS file check
 FITS_COUNT=$(find "$FITS_PATH" -type f \( -iname '*.fits' -o -iname '*.fit' -o -iname '*.fts' \) 2>/dev/null | head -100 | wc -l || echo "0")
 if [ "$FITS_COUNT" -gt 0 ] 2>/dev/null; then
     if [ "$FITS_COUNT" -ge 100 ]; then
@@ -201,22 +101,6 @@ else
     warn "No FITS files found in '$FITS_PATH'."
     info "You can add files later; the scanner will pick them up."
 fi
-
-# ── Network Configuration ────────────────────────────────────────────────────
-header "Network Configuration"
-
-ask "Application port" "8080" APP_PORT
-
-info "Application will be accessible at: http://localhost:${APP_PORT}"
-
-# ── Worker Configuration ─────────────────────────────────────────────────────
-header "Worker Configuration"
-
-echo "The Celery worker processes FITS files in parallel."
-echo "More workers = faster ingestion, but uses more CPU/RAM."
-echo ""
-ask "Worker concurrency (parallel tasks)" "4" WORKER_CONCURRENCY
-ask "Thumbnail max width (px)"            "800" THUMB_WIDTH
 
 # ── Generate .env file ───────────────────────────────────────────────────────
 header "Writing Configuration"
@@ -248,12 +132,6 @@ POSTGRES_DATA_HOST_PATH=${PG_DATA_PATH}
 ENVEOF
 
 success "Created $ENV_FILE"
-
-# ── Patch supervisord worker concurrency ─────────────────────────────────────
-if [ "$WORKER_CONCURRENCY" != "4" ]; then
-    sed -i "s/--concurrency=4/--concurrency=${WORKER_CONCURRENCY}/" "$SCRIPT_DIR/supervisord.conf"
-    success "Set worker concurrency to $WORKER_CONCURRENCY"
-fi
 
 # ── Build ─────────────────────────────────────────────────────────────────────
 header "Building Container"
