@@ -5,7 +5,7 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import select, or_, func, cast, Float, Date
+from sqlalchemy import select, or_, func, cast, Float, Date, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_session
@@ -59,6 +59,17 @@ async def get_equipment(session: AsyncSession = Depends(get_session)):
         cameras=[r[0] for r in cam_result.all()],
         telescopes=[r[0] for r in tel_result.all()],
     )
+
+
+# --- 2b. FITS keys (before path-parameter routes) ---
+
+@router.get("/fits-keys", response_model=list[str])
+async def get_fits_keys(session: AsyncSession = Depends(get_session)):
+    """Return distinct FITS header keys found across all images."""
+    result = await session.execute(
+        text("SELECT DISTINCT key FROM images, jsonb_object_keys(raw_headers) AS key ORDER BY key")
+    )
+    return [row[0] for row in result.all()]
 
 
 # --- 3. Aggregation (THIRD — after fixed paths, before path params) ---

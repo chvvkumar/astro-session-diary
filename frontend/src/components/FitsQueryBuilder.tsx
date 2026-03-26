@@ -1,5 +1,6 @@
-import { Component, For, createSignal } from "solid-js";
+import { Component, For, Show, createSignal, createResource } from "solid-js";
 import { useCatalog } from "../store/catalog";
+import { api } from "../api/client";
 
 const OPERATORS = [
   { value: "eq", label: "=" },
@@ -16,6 +17,7 @@ const FitsQueryBuilder: Component = () => {
   const [newKey, setNewKey] = createSignal("");
   const [newOp, setNewOp] = createSignal("eq");
   const [newVal, setNewVal] = createSignal("");
+  const [fitsKeys] = createResource(() => api.getFitsKeys());
 
   const addRow = () => {
     const key = newKey().trim();
@@ -59,14 +61,18 @@ const FitsQueryBuilder: Component = () => {
 
       {/* New row inputs */}
       <div class="flex gap-1">
-        <input
-          type="text"
+        <select
           value={newKey()}
-          onInput={(e) => setNewKey(e.currentTarget.value)}
-          onKeyDown={onKeyDown}
-          placeholder="Key"
-          class="w-20 px-1.5 py-1 bg-astro-dark border border-gray-700 rounded text-xs text-white font-mono focus:outline-none focus:ring-1 focus:ring-astro-accent"
-        />
+          onChange={(e) => setNewKey(e.currentTarget.value)}
+          class="w-28 px-1 py-1 bg-astro-dark border border-gray-700 rounded text-xs text-white font-mono focus:outline-none focus:ring-1 focus:ring-astro-accent"
+        >
+          <option value="" disabled>Key</option>
+          <Show when={fitsKeys()}>
+            <For each={fitsKeys()}>
+              {(key) => <option value={key}>{key}</option>}
+            </For>
+          </Show>
+        </select>
         <select
           value={newOp()}
           onChange={(e) => setNewOp(e.currentTarget.value)}

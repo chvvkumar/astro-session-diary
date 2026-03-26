@@ -50,6 +50,9 @@ export const api = {
   getEquipment: () =>
     fetchJson<EquipmentList>("/targets/equipment"),
 
+  getFitsKeys: () =>
+    fetchJson<string[]>("/targets/fits-keys"),
+
   searchTargets: (query: string) =>
     fetchJson<TargetSearchResult[]>(`/targets/search?q=${encodeURIComponent(query)}`),
 
