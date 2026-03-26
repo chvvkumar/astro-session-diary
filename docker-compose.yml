@@ -25,32 +25,10 @@ services:
       timeout: 3s
       retries: 5
 
-  api:
-    build:
-      context: ./backend
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-    env_file: .env
-    environment:
-      ASTRO_DATABASE_URL: postgresql+asyncpg://astro:astro@postgres:5432/astro_catalog
-      ASTRO_REDIS_URL: redis://redis:6379/0
-      ASTRO_FITS_DATA_PATH: /app/data/fits
-      ASTRO_THUMBNAILS_PATH: /app/data/thumbnails
-    volumes:
-      - ./backend:/app
-      - ${THUMBNAILS_HOST_PATH:-thumbnails_data}:/app/data/thumbnails
-      - ${FITS_DATA_HOST_PATH:-./sample_fits}:/app/data/fits:ro
+  app:
+    build: .
     ports:
-      - "8000:8000"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-
-  worker:
-    build:
-      context: ./backend
-    command: celery -A app.worker.celery_app worker --loglevel=info --concurrency=4
+      - "8080:80"
     env_file: .env
     environment:
       ASTRO_DATABASE_URL: postgresql+asyncpg://astro:astro@postgres:5432/astro_catalog
