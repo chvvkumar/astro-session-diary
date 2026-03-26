@@ -29,3 +29,11 @@ Thumbs.db
 
 # Generated data
 thumbnails/
+
+# Claude Code / Superpowers tooling
+.claude/
+.superpowers/
+.playwright-mcp/
+
+# Log files
+*.log
