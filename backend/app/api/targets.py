@@ -142,25 +142,27 @@ async def list_targets_aggregated(
         if target:
             tid = str(target.id)
             name = target.primary_name
-            aliases = target.aliases or []
         else:
             object_name = (image.raw_headers or {}).get("OBJECT")
             if not object_name:
                 continue  # skip images with no object name at all
             tid = f"obj:{object_name}"  # synthetic ID for unresolved objects
             name = object_name
-            aliases = []
 
         if tid not in targets_map:
             targets_map[tid] = {
                 "target_id": tid,
                 "primary_name": name,
-                "aliases": aliases,
+                "aliases_set": set(),
                 "total_integration_seconds": 0,
                 "total_frames": 0,
                 "filter_distribution": defaultdict(float),
                 "equipment_set": set(),
             }
+        # Collect distinct FITS OBJECT names as human-readable aliases
+        fits_object = (image.raw_headers or {}).get("OBJECT")
+        if fits_object:
+            targets_map[tid]["aliases_set"].add(fits_object)
         t = targets_map[tid]
         exp = image.exposure_time or 0
         t["total_integration_seconds"] += exp
@@ -201,7 +203,7 @@ async def list_targets_aggregated(
         target_list.append(TargetAggregation(
             target_id=t["target_id"],
             primary_name=t["primary_name"],
-            aliases=t["aliases"],
+            aliases=sorted(t["aliases_set"]),
             total_integration_seconds=t["total_integration_seconds"],
             total_frames=t["total_frames"],
             filter_distribution=dict(t["filter_distribution"]),
