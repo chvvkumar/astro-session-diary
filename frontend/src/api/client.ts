@@ -8,6 +8,11 @@ import type {
   ActiveFilters,
   StatsResponse,
   TargetDetailResponse,
+  SettingsResponse,
+  GeneralSettings,
+  FilterConfig,
+  EquipmentConfig,
+  SuggestionsResponse,
 } from "../types";
 
 const API_BASE = import.meta.env.VITE_API_URL || "/api";
@@ -91,4 +96,32 @@ export const api = {
     const filename = path.split("/").pop();
     return `/thumbnails/${filename}`;
   },
+
+  // Settings
+  getSettings: () =>
+    fetchJson<SettingsResponse>("/settings"),
+
+  updateGeneral: (body: GeneralSettings) =>
+    fetchJson<SettingsResponse>("/settings/general", {
+      method: "PUT",
+      body: JSON.stringify(body),
+    }),
+
+  updateFilters: (body: Record<string, FilterConfig>) =>
+    fetchJson<SettingsResponse>("/settings/filters", {
+      method: "PUT",
+      body: JSON.stringify(body),
+    }),
+
+  updateEquipment: (body: EquipmentConfig) =>
+    fetchJson<SettingsResponse>("/settings/equipment", {
+      method: "PUT",
+      body: JSON.stringify(body),
+    }),
+
+  getFilterSuggestions: () =>
+    fetchJson<SuggestionsResponse>("/settings/suggestions/filters"),
+
+  getEquipmentSuggestions: () =>
+    fetchJson<SuggestionsResponse>("/settings/suggestions/equipment"),
 };

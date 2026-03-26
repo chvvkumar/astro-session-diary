@@ -208,3 +208,41 @@ export interface StatsResponse {
   };
   ingest_history: { date: string; files_added: number }[];
 }
+
+// === Settings ===
+
+export interface GeneralSettings {
+  auto_scan_enabled: boolean;
+  auto_scan_interval: number;
+  thumbnail_width: number;
+  default_page_size: number;
+}
+
+export interface FilterConfig {
+  color: string;
+  aliases: string[];
+}
+
+export interface EquipmentAliases {
+  aliases: string[];
+}
+
+export interface EquipmentConfig {
+  cameras: Record<string, EquipmentAliases>;
+  telescopes: Record<string, EquipmentAliases>;
+}
+
+export interface SettingsResponse {
+  general: GeneralSettings;
+  filters: Record<string, FilterConfig>;
+  equipment: EquipmentConfig;
+}
+
+export interface SuggestionGroup {
+  group: string[];
+  counts: Record<string, number>;
+}
+
+export interface SuggestionsResponse {
+  suggestions: SuggestionGroup[];
+}
