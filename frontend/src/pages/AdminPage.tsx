@@ -16,11 +16,11 @@ const AdminPage: Component = () => {
     <div class="p-4 space-y-4 max-w-7xl mx-auto">
       <ScanManager />
 
-      <Show when={stats.loading}>
+      <Show when={stats.loading && !stats()}>
         <div class="text-center text-astro-muted py-8">Loading analytics...</div>
       </Show>
 
-      <Show when={stats.error}>
+      <Show when={stats.error && !stats()}>
         <div class="text-center text-red-400 py-8">Failed to load stats</div>
       </Show>
 
