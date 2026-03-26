@@ -1,11 +1,16 @@
 import { Component, For } from "solid-js";
-
-const COLOR_MAP: Record<string, string> = {
-  Ha: "bg-filter-ha", OIII: "bg-filter-oiii", SII: "bg-filter-sii",
-  L: "bg-filter-l", R: "bg-filter-r", G: "bg-filter-g", B: "bg-filter-b",
-};
+import { useSettingsContext } from "./SettingsProvider";
 
 const FilterUsageChart: Component<{ usage: Record<string, number> }> = (props) => {
+  const { filterColorMap, filterAliasMap } = useSettingsContext();
+
+  function getColor(name: string): string {
+    const colorMap = filterColorMap();
+    const aliasMap = filterAliasMap();
+    const canonical = aliasMap[name] || name;
+    return colorMap[canonical] || colorMap[name] || "#6b7280";
+  }
+
   const entries = () => Object.entries(props.usage).sort(([, a], [, b]) => b - a);
   const maxVal = () => Math.max(...Object.values(props.usage), 1);
 
@@ -18,8 +23,8 @@ const FilterUsageChart: Component<{ usage: Record<string, number> }> = (props) =
             <span class="w-10 text-right text-astro-muted">{name}</span>
             <div class="flex-1 bg-astro-dark rounded-full h-4 overflow-hidden">
               <div
-                class={`h-4 rounded-full transition-all ${COLOR_MAP[name] || "bg-gray-500"}`}
-                style={{ width: `${(seconds / maxVal()) * 100}%` }}
+                class="h-4 rounded-full transition-all"
+                style={{ width: `${(seconds / maxVal()) * 100}%`, "background-color": getColor(name) }}
               />
             </div>
             <span class="w-14 text-right text-white">{(seconds / 3600).toFixed(1)}h</span>

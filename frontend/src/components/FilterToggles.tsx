@@ -1,33 +1,32 @@
 import { Component, For } from "solid-js";
 import { useCatalog } from "../store/catalog";
-
-const FILTER_COLORS: Record<string, string> = {
-  Ha: "bg-filter-ha",
-  OIII: "bg-filter-oiii",
-  SII: "bg-filter-sii",
-  L: "bg-filter-l text-gray-900",
-  R: "bg-filter-r",
-  G: "bg-filter-g",
-  B: "bg-filter-b",
-};
+import { useSettingsContext } from "./SettingsProvider";
 
 const BROADBAND = ["L", "R", "G", "B"];
 const NARROWBAND = ["Ha", "OIII", "SII"];
 
 const FilterToggles: Component = () => {
   const { filters, toggleOpticalFilter } = useCatalog();
+  const { filterColorMap, filterAliasMap } = useSettingsContext();
 
   const isActive = (f: string) => filters().opticalFilters.includes(f);
 
+  function getColor(name: string): string {
+    const colorMap = filterColorMap();
+    const aliasMap = filterAliasMap();
+    const canonical = aliasMap[name] || name;
+    return colorMap[canonical] || colorMap[name] || "#4b5563";
+  }
+
   const renderPill = (name: string) => {
     const active = isActive(name);
-    const colorClass = FILTER_COLORS[name] || "bg-gray-600";
     return (
       <button
         onClick={() => toggleOpticalFilter(name)}
         class={`px-2.5 py-1 rounded-full text-xs font-medium transition-all ${
-          active ? `${colorClass} text-white ring-2 ring-white/30` : "bg-gray-700/50 text-astro-muted"
+          active ? "text-white ring-2 ring-white/30" : "bg-gray-700/50 text-astro-muted"
         }`}
+        style={active ? { "background-color": getColor(name) } : {}}
       >
         {name}
       </button>

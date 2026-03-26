@@ -1,4 +1,5 @@
 import { Component, For, Show } from "solid-js";
+import { useSettingsContext } from "./SettingsProvider";
 
 // Canonical filter category for a given filter name.
 // Maps all common naming variations to one of the 7 standard categories,
@@ -30,16 +31,6 @@ const FILTER_ORDER: Record<string, number> = {
   L: 0, R: 1, G: 2, B: 3, SII: 4, Ha: 5, OIII: 6,
 };
 
-const COLOR_MAP: Record<string, string> = {
-  Ha: "bg-filter-ha",
-  OIII: "bg-filter-oiii",
-  SII: "bg-filter-sii",
-  L: "bg-filter-l text-gray-900",
-  R: "bg-filter-r",
-  G: "bg-filter-g",
-  B: "bg-filter-b",
-};
-
 const SHORT_LABEL: Record<string, string> = {
   Ha: "H",
   OIII: "O",
@@ -58,13 +49,6 @@ const SHORT_LABEL: Record<string, string> = {
   Extreme: "Ext",
 };
 
-function filterColor(name: string): string {
-  if (COLOR_MAP[name]) return COLOR_MAP[name];
-  const cat = canonicalCategory(name);
-  if (cat && COLOR_MAP[cat]) return COLOR_MAP[cat];
-  return "bg-gray-600";
-}
-
 function filterSortKey(name: string): number {
   if (FILTER_ORDER[name] !== undefined) return FILTER_ORDER[name];
   const cat = canonicalCategory(name);
@@ -77,6 +61,18 @@ function formatHours(seconds: number): string {
 }
 
 const FilterBadges: Component<{ distribution: Record<string, number>; compact?: boolean }> = (props) => {
+  const { filterColorMap, filterAliasMap } = useSettingsContext();
+
+  function getColor(name: string): string {
+    const colorMap = filterColorMap();
+    const aliasMap = filterAliasMap();
+    const canonical = aliasMap[name] || name;
+    if (colorMap[canonical]) return colorMap[canonical];
+    const cat = canonicalCategory(name);
+    if (cat && colorMap[cat]) return colorMap[cat];
+    return "#666666";
+  }
+
   const entries = () =>
     Object.entries(props.distribution).sort(([a], [b]) => {
       const orderA = filterSortKey(a);
@@ -92,13 +88,14 @@ const FilterBadges: Component<{ distribution: Record<string, number>; compact?: 
           <Show
             when={props.compact}
             fallback={
-              <span class={`px-2 py-0.5 rounded-full text-[11px] font-medium ${filterColor(name)} text-white`}>
+              <span class="px-2 py-0.5 rounded-full text-[11px] font-medium text-white" style={{ "background-color": getColor(name) }}>
                 {name}&middot;{formatHours(seconds)}
               </span>
             }
           >
             <span
-              class={`h-6 rounded text-[10px] font-bold flex items-center justify-center ${filterColor(name)} text-white`}
+              class="h-6 rounded text-[10px] font-bold flex items-center justify-center text-white"
+              style={{ "background-color": getColor(name) }}
               classList={{ "w-6": (SHORT_LABEL[name] || name).length <= 1, "px-1.5": (SHORT_LABEL[name] || name).length > 1 }}
               title={name}
             >
