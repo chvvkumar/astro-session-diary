@@ -72,12 +72,7 @@ const TargetDetailPage: Component = () => {
               <div class="flex justify-between items-start">
                 <div>
                   <h1 class="text-2xl font-bold text-white">
-                    {detail().aliases[0] || detail().primary_name}
-                    <Show when={detail().aliases[0] && detail().aliases[0] !== detail().primary_name}>
-                      <span class="text-astro-muted font-normal text-lg ml-2">
-                        ({detail().primary_name})
-                      </span>
-                    </Show>
+                    {detail().primary_name}
                   </h1>
                   <div class="text-xs text-astro-muted mt-1 space-x-2">
                     <Show when={detail().object_type}>

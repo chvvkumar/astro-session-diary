@@ -7,19 +7,6 @@ function formatHours(seconds: number): string {
   return (seconds / 3600).toFixed(1) + "h";
 }
 
-const FILTER_COLORS: Record<string, string> = {
-  Ha: "border-filter-ha text-filter-ha",
-  OIII: "border-filter-oiii text-filter-oiii",
-  SII: "border-filter-sii text-filter-sii",
-  L: "border-filter-l text-filter-l",
-  R: "border-filter-r text-filter-r",
-  G: "border-filter-g text-filter-g",
-  B: "border-filter-b text-filter-b",
-};
-
-function filterColor(name: string): string {
-  return FILTER_COLORS[name] ?? "border-gray-500 text-gray-400";
-}
 
 const INSIGHT_STYLES: Record<string, string> = {
   good: "text-green-400",
@@ -28,9 +15,9 @@ const INSIGHT_STYLES: Record<string, string> = {
 };
 
 const INSIGHT_ICONS: Record<string, string> = {
-  good: "\u2713",
-  warning: "\u26A0",
-  info: "\u2022",
+  good: "✓",
+  warning: "⚠",
+  info: "•",
 };
 
 const SessionAccordionCard: Component<{
@@ -102,13 +89,13 @@ const SessionAccordionCard: Component<{
           <span class="text-blue-400">{formatHours(props.session.integration_seconds)}</span>
           <span class="text-green-400">{props.session.frame_count} fr</span>
           <span class="text-amber-400">
-            HFR {props.session.median_hfr?.toFixed(1) ?? "\u2014"}
+            HFR {props.session.median_hfr?.toFixed(1) ?? "—"}
           </span>
           <span class="text-purple-400">
-            Ecc {props.session.median_eccentricity?.toFixed(2) ?? "\u2014"}
+            Ecc {props.session.median_eccentricity?.toFixed(2) ?? "—"}
           </span>
-          <span class="text-white">{props.session.filters_used.join(" \u00b7 ")}</span>
-          <span class="text-astro-muted">{props.isExpanded ? "\u25BC" : "\u25B6"}</span>
+          <span class="text-white">{props.session.filters_used.join(" · ")}</span>
+          <span class="text-astro-muted">{props.isExpanded ? "▼" : "▶"}</span>
         </div>
       </div>
 
@@ -132,29 +119,29 @@ const SessionAccordionCard: Component<{
                     <MetricCard label="Frames" value={String(detail().frame_count)} color="text-green-400" />
                     <MetricCard
                       label="Median HFR"
-                      value={detail().median_hfr?.toFixed(2) ?? "\u2014"}
+                      value={detail().median_hfr?.toFixed(2) ?? "—"}
                       color="text-amber-400"
-                      subtitle={detail().min_hfr !== null ? `min ${detail().min_hfr?.toFixed(1)} \u00b7 max ${detail().max_hfr?.toFixed(1)}` : undefined}
+                      subtitle={detail().min_hfr !== null ? `min ${detail().min_hfr?.toFixed(1)} · max ${detail().max_hfr?.toFixed(1)}` : undefined}
                     />
                     <MetricCard
                       label="Median Ecc"
-                      value={detail().median_eccentricity?.toFixed(2) ?? "\u2014"}
+                      value={detail().median_eccentricity?.toFixed(2) ?? "—"}
                       color="text-purple-400"
-                      subtitle={detail().min_eccentricity !== null ? `min ${detail().min_eccentricity?.toFixed(2)} \u00b7 max ${detail().max_eccentricity?.toFixed(2)}` : undefined}
+                      subtitle={detail().min_eccentricity !== null ? `min ${detail().min_eccentricity?.toFixed(2)} · max ${detail().max_eccentricity?.toFixed(2)}` : undefined}
                     />
                     <MetricCard
                       label="Sensor Temp"
-                      value={detail().sensor_temp !== null ? `${detail().sensor_temp?.toFixed(0)}\u00b0C` : "\u2014"}
+                      value={detail().sensor_temp !== null ? `${detail().sensor_temp?.toFixed(0)}°C` : "—"}
                       color="text-sky-300"
-                      subtitle={detail().sensor_temp_min !== null ? `range: ${detail().sensor_temp_min?.toFixed(0)} to ${detail().sensor_temp_max?.toFixed(0)}\u00b0C` : undefined}
+                      subtitle={detail().sensor_temp_min !== null ? `range: ${detail().sensor_temp_min?.toFixed(0)} to ${detail().sensor_temp_max?.toFixed(0)}°C` : undefined}
                     />
-                    <MetricCard label="Gain" value={detail().gain !== null ? String(detail().gain) : "\u2014"} color="text-green-300" />
-                    <MetricCard label="Exposure" value={detail().exposure_time !== null ? `${detail().exposure_time}s` : "\u2014"} color="text-yellow-300" />
+                    <MetricCard label="Gain" value={detail().gain !== null ? String(detail().gain) : "—"} color="text-green-300" />
+                    <MetricCard label="Exposure" value={detail().exposure_time !== null ? `${detail().exposure_time}s` : "—"} color="text-yellow-300" />
                     <MetricCard
                       label="Time Span"
-                      value={detail().first_frame_time ? formatTime(detail().first_frame_time!) : "\u2014"}
+                      value={detail().first_frame_time ? formatTime(detail().first_frame_time!) : "—"}
                       color="text-red-300"
-                      subtitle={detail().last_frame_time ? `\u2192 ${formatTime(detail().last_frame_time!)}` : undefined}
+                      subtitle={detail().last_frame_time ? `→ ${formatTime(detail().last_frame_time!)}` : undefined}
                     />
                   </div>
                 </div>
@@ -166,13 +153,13 @@ const SessionAccordionCard: Component<{
                     <div class="flex gap-3">
                       <For each={detail().filter_details}>
                         {(fd) => (
-                          <div class={`flex-1 bg-astro-dark rounded-lg p-3 border-l-[3px] ${filterColor(fd.filter_name)}`}>
+                          <div class="flex-1 bg-astro-dark rounded-lg p-3 border border-[#2d2d2d]">
                             <div class="flex justify-between text-xs">
                               <span class="font-bold">{fd.filter_name}</span>
-                              <span class="text-astro-muted">{fd.frame_count} frames \u00b7 {formatHours(fd.integration_seconds)}</span>
+                              <span class="text-astro-muted">{fd.frame_count} frames · {formatHours(fd.integration_seconds)}</span>
                             </div>
                             <div class="text-[11px] text-astro-muted mt-1">
-                              HFR {fd.median_hfr?.toFixed(1) ?? "\u2014"} \u00b7 Ecc {fd.median_eccentricity?.toFixed(2) ?? "\u2014"} \u00b7 {fd.exposure_time ?? "\u2014"}s subs
+                              HFR {fd.median_hfr?.toFixed(1) ?? "—"} · Ecc {fd.median_eccentricity?.toFixed(2) ?? "—"} · {fd.exposure_time ?? "—"}s subs
                             </div>
                           </div>
                         )}
@@ -206,7 +193,7 @@ const SessionAccordionCard: Component<{
                     <span class="font-bold text-white">
                       Per-Frame Data <span class="text-astro-muted font-normal">({detail().frames.length} frames)</span>
                     </span>
-                    <span class="text-astro-muted">{showFrames() ? "\u25BC Collapse" : "\u25B6 Expand"}</span>
+                    <span class="text-astro-muted">{showFrames() ? "▼ Collapse" : "▶ Expand"}</span>
                   </button>
                   <Show when={showFrames()}>
                     <div class="bg-astro-dark rounded-lg overflow-x-auto max-h-80 overflow-y-auto">
@@ -228,14 +215,14 @@ const SessionAccordionCard: Component<{
                             {(frame) => (
                               <tr class={`border-b border-[#2d2d2d]/30 ${isOutlier(frame) ? "bg-red-900/20" : ""}`}>
                                 <td class="py-1 px-2 text-white">{formatTime(frame.timestamp)}</td>
-                                <td class="py-1 px-2 text-white">{frame.filter_used ?? "\u2014"}</td>
-                                <td class="py-1 px-2 text-white text-right">{frame.exposure_time ?? "\u2014"}s</td>
+                                <td class="py-1 px-2 text-white">{frame.filter_used ?? "—"}</td>
+                                <td class="py-1 px-2 text-white text-right">{frame.exposure_time ?? "—"}s</td>
                                 <td class={`py-1 px-2 text-right ${isOutlier(frame) ? "text-red-400 font-bold" : "text-white"}`}>
-                                  {frame.median_hfr?.toFixed(2) ?? "\u2014"}
+                                  {frame.median_hfr?.toFixed(2) ?? "—"}
                                 </td>
-                                <td class="py-1 px-2 text-white text-right">{frame.eccentricity?.toFixed(2) ?? "\u2014"}</td>
-                                <td class="py-1 px-2 text-white text-right">{frame.sensor_temp?.toFixed(0) ?? "\u2014"}\u00b0C</td>
-                                <td class="py-1 px-2 text-white text-right">{frame.gain ?? "\u2014"}</td>
+                                <td class="py-1 px-2 text-white text-right">{frame.eccentricity?.toFixed(2) ?? "—"}</td>
+                                <td class="py-1 px-2 text-white text-right">{frame.sensor_temp?.toFixed(0) ?? "—"}°C</td>
+                                <td class="py-1 px-2 text-white text-right">{frame.gain ?? "—"}</td>
                                 <td class="py-1 px-2 text-astro-muted truncate max-w-[150px]">{frame.file_name}</td>
                               </tr>
                             )}
@@ -286,7 +273,7 @@ const SortHeader: Component<{
     onClick={() => props.onSort(props.column)}
   >
     {props.label}
-    {props.current === props.column ? (props.asc ? " \u2191" : " \u2193") : ""}
+    {props.current === props.column ? (props.asc ? " ↑" : " ↓") : ""}
   </th>
 );
 
