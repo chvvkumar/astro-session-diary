@@ -7,14 +7,38 @@ from astropy.io import fits
 FITS_EXTENSIONS = {".fits", ".fit", ".fts", ".FITS", ".FIT", ".FTS"}
 
 
+CALIBRATION_FRAME_TYPES = {"BIAS", "DARK", "FLAT", "DARKFLAT", "BIASFLAT"}
+
+
+def _is_calibration_frame(path: Path) -> bool | None:
+    """Quick-check the IMAGETYP header to decide if this is a calibration frame.
+
+    Returns True for calibration, False for light/science, None if unreadable.
+    """
+    try:
+        with fits.open(path) as hdul:
+            image_type = (hdul[0].header.get("IMAGETYP") or "").strip().upper()
+        return image_type in CALIBRATION_FRAME_TYPES
+    except Exception:
+        return None
+
+
 def scan_directory(
     root: Path,
     known_paths: set[str] | None = None,
+    include_calibration: bool = True,
 ) -> Iterator[Path]:
-    """Walk a directory tree yielding FITS file paths not in known_paths."""
+    """Walk a directory tree yielding FITS file paths not in known_paths.
+
+    If include_calibration is False, only LIGHT / science frames are yielded.
+    """
     known = known_paths or set()
     for path in root.rglob("*"):
         if path.suffix in FITS_EXTENSIONS and str(path) not in known:
+            if not include_calibration:
+                is_cal = _is_calibration_frame(path)
+                if is_cal is True:
+                    continue
             yield path
 
 

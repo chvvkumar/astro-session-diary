@@ -64,10 +64,10 @@ export function useScan() {
       return s === "scanning" || s === "ingesting";
     },
 
-    startScan: async () => {
+    startScan: async (options?: { includeCalibration?: boolean }) => {
       setScanError(null);
       try {
-        await api.triggerScan();
+        await api.triggerScan(options);
       } catch {
         // POST /scan may timeout on large directories, but scan still starts server-side
       }

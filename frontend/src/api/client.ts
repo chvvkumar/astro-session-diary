@@ -56,8 +56,14 @@ export const api = {
   getStats: () =>
     fetchJson<StatsResponse>("/stats"),
 
-  triggerScan: () =>
-    fetchJson<ScanResult>("/scan", { method: "POST" }),
+  triggerScan: (options?: { includeCalibration?: boolean }) => {
+    const params = new URLSearchParams();
+    if (options?.includeCalibration === false) {
+      params.set("include_calibration", "false");
+    }
+    const qs = params.toString();
+    return fetchJson<ScanResult>(`/scan${qs ? `?${qs}` : ""}`, { method: "POST" });
+  },
 
   getScanStatus: () =>
     fetchJson<ScanStatus>("/scan/status"),

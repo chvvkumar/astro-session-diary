@@ -354,26 +354,9 @@ echo "    docker compose ps             # Status"
 echo "    docker compose down           # Stop"
 echo ""
 
-# ── Initial scan ─────────────────────────────────────────────────────────────
-if ask_yes_no "Trigger an initial scan of your FITS directory now?" "y"; then
-    info "Scanning $FITS_PATH for FITS files..."
-    SCAN_RESULT=$(curl -sf -X POST "http://localhost:${APP_PORT}/api/scan" 2>/dev/null || true)
-    if [ -n "$SCAN_RESULT" ]; then
-        # Extract new_files_queued — works with grep -o (no PCRE needed)
-        NEW_FILES=$(echo "$SCAN_RESULT" | sed -n 's/.*"new_files_queued"[[:space:]]*:[[:space:]]*\([0-9]*\).*/\1/p' || echo "0")
-        NEW_FILES="${NEW_FILES:-0}"
-        success "Scan complete! Queued $NEW_FILES files for processing."
-        if [ "$NEW_FILES" -gt 0 ] 2>/dev/null; then
-            info "The worker is now ingesting files in the background."
-            echo "  Watch progress: docker compose logs -f app"
-        fi
-    else
-        warn "Could not trigger scan. The application may still be starting."
-        echo "  Try manually: curl -X POST http://localhost:${APP_PORT}/api/scan"
-    fi
-fi
-
 # ── Final ─────────────────────────────────────────────────────────────────────
+info "You can trigger your first scan from the Admin page in the web UI."
+echo ""
 header "All Done!"
 
 echo -e "  Open your browser to: ${BOLD}http://localhost:${APP_PORT}${NC}"

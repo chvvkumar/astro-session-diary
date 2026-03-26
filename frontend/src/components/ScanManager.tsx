@@ -1,9 +1,12 @@
 import { Component, Show, createSignal, onCleanup } from "solid-js";
 import { useScan } from "../store/scan";
 
+type FrameFilter = "all" | "light_only";
+
 const ScanManager: Component = () => {
   const { scanStatus, scanError, isActive, startScan, startRegeneration, stopPolling } = useScan();
   const [expanded, setExpanded] = createSignal(false);
+  const [frameFilter, setFrameFilter] = createSignal<FrameFilter>("all");
 
   onCleanup(stopPolling);
 
@@ -55,13 +58,39 @@ const ScanManager: Component = () => {
             Regen Thumbnails
           </button>
           <button
-            onClick={() => startScan()}
+            onClick={() => startScan({ includeCalibration: frameFilter() === "all" })}
             disabled={isActive()}
             class="px-4 py-1.5 bg-astro-accent text-white rounded text-sm font-medium disabled:opacity-50 hover:bg-astro-accent/80 transition-colors"
           >
             {isActive() ? "Scanning..." : "Scan Directory"}
           </button>
         </div>
+      </div>
+
+      <div class="flex items-center gap-4 text-sm">
+        <span class="text-astro-muted text-xs">Include:</span>
+        <label class="flex items-center gap-1.5 cursor-pointer">
+          <input
+            type="radio"
+            name="frame-filter"
+            checked={frameFilter() === "all"}
+            onChange={() => setFrameFilter("all")}
+            disabled={isActive()}
+            class="accent-astro-accent"
+          />
+          <span class={`text-xs ${frameFilter() === "all" ? "text-white" : "text-astro-muted"}`}>All frames</span>
+        </label>
+        <label class="flex items-center gap-1.5 cursor-pointer">
+          <input
+            type="radio"
+            name="frame-filter"
+            checked={frameFilter() === "light_only"}
+            onChange={() => setFrameFilter("light_only")}
+            disabled={isActive()}
+            class="accent-astro-accent"
+          />
+          <span class={`text-xs ${frameFilter() === "light_only" ? "text-white" : "text-astro-muted"}`}>Light frames only</span>
+        </label>
       </div>
 
       <Show when={scanError()}>

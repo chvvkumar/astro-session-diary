@@ -2,7 +2,7 @@ import asyncio
 import logging
 from pathlib import Path
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select, update, func, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -24,6 +24,7 @@ router = APIRouter(prefix="/scan", tags=["scan"])
 @router.post("")
 async def trigger_scan(
     session: AsyncSession = Depends(get_session),
+    include_calibration: bool = Query(True, description="Include calibration frames (BIAS, DARK, FLAT)"),
 ):
     """Walk the FITS directory, queue new files for ingestion."""
     r = get_async_redis()
@@ -40,7 +41,7 @@ async def trigger_scan(
 
         fits_root = Path(settings.fits_data_path)
         new_files = await asyncio.to_thread(
-            lambda: list(scan_directory(fits_root, known_paths=known_paths))
+            lambda: list(scan_directory(fits_root, known_paths=known_paths, include_calibration=include_calibration))
         )
 
         if not new_files:
