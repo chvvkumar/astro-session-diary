@@ -53,10 +53,13 @@ def ingest_file(self, fits_path: str) -> dict:
         generate_thumbnail(path, thumb_path, max_width=settings.thumbnail_max_width)
 
         # Step 3: Resolve target (sync wrapper for async SIMBAD call)
+        # Skip SIMBAD for calibration frames — they're not astronomical targets
         target_id = None
-        object_name = meta.get("object_name")
-        if object_name:
-            target_id = _resolve_or_cache_target(object_name)
+        image_type = (meta.get("image_type") or "").upper()
+        if image_type not in ("DARK", "FLAT", "BIAS", "DARKFLAT"):
+            object_name = meta.get("object_name")
+            if object_name:
+                target_id = _resolve_or_cache_target(object_name)
 
         # Step 4: Insert into database
         with Session(_sync_engine) as session:
