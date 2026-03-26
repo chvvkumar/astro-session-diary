@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_session
 from app.models import Target, Image
 from app.schemas import TargetSearchResult
+from app.services.normalization import load_alias_maps, normalize_filter, normalize_equipment
 from app.schemas.target import (
     TargetAggregationResponse, TargetAggregation, SessionSummary,
     AggregateStats, EquipmentResponse, SessionDetailResponse,
@@ -50,15 +51,20 @@ async def search_targets(
 @router.get("/equipment", response_model=EquipmentResponse)
 async def get_equipment(session: AsyncSession = Depends(get_session)):
     """Return distinct camera and telescope values."""
+    filter_map, cam_map, tel_map = await load_alias_maps(session)
     cam_result = await session.execute(
         select(Image.camera).where(Image.camera.isnot(None)).distinct().order_by(Image.camera)
     )
     tel_result = await session.execute(
         select(Image.telescope).where(Image.telescope.isnot(None)).distinct().order_by(Image.telescope)
     )
+    raw_cameras = [r[0] for r in cam_result.all() if r[0]]
+    raw_telescopes = [r[0] for r in tel_result.all() if r[0]]
+    cameras = list(dict.fromkeys(normalize_equipment(c, cam_map) or c for c in raw_cameras))
+    telescopes = list(dict.fromkeys(normalize_equipment(t, tel_map) or t for t in raw_telescopes))
     return EquipmentResponse(
-        cameras=[r[0] for r in cam_result.all()],
-        telescopes=[r[0] for r in tel_result.all()],
+        cameras=cameras,
+        telescopes=telescopes,
     )
 
 
@@ -117,6 +123,8 @@ async def get_target_detail(
     if not images:
         raise HTTPException(status_code=404, detail="No images found for this target")
 
+    filter_map, cam_map, tel_map = await load_alias_maps(session)
+
     sessions_map: dict[str, list] = defaultdict(list)
     all_hfr = []
     all_ecc = []
@@ -132,19 +140,22 @@ async def get_target_detail(
             all_hfr.append(img.median_hfr)
         if img.eccentricity is not None:
             all_ecc.append(img.eccentricity)
-        if img.camera:
-            equipment_set.add(img.camera)
-        if img.telescope:
-            equipment_set.add(img.telescope)
-        if img.filter_used:
-            filters_set.add(img.filter_used)
+        cam = normalize_equipment(img.camera, cam_map)
+        tel = normalize_equipment(img.telescope, tel_map)
+        f = normalize_filter(img.filter_used, filter_map)
+        if cam:
+            equipment_set.add(cam)
+        if tel:
+            equipment_set.add(tel)
+        if f:
+            filters_set.add(f)
 
     session_overviews = []
     for date_key in sorted(sessions_map.keys(), reverse=True):
         sess_images = sessions_map[date_key]
         sess_hfr = [i.median_hfr for i in sess_images if i.median_hfr is not None]
         sess_ecc = [i.eccentricity for i in sess_images if i.eccentricity is not None]
-        sess_filters = sorted({i.filter_used for i in sess_images if i.filter_used})
+        sess_filters = sorted({normalize_filter(i.filter_used, filter_map) for i in sess_images if i.filter_used})
         sess_exp = sum(i.exposure_time or 0 for i in sess_images)
         session_overviews.append(SessionOverview(
             session_date=date_key,
@@ -153,8 +164,8 @@ async def get_target_detail(
             median_hfr=statistics.median(sess_hfr) if sess_hfr else None,
             median_eccentricity=statistics.median(sess_ecc) if sess_ecc else None,
             filters_used=sess_filters,
-            camera=sess_images[0].camera,
-            telescope=sess_images[0].telescope,
+            camera=normalize_equipment(sess_images[0].camera, cam_map),
+            telescope=normalize_equipment(sess_images[0].telescope, tel_map),
         ))
 
     sorted_dates = sorted(sessions_map.keys())
@@ -250,6 +261,8 @@ async def list_targets_aggregated(
     result = await session.execute(query)
     rows = result.all()
 
+    filter_map, cam_map, tel_map = await load_alias_maps(session)
+
     # Build target aggregations in Python
     # Group by resolved target ID, or by OBJECT header name for unresolved images
     targets_map: dict[str, dict] = {}
@@ -285,12 +298,15 @@ async def list_targets_aggregated(
         exp = image.exposure_time or 0
         t["total_integration_seconds"] += exp
         t["total_frames"] += 1
-        if image.filter_used:
-            t["filter_distribution"][image.filter_used] += exp
-        if image.camera:
-            t["equipment_set"].add(image.camera)
-        if image.telescope:
-            t["equipment_set"].add(image.telescope)
+        f = normalize_filter(image.filter_used, filter_map)
+        cam = normalize_equipment(image.camera, cam_map)
+        tel = normalize_equipment(image.telescope, tel_map)
+        if f:
+            t["filter_distribution"][f] += exp
+        if cam:
+            t["equipment_set"].add(cam)
+        if tel:
+            t["equipment_set"].add(tel)
 
         # Session grouping
         date_key = image.capture_date.strftime("%Y-%m-%d") if image.capture_date else "unknown"
@@ -304,8 +320,8 @@ async def list_targets_aggregated(
         s = sessions_map[tid][date_key]
         s["integration_seconds"] += exp
         s["frame_count"] += 1
-        if image.filter_used:
-            s["filters_set"].add(image.filter_used)
+        if f:
+            s["filters_set"].add(f)
 
     # Assemble response
     target_list = []
@@ -483,6 +499,8 @@ async def get_session_detail(
     all_hfr_values = [i.median_hfr for i in all_images if i.median_hfr is not None]
     target_avg_hfr = statistics.mean(all_hfr_values) if all_hfr_values else None
 
+    filter_map, cam_map, tel_map = await load_alias_maps(session)
+
     total_exp = sum(img.exposure_time or 0 for img in images)
     filters_used: dict[str, int] = {}
     hfr_values = []
@@ -490,8 +508,9 @@ async def get_session_detail(
     temp_values = []
 
     for img in images:
-        if img.filter_used:
-            filters_used[img.filter_used] = filters_used.get(img.filter_used, 0) + 1
+        f = normalize_filter(img.filter_used, filter_map)
+        if f:
+            filters_used[f] = filters_used.get(f, 0) + 1
         if img.median_hfr is not None:
             hfr_values.append(img.median_hfr)
         if img.eccentricity is not None:
@@ -510,8 +529,9 @@ async def get_session_detail(
 
     filter_groups: dict[str, list] = defaultdict(list)
     for img in images:
-        if img.filter_used:
-            filter_groups[img.filter_used].append(img)
+        f = normalize_filter(img.filter_used, filter_map)
+        if f:
+            filter_groups[f].append(img)
 
     filter_details = []
     for fname, fimages in sorted(filter_groups.items()):
@@ -531,7 +551,7 @@ async def get_session_detail(
     for img in images:
         frames.append(FrameRecord(
             timestamp=img.capture_date.isoformat() if img.capture_date else "",
-            filter_used=img.filter_used,
+            filter_used=normalize_filter(img.filter_used, filter_map),
             exposure_time=img.exposure_time,
             median_hfr=img.median_hfr,
             eccentricity=img.eccentricity,
@@ -573,8 +593,8 @@ async def get_session_detail(
         median_eccentricity=median_ecc,
         filters_used=filters_used,
         equipment={
-            "camera": ref_image.camera,
-            "telescope": ref_image.telescope,
+            "camera": normalize_equipment(ref_image.camera, cam_map),
+            "telescope": normalize_equipment(ref_image.telescope, tel_map),
         },
         raw_reference_header=ref_image.raw_headers,
         min_hfr=min(hfr_values) if hfr_values else None,

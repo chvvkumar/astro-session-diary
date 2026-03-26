@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import settings
 from app.database import get_session
 from app.models import Image, Target
+from app.services.normalization import load_alias_maps, normalize_filter, normalize_equipment
 from app.schemas.stats import (
     StatsResponse, OverviewStats, EquipmentStats, EquipmentItem,
     TimelineEntry, TopTarget, DataQualityStats, HfrBucket,
@@ -68,6 +69,8 @@ async def get_stats(session: AsyncSession = Depends(get_session)):
 
     # --- All DB queries below are fast (indexed) ---
 
+    filter_map, cam_map, tel_map = await load_alias_maps(session)
+
     # Overview
     overview_q = select(
         func.coalesce(func.sum(Image.exposure_time), 0),
@@ -89,13 +92,21 @@ async def get_stats(session: AsyncSession = Depends(get_session)):
         Image.camera.isnot(None)
     ).group_by(Image.camera).order_by(func.count(Image.id).desc())
     cam_result = await session.execute(cam_q)
-    cameras = [EquipmentItem(name=r[0], frame_count=r[1]) for r in cam_result.all()]
+    raw_cam_counts: dict[str, int] = {}
+    for r in cam_result.all():
+        canonical = normalize_equipment(r[0], cam_map) or r[0]
+        raw_cam_counts[canonical] = raw_cam_counts.get(canonical, 0) + r[1]
+    cameras = [EquipmentItem(name=name, frame_count=count) for name, count in sorted(raw_cam_counts.items(), key=lambda x: x[1], reverse=True)]
 
     tel_q = select(Image.telescope, func.count(Image.id)).where(
         Image.telescope.isnot(None)
     ).group_by(Image.telescope).order_by(func.count(Image.id).desc())
     tel_result = await session.execute(tel_q)
-    telescopes = [EquipmentItem(name=r[0], frame_count=r[1]) for r in tel_result.all()]
+    raw_tel_counts: dict[str, int] = {}
+    for r in tel_result.all():
+        canonical = normalize_equipment(r[0], tel_map) or r[0]
+        raw_tel_counts[canonical] = raw_tel_counts.get(canonical, 0) + r[1]
+    telescopes = [EquipmentItem(name=name, frame_count=count) for name, count in sorted(raw_tel_counts.items(), key=lambda x: x[1], reverse=True)]
 
     equipment = EquipmentStats(cameras=cameras, telescopes=telescopes)
 
@@ -106,7 +117,12 @@ async def get_stats(session: AsyncSession = Depends(get_session)):
         Image.filter_used.isnot(None), Image.image_type == "LIGHT"
     ).group_by(Image.filter_used)
     filter_result = await session.execute(filter_q)
-    filter_usage = {r[0]: float(r[1]) for r in filter_result.all()}
+    raw_filter_usage = {r[0]: float(r[1]) for r in filter_result.all() if r[0]}
+    normalized_usage: dict[str, float] = {}
+    for name, seconds in raw_filter_usage.items():
+        canonical = normalize_filter(name, filter_map) or name
+        normalized_usage[canonical] = normalized_usage.get(canonical, 0.0) + seconds
+    filter_usage = normalized_usage
 
     # Timeline (monthly integration)
     month_label = func.to_char(Image.capture_date, 'YYYY-MM').label('month')
