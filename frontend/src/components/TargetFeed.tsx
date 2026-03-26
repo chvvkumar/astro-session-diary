@@ -1,12 +1,12 @@
-import { Component, For, Show } from "solid-js";
+import { Component, Show } from "solid-js";
 import { useCatalog } from "../store/catalog";
-import TargetCard from "./TargetCard";
+import TargetTable from "./TargetTable";
 
 const TargetFeed: Component = () => {
   const { targetData } = useCatalog();
 
   return (
-    <div class="space-y-3 p-4">
+    <div class="p-4">
       <Show when={targetData.loading}>
         <div class="text-center text-astro-muted py-8">Loading targets...</div>
       </Show>
@@ -21,9 +21,7 @@ const TargetFeed: Component = () => {
             when={data().targets.length > 0}
             fallback={<div class="text-center text-astro-muted py-8">No targets match your filters</div>}
           >
-            <For each={data().targets}>
-              {(target) => <TargetCard target={target} />}
-            </For>
+            <TargetTable targets={data().targets} />
           </Show>
         )}
       </Show>
