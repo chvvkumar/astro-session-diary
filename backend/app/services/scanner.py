@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 from datetime import datetime
 from typing import Any, Iterator
@@ -54,6 +55,17 @@ def _first_float(header, *keys) -> float | None:
     return None
 
 
+_HFR_PATTERN = re.compile(r"(\d+\.\d+)HFR", re.IGNORECASE)
+
+
+def _parse_hfr_from_filename(filename: str) -> float | None:
+    """Extract HFR from N.I.N.A. filename pattern like '1.56HFR'."""
+    m = _HFR_PATTERN.search(filename)
+    if m:
+        return float(m.group(1))
+    return None
+
+
 def extract_metadata(fits_path: Path) -> dict[str, Any]:
     """Extract structured metadata and raw headers from a FITS file."""
     with fits.open(fits_path) as hdul:
@@ -80,7 +92,7 @@ def extract_metadata(fits_path: Path) -> dict[str, Any]:
         "image_type": header.get("IMAGETYP"),
         "telescope": header.get("TELESCOP"),
         "camera": header.get("INSTRUME"),
-        "median_hfr": _first_float(header, "HFR", "MEANFWHM", "FWHM"),
+        "median_hfr": _first_float(header, "HFR", "MEANFWHM", "FWHM") or _parse_hfr_from_filename(fits_path.name),
         "eccentricity": _first_float(header, "ECCENTRICITY", "ELLIPTICITY"),
         "capture_date": capture_date,
         "raw_headers": raw_headers,

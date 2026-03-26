@@ -6,7 +6,6 @@ import EquipmentInventory from "../components/EquipmentInventory";
 import FilterUsageChart from "../components/FilterUsageChart";
 import ImagingTimeline from "../components/ImagingTimeline";
 import TopTargets from "../components/TopTargets";
-import DataQuality from "../components/DataQuality";
 import StorageBreakdown from "../components/StorageBreakdown";
 import IngestHistory from "../components/IngestHistory";
 
@@ -28,7 +27,12 @@ const AdminPage: Component = () => {
       <Show when={stats()}>
         {(data) => (
           <>
-            <DatabaseOverview overview={data().overview} />
+            <DatabaseOverview
+              overview={data().overview}
+              avgHfr={data().data_quality.avg_hfr}
+              avgEccentricity={data().data_quality.avg_eccentricity}
+              bestHfr={data().data_quality.best_hfr}
+            />
 
             <div class="grid grid-cols-3 gap-4">
               <FilterUsageChart usage={data().filter_usage} />
@@ -39,20 +43,13 @@ const AdminPage: Component = () => {
             <ImagingTimeline timeline={data().timeline} />
 
             <div class="grid grid-cols-2 gap-4">
-              <DataQuality
-                avgHfr={data().data_quality.avg_hfr}
-                avgEccentricity={data().data_quality.avg_eccentricity}
-                bestHfr={data().data_quality.best_hfr}
-                hfrDistribution={data().data_quality.hfr_distribution}
-              />
               <StorageBreakdown
                 fitsBytes={data().storage.fits_bytes}
                 thumbnailBytes={data().storage.thumbnail_bytes}
                 databaseBytes={data().storage.database_bytes}
               />
+              <IngestHistory history={data().ingest_history} />
             </div>
-
-            <IngestHistory history={data().ingest_history} />
           </>
         )}
       </Show>
