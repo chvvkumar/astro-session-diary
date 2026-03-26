@@ -21,7 +21,8 @@ RUN pip install --no-cache-dir .
 FROM python:3.12-slim AS runtime
 RUN apt-get update && apt-get install -y --no-install-recommends \
     nginx supervisor \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && rm -f /etc/nginx/sites-enabled/default
 
 COPY --from=backend-deps /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
 COPY --from=backend-deps /usr/local/bin /usr/local/bin
