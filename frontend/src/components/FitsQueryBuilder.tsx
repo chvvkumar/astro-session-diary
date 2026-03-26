@@ -60,35 +60,39 @@ const FitsQueryBuilder: Component = () => {
       </For>
 
       {/* New row inputs */}
-      <div class="flex gap-1">
-        <select
-          value={newKey()}
-          onChange={(e) => setNewKey(e.currentTarget.value)}
-          class="w-28 px-1 py-1 bg-astro-dark border border-gray-700 rounded text-xs text-white font-mono focus:outline-none focus:ring-1 focus:ring-astro-accent"
-        >
-          <option value="" disabled>Key</option>
-          <Show when={fitsKeys()}>
-            <For each={fitsKeys()}>
-              {(key) => <option value={key}>{key}</option>}
-            </For>
-          </Show>
-        </select>
-        <select
-          value={newOp()}
-          onChange={(e) => setNewOp(e.currentTarget.value)}
-          class="px-1 py-1 bg-astro-dark border border-gray-700 rounded text-xs text-white focus:outline-none"
-        >
-          <For each={OPERATORS}>{(op) => <option value={op.value}>{op.label}</option>}</For>
-        </select>
-        <input
-          type="text"
-          value={newVal()}
-          onInput={(e) => setNewVal(e.currentTarget.value)}
-          onKeyDown={onKeyDown}
-          placeholder="Value"
-          class="flex-1 px-1.5 py-1 bg-astro-dark border border-gray-700 rounded text-xs text-white focus:outline-none focus:ring-1 focus:ring-astro-accent"
-        />
-        <button onClick={addRow} class="px-2 py-1 bg-astro-accent text-white rounded text-xs hover:bg-astro-accent/80">+</button>
+      <div class="space-y-1.5">
+        <div class="flex gap-1.5">
+          <select
+            value={newKey()}
+            onChange={(e) => setNewKey(e.currentTarget.value)}
+            class="flex-1 px-1.5 py-1.5 bg-astro-dark border border-gray-700 rounded text-xs text-white font-mono focus:outline-none focus:ring-1 focus:ring-astro-accent"
+          >
+            <option value="" disabled>Header Key</option>
+            <Show when={fitsKeys()}>
+              <For each={fitsKeys()}>
+                {(key) => <option value={key}>{key}</option>}
+              </For>
+            </Show>
+          </select>
+          <select
+            value={newOp()}
+            onChange={(e) => setNewOp(e.currentTarget.value)}
+            class="w-16 px-1 py-1.5 bg-astro-dark border border-gray-700 rounded text-xs text-white focus:outline-none"
+          >
+            <For each={OPERATORS}>{(op) => <option value={op.value}>{op.label}</option>}</For>
+          </select>
+        </div>
+        <div class="flex gap-1.5">
+          <input
+            type="text"
+            value={newVal()}
+            onInput={(e) => setNewVal(e.currentTarget.value)}
+            onKeyDown={onKeyDown}
+            placeholder="Value"
+            class="flex-1 px-2 py-1.5 bg-astro-dark border border-gray-700 rounded text-xs text-white focus:outline-none focus:ring-1 focus:ring-astro-accent"
+          />
+          <button onClick={addRow} class="px-3 py-1.5 bg-astro-accent text-white rounded text-xs hover:bg-astro-accent/80">+</button>
+        </div>
       </div>
     </div>
   );
