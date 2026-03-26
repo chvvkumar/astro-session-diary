@@ -3,8 +3,13 @@ import type { EquipmentItem } from "../types";
 
 const EquipmentTable: Component<{ title: string; items: EquipmentItem[] }> = (props) => (
   <div>
-    <h4 class="text-xs text-astro-muted mb-1">{props.title}</h4>
     <table class="w-full text-xs">
+      <thead>
+        <tr class="border-b border-[#2d2d2d]">
+          <th class="text-left text-astro-muted font-normal py-1 pr-4">{props.title}</th>
+          <th class="text-right text-astro-muted font-normal py-1">Frames</th>
+        </tr>
+      </thead>
       <tbody>
         <For each={props.items}>{(item) => (
           <tr class="border-b border-[#2d2d2d]/30">
