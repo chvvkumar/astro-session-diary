@@ -1,20 +1,18 @@
 import asyncio
 import logging
-from pathlib import Path
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import select, update, func, text
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.config import settings, get_async_redis
+from app.config import get_async_redis
 from app.database import get_session
 from app.models import Image, Target
-from app.services.scanner import scan_directory
 from app.services.scan_state import (
     get_scan_state, start_scanning, set_ingesting, set_idle,
 )
 from app.services.simbad import resolve_target_name, normalize_object_name
-from app.worker.tasks import ingest_file, regenerate_thumbnail
+from app.worker.tasks import regenerate_thumbnail, run_scan
 
 logger = logging.getLogger(__name__)
 
@@ -23,45 +21,23 @@ router = APIRouter(prefix="/scan", tags=["scan"])
 
 @router.post("")
 async def trigger_scan(
-    session: AsyncSession = Depends(get_session),
     include_calibration: bool = Query(True, description="Include calibration frames (BIAS, DARK, FLAT)"),
 ):
-    """Walk the FITS directory, queue new files for ingestion."""
+    """Walk the FITS directory, queue new files for ingestion.
+
+    The heavy directory scan runs inside a Celery task so this endpoint
+    returns immediately — no nginx timeout issues on large data sets.
+    """
     r = get_async_redis()
     try:
         state = await get_scan_state(r)
         if state.state in ("scanning", "ingesting"):
             return {"status": "already_running", **state.to_dict()}
 
-        await start_scanning(r)
+        # Dispatch the scan to Celery — returns immediately
+        run_scan.delay(include_calibration=include_calibration)
 
-        # Get known paths from DB
-        result = await session.execute(select(Image.file_path))
-        known_paths = {row[0] for row in result.all()}
-
-        fits_root = Path(settings.fits_data_path)
-        new_files = await asyncio.to_thread(
-            lambda: list(scan_directory(fits_root, known_paths=known_paths, include_calibration=include_calibration))
-        )
-
-        if not new_files:
-            await set_idle(r)
-            return {
-                "status": "complete",
-                "new_files_queued": 0,
-                "already_known": len(known_paths),
-            }
-
-        await set_ingesting(r, total=len(new_files))
-
-        for fits_path in new_files:
-            ingest_file.delay(str(fits_path))
-
-        return {
-            "status": "ingesting",
-            "new_files_queued": len(new_files),
-            "already_known": len(known_paths),
-        }
+        return {"status": "accepted", "message": "Scan queued — check /scan/status for progress"}
     finally:
         await r.aclose()
 

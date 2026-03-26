@@ -24,9 +24,48 @@ from app.models import Base
 Base.metadata.create_all(_sync_engine)
 
 from app.config import get_sync_redis
-from app.services.scan_state import increment_completed_sync, increment_failed_sync
+from app.services.scan_state import (
+    increment_completed_sync, increment_failed_sync,
+    start_scanning_sync, set_ingesting_sync, set_idle_sync,
+)
 
 _redis = get_sync_redis()
+
+
+@celery_app.task(bind=True)
+def run_scan(self, include_calibration: bool = True) -> dict:
+    """Scan the FITS directory and queue ingest tasks for new files.
+
+    Runs entirely inside Celery so the HTTP endpoint returns immediately.
+    """
+    from app.services.scanner import scan_directory
+
+    start_scanning_sync(_redis)
+
+    # Get known paths from DB
+    with Session(_sync_engine) as session:
+        result = session.execute(select(Image.file_path))
+        known_paths = {row[0] for row in result.all()}
+
+    fits_root = Path(settings.fits_data_path)
+    new_files = list(scan_directory(
+        fits_root, known_paths=known_paths, include_calibration=include_calibration,
+    ))
+
+    if not new_files:
+        set_idle_sync(_redis)
+        return {"status": "complete", "new_files_queued": 0, "already_known": len(known_paths)}
+
+    set_ingesting_sync(_redis, total=len(new_files))
+
+    for fits_path in new_files:
+        ingest_file.delay(str(fits_path))
+
+    return {
+        "status": "ingesting",
+        "new_files_queued": len(new_files),
+        "already_known": len(known_paths),
+    }
 
 
 @celery_app.task(bind=True, max_retries=3, default_retry_delay=30)

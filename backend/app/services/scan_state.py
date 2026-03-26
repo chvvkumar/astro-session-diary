@@ -120,3 +120,31 @@ def _check_complete_sync(r: sync_redis.Redis) -> None:
             "completed_at": time.time(),
         })
         r.expire(SCAN_KEY, EXPIRE_AFTER_COMPLETE)
+
+
+def start_scanning_sync(r: sync_redis.Redis) -> None:
+    r.hset(SCAN_KEY, mapping={
+        "state": "scanning",
+        "total": 0,
+        "completed": 0,
+        "failed": 0,
+        "started_at": time.time(),
+        "completed_at": "",
+    })
+    r.persist(SCAN_KEY)
+
+
+def set_ingesting_sync(r: sync_redis.Redis, total: int) -> None:
+    r.hset(SCAN_KEY, mapping={
+        "state": "ingesting",
+        "total": total,
+    })
+
+
+def set_idle_sync(r: sync_redis.Redis) -> None:
+    r.hset(SCAN_KEY, mapping={
+        "state": "complete",
+        "total": 0,
+        "completed_at": time.time(),
+    })
+    r.expire(SCAN_KEY, EXPIRE_AFTER_COMPLETE)
