@@ -37,3 +37,24 @@ def test_image_defaults():
     img = Image(file_path="/data/test.fits", file_name="test.fits")
     assert img.resolved_target_id is None
     assert img.thumbnail_path is None
+
+
+import pytest
+from app.models.user_settings import UserSettings, SETTINGS_ROW_ID
+
+def test_user_settings_has_expected_columns():
+    """UserSettings model has all expected columns."""
+    columns = {c.name for c in UserSettings.__table__.columns}
+    assert columns == {"id", "general", "filters", "equipment", "updated_at"}
+
+def test_user_settings_fixed_row_id():
+    """The fixed single-row ID is a valid UUID."""
+    import uuid
+    assert isinstance(SETTINGS_ROW_ID, uuid.UUID)
+
+def test_user_settings_defaults():
+    """Default JSONB values are populated."""
+    s = UserSettings()
+    assert s.general == {}
+    assert s.filters == {}
+    assert s.equipment == {}
