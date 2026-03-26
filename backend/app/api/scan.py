@@ -1,18 +1,22 @@
 import asyncio
+import logging
 from pathlib import Path
 
 from fastapi import APIRouter, Depends
-from sqlalchemy import select
+from sqlalchemy import select, update, func, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings, get_async_redis
 from app.database import get_session
-from app.models import Image
+from app.models import Image, Target
 from app.services.scanner import scan_directory
 from app.services.scan_state import (
     get_scan_state, start_scanning, set_ingesting, set_idle,
 )
+from app.services.simbad import resolve_target_name, normalize_object_name
 from app.worker.tasks import ingest_file, regenerate_thumbnail
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/scan", tags=["scan"])
 
@@ -107,3 +111,114 @@ async def scan_status():
         return state.to_dict()
     finally:
         await r.aclose()
+
+
+@router.post("/backfill-targets")
+async def backfill_targets(
+    session: AsyncSession = Depends(get_session),
+):
+    """Resolve targets for already-ingested images that have NULL resolved_target_id.
+
+    Only queries SIMBAD once per unique object name with a 0.5s delay between
+    requests to respect rate limits. Then bulk-updates all matching images.
+    """
+    # Step 1: Get distinct unresolved object names
+    result = await session.execute(
+        select(
+            text("raw_headers->>'OBJECT'"),
+            func.count(Image.id),
+        )
+        .where(Image.resolved_target_id.is_(None))
+        .where(text("raw_headers->>'OBJECT' IS NOT NULL"))
+        .where(text("raw_headers->>'OBJECT' != ''"))
+        .group_by(text("raw_headers->>'OBJECT'"))
+        .order_by(func.count(Image.id).desc())
+    )
+    unresolved = result.all()
+
+    if not unresolved:
+        return {"status": "complete", "resolved": 0, "failed": 0, "images_updated": 0}
+
+    resolved_count = 0
+    failed_names = []
+    total_images_updated = 0
+
+    for object_name, image_count in unresolved:
+        normalized = normalize_object_name(object_name)
+
+        # Check if target already exists (from ongoing scan or previous backfill)
+        existing = await session.execute(
+            select(Target).where(Target.aliases.any(normalized))
+        )
+        target = existing.scalar_one_or_none()
+
+        if not target:
+            existing = await session.execute(
+                select(Target).where(Target.primary_name == object_name)
+            )
+            target = existing.scalar_one_or_none()
+
+        if not target:
+            # Query SIMBAD
+            simbad_result = await resolve_target_name(object_name)
+
+            if simbad_result:
+                # Check if SIMBAD primary_name already exists as a target
+                existing = await session.execute(
+                    select(Target).where(Target.primary_name == simbad_result["primary_name"])
+                )
+                target = existing.scalar_one_or_none()
+
+                if not target:
+                    aliases = [normalize_object_name(a) for a in simbad_result.get("aliases", [])]
+                    if normalized not in aliases:
+                        aliases.append(normalized)
+                    target = Target(
+                        primary_name=simbad_result["primary_name"],
+                        aliases=aliases,
+                        ra=simbad_result.get("ra"),
+                        dec=simbad_result.get("dec"),
+                        object_type=simbad_result.get("object_type"),
+                    )
+                    session.add(target)
+                    await session.flush()  # get target.id
+                else:
+                    # Add this name as alias if not already present
+                    if normalized not in target.aliases:
+                        target.aliases = [*target.aliases, normalized]
+                        await session.flush()
+
+                # Rate limit: 0.5s between SIMBAD queries
+                await asyncio.sleep(0.5)
+            else:
+                failed_names.append(object_name)
+                logger.info("Backfill: SIMBAD found no match for '%s' (%d images)", object_name, image_count)
+                await asyncio.sleep(0.5)
+                continue
+
+        # Bulk-update all images with this object name
+        update_result = await session.execute(
+            update(Image)
+            .where(Image.resolved_target_id.is_(None))
+            .where(text("raw_headers->>'OBJECT' = :obj_name"))
+            .values(resolved_target_id=target.id),
+            {"obj_name": object_name},
+        )
+        updated = update_result.rowcount
+        total_images_updated += updated
+        resolved_count += 1
+        logger.info(
+            "Backfill: '%s' -> '%s' (%d images updated)",
+            object_name, target.primary_name, updated,
+        )
+
+    await session.commit()
+
+    return {
+        "status": "complete",
+        "unique_names_processed": len(unresolved),
+        "resolved": resolved_count,
+        "failed": len(failed_names),
+        "failed_names": failed_names,
+        "images_updated": total_images_updated,
+    }
