@@ -17,6 +17,7 @@ class UserSettings(Base):
     general: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict, server_default="{}")
     filters: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict, server_default="{}")
     equipment: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict, server_default="{}")
+    dismissed_suggestions: Mapped[list] = mapped_column(JSONB, nullable=False, default=list, server_default="[]")
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
@@ -28,4 +29,5 @@ class UserSettings(Base):
         kwargs.setdefault("general", {})
         kwargs.setdefault("filters", {})
         kwargs.setdefault("equipment", {})
+        kwargs.setdefault("dismissed_suggestions", [])
         super().__init__(**kwargs)

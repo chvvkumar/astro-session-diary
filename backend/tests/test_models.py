@@ -45,7 +45,7 @@ from app.models.user_settings import UserSettings, SETTINGS_ROW_ID
 def test_user_settings_has_expected_columns():
     """UserSettings model has all expected columns."""
     columns = {c.name for c in UserSettings.__table__.columns}
-    assert columns == {"id", "general", "filters", "equipment", "updated_at"}
+    assert columns == {"id", "general", "filters", "equipment", "dismissed_suggestions", "updated_at"}
 
 def test_user_settings_fixed_row_id():
     """The fixed single-row ID is a valid UUID."""
@@ -58,3 +58,8 @@ def test_user_settings_defaults():
     assert s.general == {}
     assert s.filters == {}
     assert s.equipment == {}
+
+def test_user_settings_has_dismissed_suggestions_default():
+    from app.models.user_settings import UserSettings, SETTINGS_ROW_ID
+    row = UserSettings(id=SETTINGS_ROW_ID)
+    assert row.dismissed_suggestions == []
