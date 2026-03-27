@@ -23,6 +23,8 @@ export interface AggregateStats {
   target_count: number;
   total_frames: number;
   disk_usage_bytes: number;
+  oldest_date: string | null;
+  newest_date: string | null;
 }
 
 export interface TargetAggregationResponse {

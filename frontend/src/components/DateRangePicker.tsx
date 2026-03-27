@@ -2,7 +2,15 @@ import { Component } from "solid-js";
 import { useCatalog } from "../store/catalog";
 
 const DateRangePicker: Component = () => {
-  const { filters, updateFilter } = useCatalog();
+  const { filters, updateFilter, targetData } = useCatalog();
+
+  const dateBounds = () => {
+    const data = targetData();
+    return {
+      oldest: data?.aggregates?.oldest_date || "",
+      newest: data?.aggregates?.newest_date || "",
+    };
+  };
 
   return (
     <div class="space-y-2">
@@ -11,6 +19,9 @@ const DateRangePicker: Component = () => {
         <input
           type="date"
           value={filters().dateRange.start || ""}
+          min={dateBounds().oldest}
+          max={dateBounds().newest}
+          placeholder={dateBounds().oldest}
           onInput={(e) =>
             updateFilter("dateRange", { ...filters().dateRange, start: e.currentTarget.value || null })
           }
@@ -19,6 +30,9 @@ const DateRangePicker: Component = () => {
         <input
           type="date"
           value={filters().dateRange.end || ""}
+          min={dateBounds().oldest}
+          max={dateBounds().newest}
+          placeholder={dateBounds().newest}
           onInput={(e) =>
             updateFilter("dateRange", { ...filters().dateRange, end: e.currentTarget.value || null })
           }

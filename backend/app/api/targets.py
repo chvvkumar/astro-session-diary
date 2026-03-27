@@ -356,11 +356,17 @@ async def list_targets_aggregated(
     total_seconds = sum(t.total_integration_seconds for t in target_list)
     total_frames = sum(t.total_frames for t in target_list)
 
+    all_dates = [s.session_date for t in target_list for s in t.sessions]
+    oldest_date = min(all_dates) if all_dates else None
+    newest_date = max(all_dates) if all_dates else None
+
     aggregates = AggregateStats(
         total_integration_seconds=total_seconds,
         target_count=len(target_list),
         total_frames=total_frames,
         disk_usage_bytes=0,
+        oldest_date=oldest_date,
+        newest_date=newest_date,
     )
 
     return TargetAggregationResponse(targets=target_list, aggregates=aggregates)

@@ -82,6 +82,8 @@ class AggregateStats(BaseModel):
     target_count: int
     total_frames: int
     disk_usage_bytes: int
+    oldest_date: str | None = None
+    newest_date: str | None = None
 
 
 class TargetAggregationResponse(BaseModel):
