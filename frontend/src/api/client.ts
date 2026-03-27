@@ -3,6 +3,10 @@ import type {
   SessionDetail,
   EquipmentList,
   TargetSearchResult,
+  TargetSearchResultFuzzy,
+  ObjectTypeCount,
+  MergeCandidateResponse,
+  MergedTargetResponse,
   ScanResult,
   ScanStatus,
   ActiveFilters,
@@ -37,8 +41,17 @@ function buildTargetQuery(filters: ActiveFilters): string {
   if (filters.opticalFilters.length > 0) {
     params.set("filters", filters.opticalFilters.join(","));
   }
+  if (filters.objectTypes.length > 0) {
+    params.set("object_type", filters.objectTypes.join(","));
+  }
   if (filters.dateRange.start) params.set("date_from", filters.dateRange.start);
   if (filters.dateRange.end) params.set("date_to", filters.dateRange.end);
+  if (filters.qualityFilters.hfrMin != null) {
+    params.set("hfr_min", String(filters.qualityFilters.hfrMin));
+  }
+  if (filters.qualityFilters.hfrMax != null) {
+    params.set("hfr_max", String(filters.qualityFilters.hfrMax));
+  }
   for (const fq of filters.fitsQueries) {
     params.append("fits_key", fq.key);
     params.append("fits_op", fq.operator);
@@ -64,7 +77,7 @@ export const api = {
     fetchJson<string[]>("/targets/fits-keys"),
 
   searchTargets: (query: string) =>
-    fetchJson<TargetSearchResult[]>(`/targets/search?q=${encodeURIComponent(query)}`),
+    fetchJson<TargetSearchResultFuzzy[]>(`/targets/search?q=${encodeURIComponent(query)}`),
 
   getStats: () =>
     fetchJson<StatsResponse>("/stats"),
@@ -136,5 +149,42 @@ export const api = {
     fetchJson<SettingsResponse>("/settings/dismissed-suggestions", {
       method: "PUT",
       body: JSON.stringify(dismissed),
+    }),
+
+  getObjectTypes: () =>
+    fetchJson<ObjectTypeCount[]>("/targets/object-types"),
+
+  getMergeCandidates: (status = "pending") =>
+    fetchJson<MergeCandidateResponse[]>(`/targets/merge-candidates?status=${status}`),
+
+  getMergeCandidateCount: () =>
+    fetchJson<{ count: number }>("/targets/merge-candidates/count"),
+
+  getMergedTargets: () =>
+    fetchJson<MergedTargetResponse[]>("/targets/merged-targets"),
+
+  mergeTargets: (winnerId: string, loserId?: string, loserName?: string) =>
+    fetchJson<{ status: string }>("/targets/merge", {
+      method: "POST",
+      body: JSON.stringify({
+        winner_id: winnerId,
+        ...(loserId ? { loser_id: loserId } : {}),
+        ...(loserName ? { loser_name: loserName } : {}),
+      }),
+    }),
+
+  unmergeTarget: (targetId: string) =>
+    fetchJson<{ status: string }>(`/targets/${encodeURIComponent(targetId)}/unmerge`, {
+      method: "POST",
+    }),
+
+  dismissMergeCandidate: (candidateId: string) =>
+    fetchJson<{ status: string }>(`/targets/merge-candidates/${candidateId}/dismiss`, {
+      method: "POST",
+    }),
+
+  triggerDuplicateDetection: () =>
+    fetchJson<{ status: string; task_id: string }>("/targets/detect-duplicates", {
+      method: "POST",
     }),
 };

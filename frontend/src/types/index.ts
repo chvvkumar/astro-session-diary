@@ -16,6 +16,8 @@ export interface TargetAggregation {
   filter_distribution: Record<string, number>;
   equipment: string[];
   sessions: SessionSummary[];
+  matched_sessions?: number | null;
+  total_sessions?: number | null;
 }
 
 export interface AggregateStats {
@@ -133,8 +135,10 @@ export interface ActiveFilters {
   camera: string | null;
   telescope: string | null;
   opticalFilters: string[];
+  objectTypes: string[];
   dateRange: { start: string | null; end: string | null };
   fitsQueries: { key: string; operator: string; value: string }[];
+  qualityFilters: { hfrMin?: number; hfrMax?: number };
 }
 
 // === Scan (unchanged) ===
@@ -170,6 +174,41 @@ export interface TargetSearchResult {
   id: string;
   primary_name: string;
   object_type: string | null;
+}
+
+export interface TargetSearchResultFuzzy {
+  id: string;
+  primary_name: string;
+  object_type: string | null;
+  aliases: string[];
+  match_source: string | null;
+  similarity_score: number;
+}
+
+export interface ObjectTypeCount {
+  object_type: string;
+  count: number;
+}
+
+export interface MergeCandidateResponse {
+  id: string;
+  source_name: string;
+  source_image_count: number;
+  suggested_target_id: string;
+  suggested_target_name: string;
+  similarity_score: number;
+  method: string;
+  status: string;
+  created_at: string;
+}
+
+export interface MergedTargetResponse {
+  id: string;
+  primary_name: string;
+  merged_into_id: string;
+  merged_into_name: string;
+  merged_at: string;
+  image_count: number;
 }
 
 // === Stats (Admin) ===
