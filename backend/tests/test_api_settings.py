@@ -341,6 +341,41 @@ async def test_put_equipment_updates_equipment_config():
 
 
 # ---------------------------------------------------------------------------
+# PUT /api/settings/dismissed-suggestions
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_put_dismissed_suggestions_stores_sorted_lists():
+    """PUT /api/settings/dismissed-suggestions stores sorted name lists."""
+    row = _make_settings_row()
+
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = row
+
+    mock_session = AsyncMock()
+    mock_session.execute = AsyncMock(return_value=mock_result)
+    mock_session.commit = AsyncMock()
+    mock_session.refresh = AsyncMock()
+
+    async def override():
+        yield mock_session
+
+    app.dependency_overrides[get_session] = override
+    try:
+        payload = [["ha", "Ha"], ["ASI533", "ASI 533"]]
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.put("/api/settings/dismissed-suggestions", json=payload)
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "dismissed_suggestions" in data
+        assert mock_session.commit.called
+    finally:
+        app.dependency_overrides.clear()
+
+
+# ---------------------------------------------------------------------------
 # GET /api/settings/suggestions/filters
 # ---------------------------------------------------------------------------
 

@@ -242,6 +242,20 @@ async def update_equipment(
     return _row_to_response(row)
 
 
+@router.put("/dismissed-suggestions", response_model=SettingsResponse)
+async def update_dismissed_suggestions(
+    payload: list[list[str]],
+    session: AsyncSession = Depends(get_session),
+):
+    """Update dismissed suggestions list and return full settings."""
+    row = await _get_or_create_settings(session)
+    # Normalize: sort each inner list for consistent deduplication
+    row.dismissed_suggestions = [sorted(group) for group in payload]
+    await session.commit()
+    await session.refresh(row)
+    return _row_to_response(row)
+
+
 # ---------------------------------------------------------------------------
 # Suggestions endpoints
 # ---------------------------------------------------------------------------
