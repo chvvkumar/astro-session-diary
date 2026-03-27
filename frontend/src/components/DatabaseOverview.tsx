@@ -15,9 +15,9 @@ const DatabaseOverview: Component<{
   bestHfr: number | null;
 }> = (props) => {
   const cards = () => [
-    { label: "Total Integration", subtitle: "All LIGHT frames", value: formatHours(props.overview.total_integration_seconds) },
-    { label: "Resolved Targets", subtitle: "Via SIMBAD", value: String(props.overview.target_count) },
-    { label: "Total Frames", subtitle: "All LIGHT frames", value: props.overview.total_frames.toLocaleString() },
+    { label: "Total Integration", subtitle: "all LIGHT frames", value: formatHours(props.overview.total_integration_seconds) },
+    { label: "Resolved Targets", subtitle: "via SIMBAD", value: String(props.overview.target_count) },
+    { label: "Total Frames", subtitle: "all LIGHT frames", value: props.overview.total_frames.toLocaleString() },
     { label: "Total Storage", subtitle: "", value: formatBytes(props.overview.disk_usage_bytes) },
     { label: "Avg HFR", subtitle: "", value: props.avgHfr?.toFixed(2) ?? "—" },
     { label: "Avg Ecc", subtitle: "", value: props.avgEccentricity?.toFixed(2) ?? "—" },
@@ -27,9 +27,10 @@ const DatabaseOverview: Component<{
   return (
     <div class="grid grid-cols-7 gap-3">
       {cards().map((c) => (
-        <div class="bg-astro-panel rounded-lg p-4 text-center" title={c.subtitle || undefined}>
+        <div class="bg-astro-panel rounded-lg p-4 text-center">
           <div class="text-xs text-astro-muted mb-1">{c.label}</div>
           <div class="text-white font-bold text-xl">{c.value}</div>
+          {c.subtitle && <div class="text-[10px] text-astro-muted/60 italic mt-1">{c.subtitle}</div>}
         </div>
       ))}
     </div>
