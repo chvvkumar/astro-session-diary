@@ -149,6 +149,11 @@ export interface ScanResult {
   failed?: number;
 }
 
+export interface FailedFile {
+  file: string;
+  error: string;
+}
+
 export interface ScanStatus {
   state: "idle" | "scanning" | "ingesting" | "complete" | "stalled";
   total: number;
@@ -156,6 +161,7 @@ export interface ScanStatus {
   failed: number;
   started_at: number | null;
   completed_at: number | null;
+  failed_files?: FailedFile[];
 }
 
 // === Search ===

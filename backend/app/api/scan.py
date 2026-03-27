@@ -9,7 +9,7 @@ from app.config import get_async_redis
 from app.database import get_session
 from app.models import Image, Target
 from app.services.scan_state import (
-    get_scan_state, start_scanning, set_ingesting, set_idle, reset_scan,
+    get_scan_state, get_failed_files, start_scanning, set_ingesting, set_idle, reset_scan,
 )
 from app.services.simbad import resolve_target_name, normalize_object_name
 from app.worker.tasks import regenerate_thumbnail, run_scan
@@ -97,7 +97,10 @@ async def scan_status():
     r = get_async_redis()
     try:
         state = await get_scan_state(r)
-        return state.to_dict()
+        result = state.to_dict()
+        if state.failed > 0:
+            result["failed_files"] = await get_failed_files(r)
+        return result
     finally:
         await r.aclose()
 

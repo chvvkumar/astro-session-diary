@@ -1,4 +1,4 @@
-import { Component, Show, createSignal, createEffect, onCleanup } from "solid-js";
+import { Component, Show, For, createSignal, createEffect, onCleanup } from "solid-js";
 import { useScan } from "../store/scan";
 import { useSettingsContext } from "./SettingsProvider";
 
@@ -192,6 +192,21 @@ const ScanManager: Component = () => {
             <div class="w-full bg-astro-dark rounded-full h-3 overflow-hidden flex">
               <div class="bg-green-500 h-3 transition-all" style={{ width: `${(scanStatus().completed / scanStatus().total) * 100}%` }} />
               <div class="bg-red-500 h-3 transition-all" style={{ width: `${(scanStatus().failed / scanStatus().total) * 100}%` }} />
+            </div>
+          </Show>
+          <Show when={(scanStatus().failed_files?.length ?? 0) > 0}>
+            <div class="mt-2 space-y-1">
+              <span class="text-red-400 font-medium">Failed files:</span>
+              <div class="max-h-40 overflow-y-auto space-y-1">
+                <For each={scanStatus().failed_files}>
+                  {(f) => (
+                    <div class="bg-red-900/20 border border-red-800/30 rounded px-2 py-1">
+                      <div class="text-red-300 truncate" title={f.file}>{f.file.split("/").pop()}</div>
+                      <div class="text-red-400/60 truncate" title={f.error}>{f.error}</div>
+                    </div>
+                  )}
+                </For>
+              </div>
             </div>
           </Show>
         </div>

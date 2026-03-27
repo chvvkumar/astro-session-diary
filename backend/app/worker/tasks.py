@@ -172,7 +172,7 @@ def ingest_file(self, fits_path: str) -> dict:
             or "No such file" in str(exc)
         )
         if unrecoverable or self.request.retries >= self.max_retries:
-            increment_failed_sync(_redis)
+            increment_failed_sync(_redis, file_path=str(path), error=str(exc))
             return {"file": str(path), "status": "failed", "error": str(exc)}
         raise self.retry(exc=exc)
 
@@ -191,7 +191,8 @@ def regenerate_thumbnail(self, image_id: str, fits_path: str, thumb_path: str) -
     except Exception as exc:
         logger.error("Failed to regenerate thumbnail for %s: %s", path, exc)
         if self.request.retries >= self.max_retries:
-            increment_failed_sync(_redis)
+            increment_failed_sync(_redis, file_path=str(path), error=str(exc))
+            return {"file": str(path), "status": "failed", "error": str(exc)}
         raise self.retry(exc=exc)
 
 

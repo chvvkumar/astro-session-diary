@@ -13,6 +13,7 @@ import redis as sync_redis
 
 SCAN_KEY = "scan:state"
 SCAN_PROGRESS_KEY = "scan:last_progress"
+SCAN_FAILED_KEY = "scan:failed_files"
 EXPIRE_AFTER_COMPLETE = 86400  # 24 hours
 STALE_TIMEOUT = 300  # 5 minutes with no progress → consider stuck
 
@@ -68,6 +69,13 @@ async def get_scan_state(r: aioredis.Redis) -> ScanStateSnapshot:
     return snap
 
 
+async def get_failed_files(r: aioredis.Redis) -> list[dict]:
+    """Return list of {file, error} dicts for files that failed during this scan."""
+    import json
+    raw = await r.lrange(SCAN_FAILED_KEY, 0, -1)
+    return [json.loads(item) for item in raw]
+
+
 async def start_scanning(r: aioredis.Redis) -> None:
     await r.hset(SCAN_KEY, mapping={
         "state": "scanning",
@@ -79,6 +87,7 @@ async def start_scanning(r: aioredis.Redis) -> None:
     })
     await r.set(SCAN_PROGRESS_KEY, str(time.time()))
     await r.persist(SCAN_KEY)  # remove any previous TTL
+    await r.delete(SCAN_FAILED_KEY)  # clear previous failures
 
 
 async def set_ingesting(r: aioredis.Redis, total: int) -> None:
@@ -104,6 +113,7 @@ async def reset_scan(r: aioredis.Redis) -> None:
     """Force-clear scan state back to idle. Used when scan is stalled."""
     await r.delete(SCAN_KEY)
     await r.delete(SCAN_PROGRESS_KEY)
+    await r.delete(SCAN_FAILED_KEY)
 
 
 async def set_idle(r: aioredis.Redis) -> None:
@@ -124,9 +134,12 @@ def increment_completed_sync(r: sync_redis.Redis) -> None:
     _check_complete_sync(r)
 
 
-def increment_failed_sync(r: sync_redis.Redis) -> None:
+def increment_failed_sync(r: sync_redis.Redis, file_path: str = "", error: str = "") -> None:
     r.hincrby(SCAN_KEY, "failed", 1)
     r.set(SCAN_PROGRESS_KEY, str(time.time()))
+    if file_path:
+        import json
+        r.rpush(SCAN_FAILED_KEY, json.dumps({"file": file_path, "error": error}))
     _check_complete_sync(r)
 
 
@@ -152,6 +165,7 @@ def start_scanning_sync(r: sync_redis.Redis) -> None:
     })
     r.set(SCAN_PROGRESS_KEY, str(time.time()))
     r.persist(SCAN_KEY)
+    r.delete(SCAN_FAILED_KEY)
 
 
 def set_ingesting_sync(r: sync_redis.Redis, total: int) -> None:
