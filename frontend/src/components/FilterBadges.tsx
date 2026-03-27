@@ -88,14 +88,14 @@ const FilterBadges: Component<{ distribution: Record<string, number>; compact?: 
           <Show
             when={props.compact}
             fallback={
-              <span class="px-2 py-0.5 rounded-full text-[11px] font-medium text-black" style={{ "background-color": getColor(name) }}>
+              <span class="px-2 py-0.5 rounded-full text-[11px] font-medium" style={{ "background-color": getColor(name), color: "black" }}>
                 {name}&middot;{formatHours(seconds)}
               </span>
             }
           >
             <span
-              class="h-6 rounded text-[10px] font-bold flex items-center justify-center text-white"
-              style={{ "background-color": getColor(name) }}
+              class="h-6 rounded text-[10px] font-bold flex items-center justify-center"
+              style={{ "background-color": getColor(name), color: "black" }}
               classList={{ "w-6": (SHORT_LABEL[name] || name).length <= 1, "px-1.5": (SHORT_LABEL[name] || name).length > 1 }}
               title={name}
             >

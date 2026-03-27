@@ -24,9 +24,9 @@ const FilterToggles: Component = () => {
       <button
         onClick={() => toggleOpticalFilter(name)}
         class={`px-2.5 py-1 rounded-full text-xs font-medium transition-all ${
-          active ? "text-black ring-2 ring-white/30" : "bg-gray-700/50 text-astro-muted"
+          active ? "ring-2 ring-white/30" : "bg-gray-700/50 text-astro-muted"
         }`}
-        style={active ? { "background-color": getColor(name) } : {}}
+        style={active ? { "background-color": getColor(name), color: "black" } : {}}
       >
         {name}
       </button>
