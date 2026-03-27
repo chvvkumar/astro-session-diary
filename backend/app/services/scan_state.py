@@ -12,7 +12,9 @@ import redis.asyncio as aioredis
 import redis as sync_redis
 
 SCAN_KEY = "scan:state"
+SCAN_PROGRESS_KEY = "scan:last_progress"
 EXPIRE_AFTER_COMPLETE = 86400  # 24 hours
+STALE_TIMEOUT = 300  # 5 minutes with no progress → consider stuck
 
 
 @dataclass
@@ -55,7 +57,21 @@ def _parse_snapshot(data: dict | None) -> ScanStateSnapshot:
 
 async def get_scan_state(r: aioredis.Redis) -> ScanStateSnapshot:
     data = await r.hgetall(SCAN_KEY)
-    return _parse_snapshot(data)
+    snap = _parse_snapshot(data)
+    # Auto-complete stale ingestion: no progress for STALE_TIMEOUT seconds
+    if snap.state in ("scanning", "ingesting"):
+        last_progress = await r.get(SCAN_PROGRESS_KEY)
+        if last_progress:
+            elapsed = time.time() - float(last_progress)
+            if elapsed > STALE_TIMEOUT:
+                await r.hset(SCAN_KEY, mapping={
+                    "state": "complete",
+                    "completed_at": time.time(),
+                })
+                await r.expire(SCAN_KEY, EXPIRE_AFTER_COMPLETE)
+                snap.state = "complete"
+                snap.completed_at = time.time()
+    return snap
 
 
 async def start_scanning(r: aioredis.Redis) -> None:
@@ -67,6 +83,7 @@ async def start_scanning(r: aioredis.Redis) -> None:
         "started_at": time.time(),
         "completed_at": "",
     })
+    await r.set(SCAN_PROGRESS_KEY, str(time.time()))
     await r.persist(SCAN_KEY)  # remove any previous TTL
 
 
@@ -103,11 +120,13 @@ async def set_idle(r: aioredis.Redis) -> None:
 
 def increment_completed_sync(r: sync_redis.Redis) -> None:
     r.hincrby(SCAN_KEY, "completed", 1)
+    r.set(SCAN_PROGRESS_KEY, str(time.time()))
     _check_complete_sync(r)
 
 
 def increment_failed_sync(r: sync_redis.Redis) -> None:
     r.hincrby(SCAN_KEY, "failed", 1)
+    r.set(SCAN_PROGRESS_KEY, str(time.time()))
     _check_complete_sync(r)
 
 
@@ -131,6 +150,7 @@ def start_scanning_sync(r: sync_redis.Redis) -> None:
         "started_at": time.time(),
         "completed_at": "",
     })
+    r.set(SCAN_PROGRESS_KEY, str(time.time()))
     r.persist(SCAN_KEY)
 
 
