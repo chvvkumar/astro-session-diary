@@ -1,5 +1,6 @@
 import { Component, For, Show } from "solid-js";
 import { useSettingsContext } from "./SettingsProvider";
+import { getFilterBadgeStyle } from "../utils/filterStyles";
 
 // Canonical filter category for a given filter name.
 // Maps all common naming variations to one of the 7 standard categories,
@@ -61,7 +62,7 @@ function formatHours(seconds: number): string {
 }
 
 const FilterBadges: Component<{ distribution: Record<string, number>; compact?: boolean }> = (props) => {
-  const { filterColorMap, filterAliasMap } = useSettingsContext();
+  const { filterColorMap, filterAliasMap, filterBadgeStyle } = useSettingsContext();
 
   function getColor(name: string): string {
     const colorMap = filterColorMap();
@@ -84,25 +85,34 @@ const FilterBadges: Component<{ distribution: Record<string, number>; compact?: 
   return (
     <div class="flex gap-1.5 flex-wrap">
       <For each={entries()}>
-        {([name, seconds]) => (
-          <Show
-            when={props.compact}
-            fallback={
-              <span class="px-2 py-0.5 rounded-full text-[11px] font-medium" style={{ "background-color": getColor(name), color: "black" }}>
-                {name}&middot;{formatHours(seconds)}
-              </span>
-            }
-          >
-            <span
-              class="h-6 rounded text-[10px] font-bold flex items-center justify-center"
-              style={{ "background-color": getColor(name), color: "black" }}
-              classList={{ "w-6": (SHORT_LABEL[name] || name).length <= 1, "px-1.5": (SHORT_LABEL[name] || name).length > 1 }}
-              title={name}
+        {([name, seconds]) => {
+          const badgeStyle = () => getFilterBadgeStyle(filterBadgeStyle(), getColor(name));
+          return (
+            <Show
+              when={props.compact}
+              fallback={
+                <span class="px-2 py-0.5 rounded-full text-[11px] font-medium inline-flex items-center gap-1" style={badgeStyle().style}>
+                  <Show when={badgeStyle().dot}>
+                    <span class="w-1.5 h-1.5 rounded-full inline-block" style={{ "background-color": badgeStyle().dot }} />
+                  </Show>
+                  {name}&middot;{formatHours(seconds)}
+                </span>
+              }
             >
-              {SHORT_LABEL[name] || name}
-            </span>
-          </Show>
-        )}
+              <span
+                class="h-6 rounded text-[10px] font-bold flex items-center justify-center gap-0.5"
+                style={badgeStyle().style}
+                classList={{ "w-6": (SHORT_LABEL[name] || name).length <= 1 && !badgeStyle().dot, "px-1.5": (SHORT_LABEL[name] || name).length > 1 || !!badgeStyle().dot }}
+                title={name}
+              >
+                <Show when={badgeStyle().dot}>
+                  <span class="w-1.5 h-1.5 rounded-full inline-block flex-shrink-0" style={{ "background-color": badgeStyle().dot }} />
+                </Show>
+                {SHORT_LABEL[name] || name}
+              </span>
+            </Show>
+          );
+        }}
       </For>
     </div>
   );
