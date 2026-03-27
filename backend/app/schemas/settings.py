@@ -6,6 +6,7 @@ class GeneralSettings(BaseModel):
     auto_scan_interval: int = 240
     thumbnail_width: int = 800
     default_page_size: int = 50
+    include_calibration: bool = True
 
 
 class FilterConfig(BaseModel):
