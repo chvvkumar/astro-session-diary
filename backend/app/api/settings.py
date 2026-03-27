@@ -94,6 +94,12 @@ def _group_already_merged(group: SuggestionGroup, known: set[str]) -> bool:
     return all(name in known for name in group.group)
 
 
+def _group_is_dismissed(group: SuggestionGroup, dismissed: list[list[str]]) -> bool:
+    """Return True if this suggestion group matches a dismissed entry."""
+    sorted_group = sorted(group.group)
+    return sorted_group in dismissed
+
+
 def _levenshtein(a: str, b: str) -> int:
     """Pure-Python Levenshtein distance."""
     if a == b:
@@ -274,10 +280,14 @@ async def suggest_filters(session: AsyncSession = Depends(get_session)):
     for s in suggestions:
         s.section = "filters"
 
-    # Exclude groups already handled by saved aliases
+    # Exclude groups already handled by saved aliases or dismissed
     row = await _get_or_create_settings(session)
     known = _build_known_names(row.filters or {})
-    suggestions = [s for s in suggestions if not _group_already_merged(s, known)]
+    dismissed = row.dismissed_suggestions or []
+    suggestions = [
+        s for s in suggestions
+        if not _group_already_merged(s, known) and not _group_is_dismissed(s, dismissed)
+    ]
 
     return SuggestionsResponse(suggestions=suggestions)
 
@@ -309,12 +319,16 @@ async def suggest_equipment(session: AsyncSession = Depends(get_session)):
         s.section = "telescopes"
     all_suggestions = cam_suggestions + tel_suggestions
 
-    # Exclude groups already handled by saved aliases
+    # Exclude groups already handled by saved aliases or dismissed
     row = await _get_or_create_settings(session)
     eq = row.equipment or {}
     known = set()
     for section in ("cameras", "telescopes"):
         known |= _build_known_names(eq.get(section, {}))
-    all_suggestions = [s for s in all_suggestions if not _group_already_merged(s, known)]
+    dismissed = row.dismissed_suggestions or []
+    all_suggestions = [
+        s for s in all_suggestions
+        if not _group_already_merged(s, known) and not _group_is_dismissed(s, dismissed)
+    ]
 
     return SuggestionsResponse(suggestions=all_suggestions)

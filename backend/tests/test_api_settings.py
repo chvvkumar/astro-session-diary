@@ -588,3 +588,49 @@ async def test_suggestions_equipment_empty_db():
         assert data["suggestions"] == []
     finally:
         app.dependency_overrides.clear()
+
+
+# ---------------------------------------------------------------------------
+# Task 5: dismissed suggestions filtering
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_suggestions_filters_excludes_dismissed():
+    """Dismissed suggestion groups are filtered from the response."""
+    rows = [("Ha", 20), ("ha", 8)]
+
+    settings_row = _make_settings_row(
+        dismissed_suggestions=[["Ha", "ha"]],
+    )
+
+    call_count = 0
+    async def execute_side_effect(stmt):
+        nonlocal call_count
+        call_count += 1
+        if call_count == 1:
+            r = MagicMock()
+            r.all.return_value = rows
+            return r
+        else:
+            r = MagicMock()
+            r.scalar_one_or_none.return_value = settings_row
+            return r
+
+    mock_session = AsyncMock()
+    mock_session.execute = AsyncMock(side_effect=execute_side_effect)
+
+    async def override():
+        yield mock_session
+
+    app.dependency_overrides[get_session] = override
+    try:
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.get("/api/settings/suggestions/filters")
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["suggestions"] == []
+    finally:
+        app.dependency_overrides.clear()
+

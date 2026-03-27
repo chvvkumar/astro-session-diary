@@ -37,3 +37,4 @@ class SuggestionGroup(BaseModel):
 
 class SuggestionsResponse(BaseModel):
     suggestions: list[SuggestionGroup]
+
