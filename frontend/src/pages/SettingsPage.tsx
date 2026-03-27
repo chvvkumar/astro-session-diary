@@ -4,6 +4,7 @@ import { useSearchParams } from "@solidjs/router";
 import { GeneralTab } from "../components/settings/GeneralTab";
 import { FiltersTab } from "../components/settings/FiltersTab";
 import { EquipmentTab } from "../components/settings/EquipmentTab";
+import { MergesTab } from "../components/settings/MergesTab";
 import ScanManager from "../components/ScanManager";
 
 const TABS = [
@@ -11,6 +12,7 @@ const TABS = [
   { id: "scan", label: "Scan & Ingest" },
   { id: "filters", label: "Filters" },
   { id: "equipment", label: "Equipment" },
+  { id: "merges", label: "Target Merges" },
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
@@ -51,6 +53,9 @@ export const SettingsPage: Component = () => {
       </Show>
       <Show when={activeTab() === "equipment"}>
         <EquipmentTab />
+      </Show>
+      <Show when={activeTab() === "merges"}>
+        <MergesTab />
       </Show>
     </div>
   );
