@@ -276,6 +276,8 @@ async def list_targets_aggregated(
     fits_op: list[str] | None = Query(None),
     fits_val: list[str] | None = Query(None),
     object_type: str | None = Query(None),
+    hfr_min: float | None = Query(None),
+    hfr_max: float | None = Query(None),
 ):
     """Return targets with aggregated session data, filtered by query params."""
     filter_map, cam_map, tel_map = await load_alias_maps(session)
@@ -410,18 +412,43 @@ async def list_targets_aggregated(
                 "integration_seconds": 0,
                 "frame_count": 0,
                 "filters_set": set(),
+                "hfr_values": [],
             }
         s = sessions_map[tid][date_key]
         s["integration_seconds"] += exp
         s["frame_count"] += 1
         if f:
             s["filters_set"].add(f)
+        if image.median_hfr is not None:
+            s["hfr_values"].append(image.median_hfr)
 
     # Assemble response
     target_list = []
     for tid, t in targets_map.items():
+        all_sessions = sorted(sessions_map[tid].values(), key=lambda x: x["session_date"], reverse=True)
+        total_session_count = len(all_sessions)
+
+        if hfr_min is not None or hfr_max is not None:
+            filtered_sessions = []
+            for s in all_sessions:
+                if not s["hfr_values"]:
+                    continue  # skip sessions with no HFR data
+                median_hfr = statistics.median(s["hfr_values"])
+                if hfr_min is not None and median_hfr < hfr_min:
+                    continue
+                if hfr_max is not None and median_hfr > hfr_max:
+                    continue
+                filtered_sessions.append(s)
+            if not filtered_sessions:
+                continue  # skip target entirely
+            build_sessions = filtered_sessions
+            matched_session_count = len(filtered_sessions)
+        else:
+            build_sessions = all_sessions
+            matched_session_count = None
+
         sessions = []
-        for s in sorted(sessions_map[tid].values(), key=lambda x: x["session_date"], reverse=True):
+        for s in build_sessions:
             sessions.append(SessionSummary(
                 session_date=s["session_date"],
                 integration_seconds=s["integration_seconds"],
@@ -437,6 +464,8 @@ async def list_targets_aggregated(
             filter_distribution=dict(t["filter_distribution"]),
             equipment=sorted(t["equipment_set"]),
             sessions=sessions,
+            matched_sessions=matched_session_count,
+            total_sessions=total_session_count if matched_session_count is not None else None,
         ))
 
     target_list.sort(key=lambda x: x.total_integration_seconds, reverse=True)
