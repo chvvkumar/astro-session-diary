@@ -108,15 +108,46 @@ def _levenshtein(a: str, b: str) -> int:
     return prev[-1]
 
 
+def _normalize_for_comparison(name: str) -> str:
+    """Normalize a name for comparison: lowercase, strip separators."""
+    return name.lower().replace("_", "").replace("-", "").replace(" ", "")
+
+
+def _are_similar(a: str, b: str) -> bool:
+    """Determine if two equipment/filter names likely refer to the same thing.
+
+    Uses three strategies (no edit distance — too many false positives
+    with names like ASI533MC/ASI533MM or Askar40/Askar140):
+    1. Case-insensitive exact match
+    2. Normalized match (ignore underscores, spaces, hyphens)
+    3. One name contains the other (e.g. "ZWO ASI533MM Pro (ASI533MM)" contains "ZWO ASI533MM Pro")
+    """
+    la, lb = a.lower(), b.lower()
+
+    # Exact case-insensitive
+    if la == lb:
+        return True
+
+    # Normalized match (strip separators)
+    na, nb = _normalize_for_comparison(a), _normalize_for_comparison(b)
+    if na == nb:
+        return True
+
+    # Containment: one is a substring of the other (min 4 chars to avoid short false matches)
+    if len(la) >= 4 and len(lb) >= 4:
+        if la in lb or lb in la:
+            return True
+
+    return False
+
+
 def _group_by_similarity(rows: list[tuple[str, int]]) -> list[SuggestionGroup]:
     """
-    Group names by:
-    1. Case-insensitive match  (catches "OIII" / "oiii" / "Oiii")
-    2. Levenshtein distance <= 2 for strings longer than 3 characters
+    Group names that likely refer to the same item using multiple similarity
+    strategies (case, normalization, containment, edit distance).
 
     Returns only groups with 2+ members (singletons are not suggestions).
     """
-    # Union-Find for grouping
     names = [r[0] for r in rows]
     counts = {r[0]: r[1] for r in rows}
 
@@ -133,23 +164,11 @@ def _group_by_similarity(rows: list[tuple[str, int]]) -> list[SuggestionGroup]:
         if px != py:
             parent[py] = px
 
-    # Pass 1: case-insensitive grouping
-    lower_to_first: dict[str, str] = {}
-    for name in names:
-        key = name.lower()
-        if key in lower_to_first:
-            union(lower_to_first[key], name)
-        else:
-            lower_to_first[key] = name
-
-    # Pass 2: Levenshtein grouping (only for names > 3 chars)
-    long_names = [n for n in names if len(n) > 3]
-    for i in range(len(long_names)):
-        for j in range(i + 1, len(long_names)):
-            a, b = long_names[i], long_names[j]
-            if find(a) != find(b):  # skip already-merged
-                if _levenshtein(a.lower(), b.lower()) <= 2:
-                    union(a, b)
+    for i in range(len(names)):
+        for j in range(i + 1, len(names)):
+            if find(names[i]) != find(names[j]):
+                if _are_similar(names[i], names[j]):
+                    union(names[i], names[j])
 
     # Collect groups
     groups: dict[str, list[str]] = {}
