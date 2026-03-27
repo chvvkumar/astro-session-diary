@@ -8,21 +8,25 @@ from app.database import get_session
 
 
 @pytest.mark.asyncio
-async def test_trigger_scan_empty_directory():
-    mock_result = MagicMock()
-    mock_result.all.return_value = []
+async def test_trigger_scan_accepted():
+    """POST /api/scan persists include_calibration and returns accepted status."""
+    settings_result = MagicMock()
+    settings_result.scalar_one_or_none.return_value = None  # no existing row
 
     mock_session = AsyncMock()
-    mock_session.execute = AsyncMock(return_value=mock_result)
+    mock_session.execute = AsyncMock(return_value=settings_result)
+    mock_session.add = MagicMock()
+    mock_session.commit = AsyncMock()
 
     async def override():
         yield mock_session
 
     app.dependency_overrides[get_session] = override
 
-    with patch("app.api.scan.scan_directory", return_value=[]), \
+    with patch("app.api.scan.run_scan") as mock_run_scan, \
          patch("app.api.scan.get_async_redis") as mock_redis_factory:
-        # Mock Redis
+        mock_run_scan.delay = MagicMock()
+        # Mock Redis returning idle state
         mock_redis = AsyncMock()
         mock_redis.hgetall = AsyncMock(return_value={})
         mock_redis.hset = AsyncMock()
@@ -37,7 +41,8 @@ async def test_trigger_scan_empty_directory():
 
     assert resp.status_code == 200
     data = resp.json()
-    assert data["new_files_queued"] == 0
+    assert data["status"] == "accepted"
+    mock_session.commit.assert_called_once()
 
     app.dependency_overrides.clear()
 
@@ -91,11 +96,13 @@ async def test_scan_status_ingesting():
 
 @pytest.mark.asyncio
 async def test_scan_rejects_when_already_running():
-    mock_result = MagicMock()
-    mock_result.all.return_value = []
+    settings_result = MagicMock()
+    settings_result.scalar_one_or_none.return_value = None  # no existing row
 
     mock_session = AsyncMock()
-    mock_session.execute = AsyncMock(return_value=mock_result)
+    mock_session.execute = AsyncMock(return_value=settings_result)
+    mock_session.add = MagicMock()
+    mock_session.commit = AsyncMock()
 
     async def override():
         yield mock_session

@@ -22,19 +22,31 @@ router = APIRouter(prefix="/scan", tags=["scan"])
 @router.post("")
 async def trigger_scan(
     include_calibration: bool = Query(True, description="Include calibration frames (BIAS, DARK, FLAT)"),
+    session: AsyncSession = Depends(get_session),
 ):
     """Walk the FITS directory, queue new files for ingestion.
 
     The heavy directory scan runs inside a Celery task so this endpoint
     returns immediately — no nginx timeout issues on large data sets.
     """
+    # Persist the frame filter choice for next visit
+    from app.models.user_settings import UserSettings, SETTINGS_ROW_ID
+    result = await session.execute(
+        select(UserSettings).where(UserSettings.id == SETTINGS_ROW_ID)
+    )
+    row = result.scalar_one_or_none()
+    if row is None:
+        row = UserSettings(id=SETTINGS_ROW_ID)
+        session.add(row)
+    row.general = {**(row.general or {}), "include_calibration": include_calibration}
+    await session.commit()
+
     r = get_async_redis()
     try:
         state = await get_scan_state(r)
         if state.state in ("scanning", "ingesting"):
             return {"status": "already_running", **state.to_dict()}
 
-        # Dispatch the scan to Celery — returns immediately
         run_scan.delay(include_calibration=include_calibration)
 
         return {"status": "accepted", "message": "Scan queued — check /scan/status for progress"}
