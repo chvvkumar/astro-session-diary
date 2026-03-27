@@ -102,7 +102,8 @@ def auto_scan_tick():
     # Dispatch scan
     _redis.set("autoscan:last_run", str(now))
     logger.info("Auto-scan triggered (interval=%dm)", interval_minutes)
-    run_scan.delay(include_calibration=True)
+    include_cal = (row.general or {}).get("include_calibration", True)
+    run_scan.delay(include_calibration=include_cal)
 
 
 @celery_app.task(bind=True, max_retries=3, default_retry_delay=30)
