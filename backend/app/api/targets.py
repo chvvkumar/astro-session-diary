@@ -5,7 +5,7 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import select, or_, func, cast, Float, Date, text
+from sqlalchemy import select, or_, and_, func, cast, Float, Date, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_session
@@ -19,6 +19,48 @@ from app.schemas.target import (
 )
 
 router = APIRouter(prefix="/targets", tags=["targets"])
+
+# ---------------------------------------------------------------------------
+# SIMBAD object type → human-readable category mapping
+# The first code in the comma-separated SIMBAD type string is the primary.
+# ---------------------------------------------------------------------------
+_SIMBAD_CATEGORY_MAP: dict[str, str] = {
+    "HII": "Emission Nebula",
+    "sh": "Emission Nebula",
+    "GNe": "Reflection Nebula",
+    "RNe": "Reflection Nebula",
+    "DNe": "Dark Nebula",
+    "Cld": "Dark Nebula",
+    "MoC": "Dark Nebula",
+    "PN": "Planetary Nebula",
+    "SNR": "Supernova Remnant",
+    "G": "Galaxy",
+    "H2G": "Galaxy",
+    "GiG": "Galaxy",
+    "GiC": "Galaxy",
+    "GiP": "Galaxy",
+    "rG": "Galaxy",
+    "AGN": "Galaxy",
+    "Sy2": "Galaxy",
+    "LIN": "Galaxy",
+    "QSO": "Galaxy",
+    "PoG": "Galaxy",
+    "IG": "Galaxy",
+    "OpC": "Open Cluster",
+    "Cl*": "Open Cluster",
+    "GlC": "Globular Cluster",
+    "*": "Star",
+    "**": "Star",
+    "Ae*": "Star",
+}
+
+
+def _categorize_object_type(raw: str | None) -> str:
+    """Map a raw SIMBAD object type string to a human-readable category."""
+    if not raw:
+        return "Other"
+    primary = raw.split(",")[0].strip()
+    return _SIMBAD_CATEGORY_MAP.get(primary, "Other")
 
 
 # --- 1. Search (must be FIRST) ---
@@ -136,7 +178,7 @@ async def get_fits_keys(session: AsyncSession = Depends(get_session)):
 async def get_object_types(
     session: AsyncSession = Depends(get_session),
 ):
-    """Return distinct object types with target counts from the collection."""
+    """Return human-readable object type categories with target counts."""
     query = (
         select(Target.object_type, func.count(Target.id).label("count"))
         .where(
@@ -144,10 +186,20 @@ async def get_object_types(
             Target.merged_into_id.is_(None),
         )
         .group_by(Target.object_type)
-        .order_by(func.count(Target.id).desc())
     )
     result = await session.execute(query)
-    return [ObjectTypeCount(object_type=row[0], count=row[1]) for row in result.all()]
+
+    # Aggregate raw SIMBAD types into human-readable categories
+    category_counts: dict[str, int] = defaultdict(int)
+    for raw_type, count in result.all():
+        category = _categorize_object_type(raw_type)
+        category_counts[category] += count
+
+    return sorted(
+        [ObjectTypeCount(object_type=cat, count=cnt) for cat, cnt in category_counts.items()],
+        key=lambda x: x.count,
+        reverse=True,
+    )
 
 
 # --- 2d. Target detail (before path-parameter routes) ---
@@ -324,19 +376,36 @@ async def list_targets_aggregated(
 
     if object_type:
         type_list = [t.strip() for t in object_type.split(",")]
-        if "Unresolved" in type_list:
-            type_list_clean = [t for t in type_list if t != "Unresolved"]
-            if type_list_clean:
-                base_filter.append(
-                    or_(
-                        Target.object_type.in_(type_list_clean),
-                        Image.resolved_target_id.is_(None),
-                    )
-                )
-            else:
-                base_filter.append(Image.resolved_target_id.is_(None))
-        else:
-            base_filter.append(Target.object_type.in_(type_list))
+        has_unresolved = "Unresolved" in type_list
+        categories = [t for t in type_list if t != "Unresolved"]
+
+        if categories:
+            # Reverse-map human categories to SIMBAD primary codes
+            matching_codes = set()
+            for code, category in _SIMBAD_CATEGORY_MAP.items():
+                if category in categories:
+                    matching_codes.add(code)
+
+            # Build SQL: match targets whose primary code (before first comma) is in the set
+            # Use a startswith check for each matching code
+            type_conditions = [
+                Target.object_type.like(f"{code},%") | (Target.object_type == code)
+                for code in matching_codes
+            ]
+            # Also match "Other" category — types not in the map
+            if "Other" in categories:
+                mapped_prefixes = list(_SIMBAD_CATEGORY_MAP.keys())
+                other_conditions = [
+                    ~Target.object_type.like(f"{code},%") & (Target.object_type != code)
+                    for code in mapped_prefixes
+                ]
+                type_conditions.append(and_(*other_conditions))
+
+            if has_unresolved:
+                type_conditions.append(Image.resolved_target_id.is_(None))
+            base_filter.append(or_(*type_conditions))
+        elif has_unresolved:
+            base_filter.append(Image.resolved_target_id.is_(None))
 
     # FITS header queries (AND logic between rows)
     if fits_key and fits_op and fits_val:
