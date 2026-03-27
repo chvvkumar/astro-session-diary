@@ -218,6 +218,7 @@ export interface GeneralSettings {
   auto_scan_interval: number;
   thumbnail_width: number;
   default_page_size: number;
+  include_calibration: boolean;
 }
 
 export interface FilterConfig {

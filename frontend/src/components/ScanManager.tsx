@@ -1,12 +1,22 @@
-import { Component, Show, createSignal, onCleanup } from "solid-js";
+import { Component, Show, createSignal, createEffect, onCleanup } from "solid-js";
 import { useScan } from "../store/scan";
+import { useSettingsContext } from "./SettingsProvider";
 
 type FrameFilter = "all" | "light_only";
 
 const ScanManager: Component = () => {
   const { scanStatus, scanError, isActive, startScan, startRegeneration, resetScan, stopPolling } = useScan();
+  const { settings } = useSettingsContext();
   const [expanded, setExpanded] = createSignal(false);
   const [frameFilter, setFrameFilter] = createSignal<FrameFilter>("all");
+
+  // Sync frameFilter from server settings once loaded
+  createEffect(() => {
+    const s = settings();
+    if (s) {
+      setFrameFilter(s.general.include_calibration ? "all" : "light_only");
+    }
+  });
 
   onCleanup(stopPolling);
 
