@@ -178,6 +178,8 @@ async def get_target_detail(
         target_obj = await session.get(Target, tid)
         if not target_obj:
             raise HTTPException(status_code=404, detail="Target not found")
+        if target_obj.merged_into_id is not None:
+            raise HTTPException(404, "Target has been merged")
         target_name = target_obj.primary_name
         query = (
             select(Image)
@@ -284,6 +286,14 @@ async def list_targets_aggregated(
 
     # Base query: only LIGHT frames that have a known object name
     base_filter = [Image.image_type == "LIGHT"]
+
+    # Exclude soft-deleted (merged) targets
+    base_filter.append(
+        or_(
+            Image.resolved_target_id.is_(None),
+            Target.merged_into_id.is_(None),
+        )
+    )
 
     if camera:
         cam_variants = expand_canonical(camera, cam_map)
