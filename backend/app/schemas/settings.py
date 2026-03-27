@@ -26,6 +26,7 @@ class SettingsResponse(BaseModel):
     general: GeneralSettings
     filters: dict[str, FilterConfig]
     equipment: EquipmentConfig
+    dismissed_suggestions: list[list[str]] = Field(default_factory=list)
 
 
 class SuggestionGroup(BaseModel):

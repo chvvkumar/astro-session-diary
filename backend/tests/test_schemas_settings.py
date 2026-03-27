@@ -28,3 +28,22 @@ def test_settings_response_round_trip():
 def test_suggestion_group():
     sg = SuggestionGroup(group=["OIII", "Oiii"], counts={"OIII": 100, "Oiii": 20})
     assert len(sg.group) == 2
+
+
+def test_settings_response_includes_dismissed_suggestions():
+    resp = SettingsResponse(
+        general=GeneralSettings(),
+        filters={},
+        equipment=EquipmentConfig(),
+        dismissed_suggestions=[["Ha", "ha"]],
+    )
+    assert resp.dismissed_suggestions == [["Ha", "ha"]]
+
+
+def test_settings_response_dismissed_suggestions_defaults_empty():
+    resp = SettingsResponse(
+        general=GeneralSettings(),
+        filters={},
+        equipment=EquipmentConfig(),
+    )
+    assert resp.dismissed_suggestions == []
