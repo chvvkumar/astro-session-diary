@@ -1,9 +1,11 @@
 import { Component } from "solid-js";
 import { useCatalog } from "../store/catalog";
 import SearchBar from "./SearchBar";
+import ObjectTypeToggles from "./ObjectTypeToggles";
 import DateRangePicker from "./DateRangePicker";
 import FilterToggles from "./FilterToggles";
 import HardwareSelects from "./HardwareSelects";
+import QualityFilters from "./QualityFilters";
 import FitsQueryBuilder from "./FitsQueryBuilder";
 
 const Sidebar: Component = () => {
@@ -12,9 +14,11 @@ const Sidebar: Component = () => {
   return (
     <aside class="w-72 min-h-[calc(100vh-57px)] border-r border-[#2d2d2d] p-4 space-y-6 overflow-y-auto">
       <SearchBar />
+      <ObjectTypeToggles />
       <DateRangePicker />
       <FilterToggles />
       <HardwareSelects />
+      <QualityFilters />
       <FitsQueryBuilder />
       <button
         onClick={resetFilters}
