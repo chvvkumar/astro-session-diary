@@ -164,8 +164,15 @@ def ingest_file(self, fits_path: str) -> dict:
 
     except Exception as exc:
         logger.error("Failed to ingest %s: %s", path, exc)
-        if self.request.retries >= self.max_retries:
+        # Don't retry on unrecoverable errors (corrupt files, missing headers, etc.)
+        unrecoverable = isinstance(exc, (OSError, ValueError)) and (
+            "SIMPLE card" in str(exc)
+            or "not a valid FITS" in str(exc)
+            or "No such file" in str(exc)
+        )
+        if unrecoverable or self.request.retries >= self.max_retries:
             increment_failed_sync(_redis)
+            return {"file": str(path), "status": "failed", "error": str(exc)}
         raise self.retry(exc=exc)
 
 
