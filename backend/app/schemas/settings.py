@@ -38,3 +38,12 @@ class SuggestionGroup(BaseModel):
 class SuggestionsResponse(BaseModel):
     suggestions: list[SuggestionGroup]
 
+
+class DiscoveredItem(BaseModel):
+    name: str
+    count: int
+
+
+class DiscoveredResponse(BaseModel):
+    items: list[DiscoveredItem]
+

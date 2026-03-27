@@ -634,3 +634,85 @@ async def test_suggestions_filters_excludes_dismissed():
     finally:
         app.dependency_overrides.clear()
 
+
+# ---------------------------------------------------------------------------
+# Task 6: GET /api/settings/discovered/{section}
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_discovered_filters_returns_names_and_counts():
+    """GET /api/settings/discovered/filters returns distinct filter names with counts."""
+    db_rows = [("Ha", 50), ("OIII", 30), ("SII", 20)]
+
+    mock_result = MagicMock()
+    mock_result.all.return_value = db_rows
+
+    mock_session = AsyncMock()
+    mock_session.execute = AsyncMock(return_value=mock_result)
+
+    async def override():
+        yield mock_session
+
+    app.dependency_overrides[get_session] = override
+    try:
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.get("/api/settings/discovered/filters")
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["items"] == [
+            {"name": "Ha", "count": 50},
+            {"name": "OIII", "count": 30},
+            {"name": "SII", "count": 20},
+        ]
+    finally:
+        app.dependency_overrides.clear()
+
+
+@pytest.mark.asyncio
+async def test_discovered_cameras_returns_names_and_counts():
+    """GET /api/settings/discovered/cameras returns distinct camera names with counts."""
+    db_rows = [("ASI2600MC", 100), ("ASI533MC", 40)]
+
+    mock_result = MagicMock()
+    mock_result.all.return_value = db_rows
+
+    mock_session = AsyncMock()
+    mock_session.execute = AsyncMock(return_value=mock_result)
+
+    async def override():
+        yield mock_session
+
+    app.dependency_overrides[get_session] = override
+    try:
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.get("/api/settings/discovered/cameras")
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert len(data["items"]) == 2
+        assert data["items"][0]["name"] == "ASI2600MC"
+        assert data["items"][0]["count"] == 100
+    finally:
+        app.dependency_overrides.clear()
+
+
+@pytest.mark.asyncio
+async def test_discovered_invalid_section_returns_422():
+    """GET /api/settings/discovered/invalid returns 422."""
+    mock_session = AsyncMock()
+
+    async def override():
+        yield mock_session
+
+    app.dependency_overrides[get_session] = override
+    try:
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.get("/api/settings/discovered/invalid")
+
+        assert resp.status_code == 422
+    finally:
+        app.dependency_overrides.clear()

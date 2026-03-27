@@ -1,3 +1,5 @@
+from enum import Enum
+
 from fastapi import APIRouter, Depends
 from sqlalchemy import select, func as sa_func
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -9,6 +11,7 @@ from app.models import Image
 from app.schemas.settings import (
     GeneralSettings, FilterConfig, EquipmentConfig, EquipmentAliases,
     SettingsResponse, SuggestionsResponse, SuggestionGroup,
+    DiscoveredItem, DiscoveredResponse,
 )
 
 router = APIRouter(prefix="/settings", tags=["settings"])
@@ -260,6 +263,41 @@ async def update_dismissed_suggestions(
     await session.commit()
     await session.refresh(row)
     return _row_to_response(row)
+
+
+# ---------------------------------------------------------------------------
+# Discovered endpoints
+# ---------------------------------------------------------------------------
+
+class DiscoveredSection(str, Enum):
+    filters = "filters"
+    cameras = "cameras"
+    telescopes = "telescopes"
+
+
+@router.get("/discovered/{section}", response_model=DiscoveredResponse)
+async def get_discovered(
+    section: DiscoveredSection,
+    session: AsyncSession = Depends(get_session),
+):
+    """Return all distinct raw values from DB with frame counts for a section."""
+    column_map = {
+        DiscoveredSection.filters: Image.filter_used,
+        DiscoveredSection.cameras: Image.camera,
+        DiscoveredSection.telescopes: Image.telescope,
+    }
+    column = column_map[section]
+    q = (
+        select(column, sa_func.count(Image.id))
+        .where(column.isnot(None))
+        .group_by(column)
+        .order_by(sa_func.count(Image.id).desc())
+    )
+    result = await session.execute(q)
+    rows = result.all()
+    return DiscoveredResponse(
+        items=[DiscoveredItem(name=name, count=count) for name, count in rows]
+    )
 
 
 # ---------------------------------------------------------------------------
