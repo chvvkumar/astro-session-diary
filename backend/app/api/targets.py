@@ -10,12 +10,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_session
 from app.models import Target, Image
-from app.schemas import TargetSearchResult
 from app.services.normalization import load_alias_maps, normalize_filter, normalize_equipment, expand_canonical
 from app.schemas.target import (
     TargetAggregationResponse, TargetAggregation, SessionSummary,
     AggregateStats, EquipmentResponse, SessionDetailResponse,
     TargetDetailResponse, SessionOverview, FilterDetail, SessionInsight, FrameRecord,
+    TargetSearchResultFuzzy,
 )
 
 router = APIRouter(prefix="/targets", tags=["targets"])
@@ -23,27 +23,78 @@ router = APIRouter(prefix="/targets", tags=["targets"])
 
 # --- 1. Search (must be FIRST) ---
 
-@router.get("/search", response_model=list[TargetSearchResult])
+@router.get("/search", response_model=list[TargetSearchResultFuzzy])
 async def search_targets(
     q: str = Query(..., min_length=1),
     limit: int = Query(10, ge=1, le=50),
     session: AsyncSession = Depends(get_session),
 ):
-    """Search targets by name or alias for autocomplete."""
+    """Search targets by name or alias with fuzzy trigram matching."""
     pattern = f"%{q}%"
-    query = (
+
+    # Tier 1: Exact substring matches — exclude soft-deleted
+    exact_query = (
         select(Target)
         .where(
+            Target.merged_into_id.is_(None),
             or_(
                 Target.primary_name.ilike(pattern),
                 Target.aliases.any(func.upper(q)),
-            )
+            ),
         )
         .limit(limit)
     )
-    result = await session.execute(query)
-    targets = result.scalars().all()
-    return [TargetSearchResult.model_validate(t) for t in targets]
+    exact_result = await session.execute(exact_query)
+    exact_targets = exact_result.scalars().all()
+
+    exact_ids = {t.id for t in exact_targets}
+    results = []
+    for t in exact_targets:
+        match_source = None
+        if q.upper() not in t.primary_name.upper():
+            for alias in (t.aliases or []):
+                if q.upper() in alias.upper():
+                    match_source = alias
+                    break
+        results.append(TargetSearchResultFuzzy(
+            id=t.id,
+            primary_name=t.primary_name,
+            object_type=t.object_type,
+            aliases=t.aliases or [],
+            match_source=match_source,
+            similarity_score=1.0,
+        ))
+
+    # Tier 2: Fuzzy trigram matches if we need more
+    if len(results) < limit:
+        remaining = limit - len(results)
+        fuzzy_query = (
+            select(Target, func.similarity(Target.primary_name, q).label("score"))
+            .where(
+                Target.merged_into_id.is_(None),
+                Target.id.notin_(exact_ids) if exact_ids else True,
+                func.similarity(Target.primary_name, q) > 0.15,
+            )
+            .order_by(func.similarity(Target.primary_name, q).desc())
+            .limit(remaining)
+        )
+        fuzzy_result = await session.execute(fuzzy_query)
+        for target, score in fuzzy_result.all():
+            best_alias = None
+            for alias in (target.aliases or []):
+                if q.upper() in alias.upper():
+                    best_alias = alias
+                    break
+            results.append(TargetSearchResultFuzzy(
+                id=target.id,
+                primary_name=target.primary_name,
+                object_type=target.object_type,
+                aliases=target.aliases or [],
+                match_source=best_alias,
+                similarity_score=float(score),
+            ))
+
+    return results
 
 
 # --- 2. Equipment (SECOND — before path-parameter routes) ---
@@ -233,6 +284,7 @@ async def list_targets_aggregated(
         base_filter.append(
             or_(
                 Target.primary_name.ilike(pattern),
+                func.similarity(Target.primary_name, search) > 0.15,
                 Image.raw_headers["OBJECT"].astext.ilike(pattern),
             )
         )
