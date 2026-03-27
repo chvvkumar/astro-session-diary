@@ -31,6 +31,7 @@ class SettingsResponse(BaseModel):
 class SuggestionGroup(BaseModel):
     group: list[str]
     counts: dict[str, int]
+    section: str | None = None  # "cameras" or "telescopes" for equipment suggestions
 
 
 class SuggestionsResponse(BaseModel):

@@ -233,6 +233,8 @@ async def suggest_filters(session: AsyncSession = Depends(get_session)):
     result = await session.execute(q)
     rows = result.all()  # list of (name, count)
     suggestions = _group_by_similarity(rows)
+    for s in suggestions:
+        s.section = "filters"
 
     # Exclude groups already handled by saved aliases
     row = await _get_or_create_settings(session)
@@ -261,10 +263,13 @@ async def suggest_equipment(session: AsyncSession = Depends(get_session)):
     tel_result = await session.execute(tel_q)
     telescope_rows = tel_result.all()
 
-    all_suggestions = (
-        _group_by_similarity(camera_rows)
-        + _group_by_similarity(telescope_rows)
-    )
+    cam_suggestions = _group_by_similarity(camera_rows)
+    for s in cam_suggestions:
+        s.section = "cameras"
+    tel_suggestions = _group_by_similarity(telescope_rows)
+    for s in tel_suggestions:
+        s.section = "telescopes"
+    all_suggestions = cam_suggestions + tel_suggestions
 
     # Exclude groups already handled by saved aliases
     row = await _get_or_create_settings(session)

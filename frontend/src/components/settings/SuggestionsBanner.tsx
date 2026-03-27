@@ -4,7 +4,7 @@ import type { SuggestionGroup } from "../../types";
 
 interface Props {
   suggestions: SuggestionGroup[];
-  onMerge: (canonical: string, aliases: string[]) => void;
+  onMerge: (canonical: string, aliases: string[], section?: string) => void;
 }
 
 export const SuggestionsBanner: Component<Props> = (props) => {
@@ -22,7 +22,7 @@ export const SuggestionsBanner: Component<Props> = (props) => {
   );
 };
 
-const MergeGroup: Component<{ group: SuggestionGroup; onMerge: (canonical: string, aliases: string[]) => void }> = (
+const MergeGroup: Component<{ group: SuggestionGroup; onMerge: (canonical: string, aliases: string[], section?: string) => void }> = (
   props,
 ) => {
   const [selected, setSelected] = createSignal(
@@ -33,7 +33,7 @@ const MergeGroup: Component<{ group: SuggestionGroup; onMerge: (canonical: strin
   const handleMerge = () => {
     const canonical = selected();
     const aliases = props.group.group.filter((n) => n !== canonical);
-    props.onMerge(canonical, aliases);
+    props.onMerge(canonical, aliases, props.group.section);
   };
 
   return (

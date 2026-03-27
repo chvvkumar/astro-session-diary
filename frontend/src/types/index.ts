@@ -241,6 +241,7 @@ export interface SettingsResponse {
 export interface SuggestionGroup {
   group: string[];
   counts: Record<string, number>;
+  section?: string;  // "cameras", "telescopes", or "filters"
 }
 
 export interface SuggestionsResponse {

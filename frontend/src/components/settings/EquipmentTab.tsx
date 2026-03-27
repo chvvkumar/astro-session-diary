@@ -26,25 +26,25 @@ export const EquipmentTab: Component = () => {
     }
   });
 
-  const handleMerge = (canonical: string, aliases: string[]) => {
+  const handleMerge = (canonical: string, aliases: string[], section?: string) => {
     setLocal((prev) => {
       const updated = { cameras: { ...prev.cameras }, telescopes: { ...prev.telescopes } };
-      // Try cameras first, then telescopes
-      for (const section of ["cameras", "telescopes"] as const) {
-        const found = canonical in (prev[section] || {}) || aliases.some((a) => a in (prev[section] || {}));
-        if (found || section === "cameras") {
-          if (!updated[section][canonical]) {
-            updated[section][canonical] = { aliases: [] };
-          }
-          const existing = new Set(updated[section][canonical].aliases);
-          for (const alias of aliases) {
-            existing.add(alias);
-            delete updated[section][alias];
-          }
-          updated[section][canonical] = { aliases: [...existing] };
-          break;
-        }
+      // Use the section tag from the suggestion, or fall back to searching both sections
+      const targetSection: "cameras" | "telescopes" =
+        section === "cameras" || section === "telescopes"
+          ? section
+          : canonical in (prev.cameras || {}) || aliases.some((a) => a in (prev.cameras || {}))
+            ? "cameras"
+            : "telescopes";
+      if (!updated[targetSection][canonical]) {
+        updated[targetSection][canonical] = { aliases: [] };
       }
+      const existing = new Set(updated[targetSection][canonical].aliases);
+      for (const alias of aliases) {
+        existing.add(alias);
+        delete updated[targetSection][alias];
+      }
+      updated[targetSection][canonical] = { aliases: [...existing] };
       return updated;
     });
     setSuggestions((prev) => ({

@@ -29,7 +29,7 @@ export const FiltersTab: Component = () => {
     }
   });
 
-  const handleMerge = (canonical: string, aliases: string[]) => {
+  const handleMerge = (canonical: string, aliases: string[], _section?: string) => {
     setLocal((prev) => {
       const updated = { ...prev };
       // Ensure canonical entry exists
