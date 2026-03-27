@@ -38,7 +38,7 @@ const NavBar: Component = () => {
       </nav>
       <Show when={targetData()}>
         {(data) => (
-          <div class="ml-auto flex gap-5 text-sm">
+          <div class="ml-auto flex gap-5 text-sm" title="Filtered view — reflects current sidebar filters">
             <span class="text-astro-muted">
               Integration <span class="text-white font-semibold">{formatHours(data().aggregates.total_integration_seconds)}</span>
             </span>
