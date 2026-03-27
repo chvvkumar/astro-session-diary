@@ -15,7 +15,7 @@ from app.schemas.target import (
     TargetAggregationResponse, TargetAggregation, SessionSummary,
     AggregateStats, EquipmentResponse, SessionDetailResponse,
     TargetDetailResponse, SessionOverview, FilterDetail, SessionInsight, FrameRecord,
-    TargetSearchResultFuzzy,
+    TargetSearchResultFuzzy, ObjectTypeCount,
 )
 
 router = APIRouter(prefix="/targets", tags=["targets"])
@@ -130,7 +130,27 @@ async def get_fits_keys(session: AsyncSession = Depends(get_session)):
     return [row[0] for row in result.all()]
 
 
-# --- 2c. Target detail (before path-parameter routes) ---
+# --- 2c. Object types (before path-parameter routes) ---
+
+@router.get("/object-types", response_model=list[ObjectTypeCount])
+async def get_object_types(
+    session: AsyncSession = Depends(get_session),
+):
+    """Return distinct object types with target counts from the collection."""
+    query = (
+        select(Target.object_type, func.count(Target.id).label("count"))
+        .where(
+            Target.object_type.isnot(None),
+            Target.merged_into_id.is_(None),
+        )
+        .group_by(Target.object_type)
+        .order_by(func.count(Target.id).desc())
+    )
+    result = await session.execute(query)
+    return [ObjectTypeCount(object_type=row[0], count=row[1]) for row in result.all()]
+
+
+# --- 2d. Target detail (before path-parameter routes) ---
 
 @router.get("/{target_id:path}/detail", response_model=TargetDetailResponse)
 async def get_target_detail(
@@ -255,6 +275,7 @@ async def list_targets_aggregated(
     fits_key: list[str] | None = Query(None),
     fits_op: list[str] | None = Query(None),
     fits_val: list[str] | None = Query(None),
+    object_type: str | None = Query(None),
 ):
     """Return targets with aggregated session data, filtered by query params."""
     filter_map, cam_map, tel_map = await load_alias_maps(session)
@@ -288,6 +309,22 @@ async def list_targets_aggregated(
                 Image.raw_headers["OBJECT"].astext.ilike(pattern),
             )
         )
+
+    if object_type:
+        type_list = [t.strip() for t in object_type.split(",")]
+        if "Unresolved" in type_list:
+            type_list_clean = [t for t in type_list if t != "Unresolved"]
+            if type_list_clean:
+                base_filter.append(
+                    or_(
+                        Target.object_type.in_(type_list_clean),
+                        Image.resolved_target_id.is_(None),
+                    )
+                )
+            else:
+                base_filter.append(Image.resolved_target_id.is_(None))
+        else:
+            base_filter.append(Target.object_type.in_(type_list))
 
     # FITS header queries (AND logic between rows)
     if fits_key and fits_op and fits_val:
