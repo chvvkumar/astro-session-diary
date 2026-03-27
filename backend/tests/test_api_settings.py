@@ -11,6 +11,7 @@ def _make_settings_row(
     general=None,
     filters=None,
     equipment=None,
+    dismissed_suggestions=None,
 ):
     """Return a MagicMock that looks like a UserSettings ORM row."""
     row = MagicMock()
@@ -18,6 +19,7 @@ def _make_settings_row(
     row.general = general if general is not None else {}
     row.filters = filters if filters is not None else {}
     row.equipment = equipment if equipment is not None else {}
+    row.dismissed_suggestions = dismissed_suggestions if dismissed_suggestions is not None else []
     return row
 
 
@@ -144,6 +146,62 @@ async def test_get_settings_with_stored_values():
         assert data["filters"]["Ha"]["color"] == "#ff0000"
         assert data["filters"]["Ha"]["aliases"] == ["Halpha", "H-alpha"]
         assert data["equipment"]["cameras"]["ASI2600"]["aliases"] == ["ASI 2600"]
+    finally:
+        app.dependency_overrides.clear()
+
+
+@pytest.mark.asyncio
+async def test_get_settings_returns_dismissed_suggestions():
+    """GET /api/settings returns dismissed_suggestions from the row."""
+    row = _make_settings_row()
+    row.dismissed_suggestions = [["Ha", "ha"]]
+
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = row
+
+    mock_session = AsyncMock()
+    mock_session.execute = AsyncMock(return_value=mock_result)
+
+    async def override():
+        yield mock_session
+
+    app.dependency_overrides[get_session] = override
+    try:
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.get("/api/settings")
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["dismissed_suggestions"] == [["Ha", "ha"]]
+    finally:
+        app.dependency_overrides.clear()
+
+
+@pytest.mark.asyncio
+async def test_get_settings_defaults_dismissed_suggestions_empty():
+    """GET /api/settings returns empty list when no dismissed suggestions."""
+    row = _make_settings_row()
+    row.dismissed_suggestions = []
+
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = row
+
+    mock_session = AsyncMock()
+    mock_session.execute = AsyncMock(return_value=mock_result)
+
+    async def override():
+        yield mock_session
+
+    app.dependency_overrides[get_session] = override
+    try:
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.get("/api/settings")
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["dismissed_suggestions"] == []
     finally:
         app.dependency_overrides.clear()
 

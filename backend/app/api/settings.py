@@ -71,7 +71,12 @@ def _row_to_response(row: UserSettings) -> SettingsResponse:
     }
     equipment = EquipmentConfig(cameras=eq_cameras, telescopes=eq_telescopes)
 
-    return SettingsResponse(general=general, filters=filters, equipment=equipment)
+    return SettingsResponse(
+        general=general,
+        filters=filters,
+        equipment=equipment,
+        dismissed_suggestions=row.dismissed_suggestions or [],
+    )
 
 
 def _build_known_names(config: dict) -> set[str]:
