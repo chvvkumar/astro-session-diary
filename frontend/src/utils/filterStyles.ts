@@ -3,20 +3,24 @@
 export type FilterBadgeStyle =
   | "solid"
   | "muted"
+  | "muted-bright"
   | "outlined"
   | "text-only"
   | "indicator-dots"
   | "underline"
-  | "tint-border";
+  | "tint-border"
+  | "tint-border-bright";
 
 export const FILTER_STYLE_OPTIONS: { value: FilterBadgeStyle; label: string }[] = [
   { value: "solid", label: "Solid (Default)" },
   { value: "muted", label: "Muted Backgrounds" },
+  { value: "muted-bright", label: "Muted Backgrounds (Bright)" },
   { value: "outlined", label: "Outlined (Hollow)" },
   { value: "text-only", label: "Colored Text Only" },
   { value: "indicator-dots", label: "Indicator Dots" },
   { value: "underline", label: "Underline Accents" },
   { value: "tint-border", label: "Subtle Tint & Border" },
+  { value: "tint-border-bright", label: "Subtle Tint & Border (Bright)" },
 ];
 
 export interface FilterBadgeStyleResult {
@@ -67,6 +71,13 @@ export function getFilterBadgeStyle(
           color: hexColor,
         },
       };
+    case "muted-bright":
+      return {
+        style: {
+          "background-color": hexToRgba(hexColor, 0.3),
+          color: hexColor,
+        },
+      };
     case "outlined":
       return {
         style: {
@@ -103,6 +114,14 @@ export function getFilterBadgeStyle(
         style: {
           "background-color": hexToRgba(hexColor, 0.1),
           border: `1px solid ${hexToRgba(hexColor, 0.3)}`,
+          color: hexColor,
+        },
+      };
+    case "tint-border-bright":
+      return {
+        style: {
+          "background-color": hexToRgba(hexColor, 0.2),
+          border: `1px solid ${hexToRgba(hexColor, 0.5)}`,
           color: hexColor,
         },
       };
