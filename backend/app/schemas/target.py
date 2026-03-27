@@ -75,6 +75,8 @@ class TargetAggregation(BaseModel):
     filter_distribution: dict[str, float]
     equipment: list[str]
     sessions: list[SessionSummary]
+    matched_sessions: int | None = None
+    total_sessions: int | None = None
 
 
 class AggregateStats(BaseModel):
@@ -140,3 +142,44 @@ class SessionDetailResponse(BaseModel):
 class EquipmentResponse(BaseModel):
     cameras: list[str]
     telescopes: list[str]
+
+
+class TargetSearchResultFuzzy(BaseModel):
+    id: uuid.UUID
+    primary_name: str
+    object_type: str | None = None
+    aliases: list[str] = []
+    match_source: str | None = None
+    similarity_score: float = 1.0
+
+
+class ObjectTypeCount(BaseModel):
+    object_type: str
+    count: int
+
+
+class MergeCandidateResponse(BaseModel):
+    id: uuid.UUID
+    source_name: str
+    source_image_count: int
+    suggested_target_id: uuid.UUID
+    suggested_target_name: str
+    similarity_score: float
+    method: str
+    status: str
+    created_at: str
+
+
+class MergedTargetResponse(BaseModel):
+    id: uuid.UUID
+    primary_name: str
+    merged_into_id: uuid.UUID
+    merged_into_name: str
+    merged_at: str
+    image_count: int
+
+
+class MergeRequest(BaseModel):
+    winner_id: uuid.UUID
+    loser_id: uuid.UUID | None = None
+    loser_name: str | None = None
