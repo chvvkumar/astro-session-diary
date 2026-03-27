@@ -1,8 +1,30 @@
-import { Component } from "solid-js";
+import { Component, onMount, createEffect } from "solid-js";
+import { useSearchParams } from "@solidjs/router";
 import Sidebar from "../components/Sidebar";
 import TargetFeed from "../components/TargetFeed";
+import { initFiltersFromUrl, useCatalog } from "../store/catalog";
 
 const DashboardPage: Component = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { filtersAsParams } = useCatalog();
+
+  // On first mount, restore filters from URL params or sessionStorage
+  onMount(() => {
+    const params = new URLSearchParams(window.location.search);
+    initFiltersFromUrl(params);
+  });
+
+  // Keep URL params in sync with current filters
+  createEffect(() => {
+    const p = filtersAsParams();
+    // Clear all filter params first, then set current ones
+    const clear: Record<string, undefined> = {};
+    for (const key of ["search", "camera", "telescope", "filters", "date_from", "date_to", "fits_key", "fits_op", "fits_val"]) {
+      clear[key] = undefined;
+    }
+    setSearchParams({ ...clear, ...p }, { replace: true });
+  });
+
   return (
     <div class="flex">
       <Sidebar />
