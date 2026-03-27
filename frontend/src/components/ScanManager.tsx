@@ -200,9 +200,9 @@ const ScanManager: Component = () => {
               <div class="max-h-40 overflow-y-auto space-y-1">
                 <For each={scanStatus().failed_files}>
                   {(f) => (
-                    <div class="bg-red-900/20 border border-red-800/30 rounded px-2 py-1">
-                      <div class="text-red-300 truncate" title={f.file}>{f.file.split("/").pop()}</div>
-                      <div class="text-red-400/60 truncate" title={f.error}>{f.error}</div>
+                    <div class="border border-[#2d2d2d] rounded px-2 py-1">
+                      <div class="text-astro-muted truncate" title={f.file}>{f.file}</div>
+                      <div class="text-red-400/70 truncate" title={f.error}>{f.error}</div>
                     </div>
                   )}
                 </For>
