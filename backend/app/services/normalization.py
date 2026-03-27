@@ -55,6 +55,19 @@ def normalize_equipment(value: str | None, alias_map: dict[str, str]) -> str | N
     return alias_map.get(value, value)
 
 
+def expand_canonical(canonical: str, alias_map: dict[str, str]) -> list[str]:
+    """Return all raw names that map to `canonical` (including canonical itself).
+
+    Used for query-time expansion: when filtering by canonical name,
+    match all raw DB values that alias to it.
+    """
+    names = [canonical]
+    for alias, canon in alias_map.items():
+        if canon == canonical:
+            names.append(alias)
+    return names
+
+
 async def load_alias_maps(session: AsyncSession) -> tuple[dict[str, str], dict[str, str], dict[str, str]]:
     """Load filter, camera, and telescope alias maps from settings DB.
 

@@ -1,6 +1,5 @@
 import { Component, Show } from "solid-js";
 import { useStats } from "../store/stats";
-import ScanManager from "../components/ScanManager";
 import DatabaseOverview from "../components/DatabaseOverview";
 import EquipmentInventory from "../components/EquipmentInventory";
 import FilterUsageChart from "../components/FilterUsageChart";
@@ -14,7 +13,6 @@ const AdminPage: Component = () => {
 
   return (
     <div class="p-4 space-y-4 max-w-7xl mx-auto">
-      <ScanManager />
 
       <Show when={stats.loading && !stats()}>
         <div class="text-center text-astro-muted py-8">Loading analytics...</div>

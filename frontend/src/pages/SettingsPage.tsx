@@ -4,9 +4,11 @@ import { useSearchParams } from "@solidjs/router";
 import { GeneralTab } from "../components/settings/GeneralTab";
 import { FiltersTab } from "../components/settings/FiltersTab";
 import { EquipmentTab } from "../components/settings/EquipmentTab";
+import ScanManager from "../components/ScanManager";
 
 const TABS = [
   { id: "general", label: "General" },
+  { id: "scan", label: "Scan & Ingest" },
   { id: "filters", label: "Filters" },
   { id: "equipment", label: "Equipment" },
 ] as const;
@@ -40,6 +42,9 @@ export const SettingsPage: Component = () => {
       {/* Tab content */}
       <Show when={activeTab() === "general"}>
         <GeneralTab />
+      </Show>
+      <Show when={activeTab() === "scan"}>
+        <ScanManager />
       </Show>
       <Show when={activeTab() === "filters"}>
         <FiltersTab />

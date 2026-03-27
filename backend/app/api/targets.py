@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_session
 from app.models import Target, Image
 from app.schemas import TargetSearchResult
-from app.services.normalization import load_alias_maps, normalize_filter, normalize_equipment
+from app.services.normalization import load_alias_maps, normalize_filter, normalize_equipment, expand_canonical
 from app.schemas.target import (
     TargetAggregationResponse, TargetAggregation, SessionSummary,
     AggregateStats, EquipmentResponse, SessionDetailResponse,
@@ -206,16 +206,23 @@ async def list_targets_aggregated(
     fits_val: list[str] | None = Query(None),
 ):
     """Return targets with aggregated session data, filtered by query params."""
+    filter_map, cam_map, tel_map = await load_alias_maps(session)
+
     # Base query: only LIGHT frames that have a known object name
     base_filter = [Image.image_type == "LIGHT"]
 
     if camera:
-        base_filter.append(Image.camera == camera)
+        cam_variants = expand_canonical(camera, cam_map)
+        base_filter.append(Image.camera.in_(cam_variants))
     if telescope:
-        base_filter.append(Image.telescope == telescope)
+        tel_variants = expand_canonical(telescope, tel_map)
+        base_filter.append(Image.telescope.in_(tel_variants))
     if filters:
         filter_list = [f.strip() for f in filters.split(",")]
-        base_filter.append(Image.filter_used.in_(filter_list))
+        all_filter_variants = []
+        for f in filter_list:
+            all_filter_variants.extend(expand_canonical(f, filter_map))
+        base_filter.append(Image.filter_used.in_(all_filter_variants))
     if date_from:
         base_filter.append(Image.capture_date >= date_from)
     if date_to:
@@ -260,8 +267,6 @@ async def list_targets_aggregated(
     )
     result = await session.execute(query)
     rows = result.all()
-
-    filter_map, cam_map, tel_map = await load_alias_maps(session)
 
     # Build target aggregations in Python
     # Group by resolved target ID, or by OBJECT header name for unresolved images
