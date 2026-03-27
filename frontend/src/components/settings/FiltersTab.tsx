@@ -1,5 +1,5 @@
 // frontend/src/components/settings/FiltersTab.tsx
-import { createSignal, createEffect, For, Show, onMount, type Component } from "solid-js";
+import { createSignal, createEffect, createMemo, For, Show, onMount, type Component } from "solid-js";
 import { useSettingsContext } from "../SettingsProvider";
 import { showToast } from "../Toast";
 import { SuggestionsBanner } from "./SuggestionsBanner";
@@ -17,6 +17,8 @@ export const FiltersTab: Component = () => {
     const s = settings();
     if (s) setLocal({ ...s.filters });
   });
+
+  const filterNames = createMemo(() => Object.keys(local()));
 
   onMount(async () => {
     try {
@@ -99,33 +101,36 @@ export const FiltersTab: Component = () => {
       <SuggestionsBanner suggestions={suggestions().suggestions} onMerge={handleMerge} />
 
       <div class="space-y-3">
-        <For each={Object.entries(local())}>
-          {([name, conf]) => (
-            <div class="flex items-center gap-3 bg-astro-dark/50 rounded px-3 py-2">
-              <input
-                type="color"
-                value={conf.color}
-                onInput={(e) => updateColor(name, e.currentTarget.value)}
-                class="w-8 h-8 rounded cursor-pointer border-0 bg-transparent"
-              />
-              <span class="text-sm text-white font-medium min-w-[60px]">{name}</span>
-              <div class="flex flex-wrap gap-1 flex-1">
-                <For each={conf.aliases}>
-                  {(alias) => (
-                    <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-700 rounded text-xs text-gray-300">
-                      {alias}
-                      <button
-                        onClick={() => removeAlias(name, alias)}
-                        class="text-gray-500 hover:text-red-400"
-                      >
-                        x
-                      </button>
-                    </span>
-                  )}
-                </For>
+        <For each={filterNames()}>
+          {(name) => {
+            const conf = () => local()[name] || { color: "#808080", aliases: [] };
+            return (
+              <div class="flex items-center gap-3 bg-astro-dark/50 rounded px-3 py-2">
+                <input
+                  type="color"
+                  value={conf().color}
+                  onInput={(e) => updateColor(name, e.currentTarget.value)}
+                  class="w-8 h-8 rounded cursor-pointer border-0 bg-transparent"
+                />
+                <span class="text-sm text-white font-medium min-w-[60px]">{name}</span>
+                <div class="flex flex-wrap gap-1 flex-1">
+                  <For each={conf().aliases}>
+                    {(alias) => (
+                      <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-700 rounded text-xs text-gray-300">
+                        {alias}
+                        <button
+                          onClick={() => removeAlias(name, alias)}
+                          class="text-gray-500 hover:text-red-400"
+                        >
+                          x
+                        </button>
+                      </span>
+                    )}
+                  </For>
+                </div>
               </div>
-            </div>
-          )}
+            );
+          }}
         </For>
       </div>
 
