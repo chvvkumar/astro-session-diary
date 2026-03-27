@@ -5,6 +5,7 @@ import type { SuggestionGroup } from "../../types";
 interface Props {
   suggestions: SuggestionGroup[];
   onMerge: (canonical: string, aliases: string[], section?: string) => void;
+  onDismiss?: (group: SuggestionGroup) => void;
 }
 
 export const SuggestionsBanner: Component<Props> = (props) => {
@@ -15,14 +16,14 @@ export const SuggestionsBanner: Component<Props> = (props) => {
           Found {props.suggestions.length} possible duplicate{props.suggestions.length > 1 ? "s" : ""}
         </p>
         <For each={props.suggestions}>
-          {(group) => <MergeGroup group={group} onMerge={props.onMerge} />}
+          {(group) => <MergeGroup group={group} onMerge={props.onMerge} onDismiss={props.onDismiss} />}
         </For>
       </div>
     </Show>
   );
 };
 
-const MergeGroup: Component<{ group: SuggestionGroup; onMerge: (canonical: string, aliases: string[], section?: string) => void }> = (
+const MergeGroup: Component<{ group: SuggestionGroup; onMerge: (canonical: string, aliases: string[], section?: string) => void; onDismiss?: (group: SuggestionGroup) => void }> = (
   props,
 ) => {
   const [selected, setSelected] = createSignal(
@@ -59,6 +60,14 @@ const MergeGroup: Component<{ group: SuggestionGroup; onMerge: (canonical: strin
       >
         Merge
       </button>
+      <Show when={props.onDismiss}>
+        <button
+          onClick={() => props.onDismiss?.(props.group)}
+          class="px-2 py-1 border border-gray-600 text-gray-400 text-xs rounded hover:border-red-500 hover:text-red-400 transition-colors"
+        >
+          Dismiss
+        </button>
+      </Show>
     </div>
   );
 };
