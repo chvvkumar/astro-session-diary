@@ -1,7 +1,7 @@
 {
   "name": "astro-session-diary-frontend",
   "version": "0.0.0",
-  "description": "Astrophotography FITS Cataloger Frontend",
+  "description": "GalactiLog Frontend",
   "type": "module",
   "scripts": {
     "start": "vite",

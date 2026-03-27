@@ -1,1 +1,1 @@
-# astro-session-diary
+# GalactiLog

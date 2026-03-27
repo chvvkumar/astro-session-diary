@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ──────────────────────────────────────────────────────────────────────────────
-# Astro FITS Cataloger — Uninstall Script
+# GalactiLog — Uninstall Script
 #
 # Stops and removes all containers, networks, images, database, and thumbnails.
 # Does NOT delete FITS source files or this repository.
@@ -27,7 +27,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
 # ── Confirmation ─────────────────────────────────────────────────────────────
-header "Astro FITS Cataloger — Uninstall"
+header "GalactiLog — Uninstall"
 
 echo -e "  This will ${RED}permanently delete${NC}:"
 echo ""
