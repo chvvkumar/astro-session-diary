@@ -103,24 +103,6 @@ def _group_is_dismissed(group: SuggestionGroup, dismissed: list[list[str]]) -> b
     return sorted_group in dismissed
 
 
-def _levenshtein(a: str, b: str) -> int:
-    """Pure-Python Levenshtein distance."""
-    if a == b:
-        return 0
-    if len(a) < len(b):
-        a, b = b, a
-    prev = list(range(len(b) + 1))
-    for i, ca in enumerate(a, 1):
-        curr = [i]
-        for j, cb in enumerate(b, 1):
-            curr.append(min(
-                prev[j] + 1,       # deletion
-                curr[j - 1] + 1,   # insertion
-                prev[j - 1] + (0 if ca == cb else 1),  # substitution
-            ))
-        prev = curr
-    return prev[-1]
-
 
 def _normalize_for_comparison(name: str) -> str:
     """Normalize a name for comparison: lowercase, strip separators."""
