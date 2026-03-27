@@ -1,12 +1,12 @@
 import { Component, createSignal, For, Show } from "solid-js";
 import { api } from "../api/client";
 import { useCatalog } from "../store/catalog";
-import type { TargetSearchResult } from "../types";
+import type { TargetSearchResultFuzzy } from "../types";
 
 const SearchBar: Component = () => {
   const { updateFilter } = useCatalog();
   const [query, setQuery] = createSignal("");
-  const [suggestions, setSuggestions] = createSignal<TargetSearchResult[]>([]);
+  const [suggestions, setSuggestions] = createSignal<TargetSearchResultFuzzy[]>([]);
   const [showSuggestions, setShowSuggestions] = createSignal(false);
 
   let debounceTimer: ReturnType<typeof setTimeout>;
@@ -32,7 +32,7 @@ const SearchBar: Component = () => {
     }, 300);
   };
 
-  const selectTarget = (target: TargetSearchResult) => {
+  const selectTarget = (target: TargetSearchResultFuzzy) => {
     setQuery(target.primary_name);
     setShowSuggestions(false);
     updateFilter("searchQuery", target.primary_name);
@@ -62,6 +62,16 @@ const SearchBar: Component = () => {
                 <span class="font-medium">{target.primary_name}</span>
                 <Show when={target.object_type}>
                   <span class="text-astro-muted ml-2">({target.object_type})</span>
+                </Show>
+                <Show when={target.match_source}>
+                  <span class="text-astro-accent text-xs ml-2">
+                    matched: {target.match_source}
+                  </span>
+                </Show>
+                <Show when={target.similarity_score < 1.0}>
+                  <span class="text-astro-muted text-xs ml-1">
+                    ~{Math.round(target.similarity_score * 100)}%
+                  </span>
                 </Show>
               </button>
             )}

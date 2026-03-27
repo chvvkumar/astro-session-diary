@@ -9,8 +9,10 @@ const defaultFilters: ActiveFilters = {
   camera: null,
   telescope: null,
   opticalFilters: [],
+  objectTypes: [],
   dateRange: { start: null, end: null },
   fitsQueries: [],
+  qualityFilters: {},
 };
 
 // ---------------------------------------------------------------------------
@@ -23,8 +25,11 @@ function filtersToParams(f: ActiveFilters): Record<string, string> {
   if (f.camera) p.camera = f.camera;
   if (f.telescope) p.telescope = f.telescope;
   if (f.opticalFilters.length > 0) p.filters = f.opticalFilters.join(",");
+  if (f.objectTypes.length > 0) p.object_type = f.objectTypes.join(",");
   if (f.dateRange.start) p.date_from = f.dateRange.start;
   if (f.dateRange.end) p.date_to = f.dateRange.end;
+  if (f.qualityFilters.hfrMin != null) p.hfr_min = String(f.qualityFilters.hfrMin);
+  if (f.qualityFilters.hfrMax != null) p.hfr_max = String(f.qualityFilters.hfrMax);
   if (f.fitsQueries.length > 0) {
     p.fits_key = f.fitsQueries.map((q) => q.key).join(",");
     p.fits_op = f.fitsQueries.map((q) => q.operator).join(",");
@@ -35,7 +40,7 @@ function filtersToParams(f: ActiveFilters): Record<string, string> {
 
 function paramsToFilters(params: URLSearchParams): ActiveFilters | null {
   // Return null if no filter params are present
-  const keys = ["search", "camera", "telescope", "filters", "date_from", "date_to", "fits_key"];
+  const keys = ["search", "camera", "telescope", "filters", "date_from", "date_to", "fits_key", "object_type", "hfr_min", "hfr_max"];
   if (!keys.some((k) => params.has(k))) return null;
 
   const fitsKeys = params.get("fits_key")?.split(",") ?? [];
@@ -47,16 +52,24 @@ function paramsToFilters(params: URLSearchParams): ActiveFilters | null {
     value: fitsVals[i] ?? "",
   }));
 
+  const qualityFilters: { hfrMin?: number; hfrMax?: number } = {};
+  const hfrMin = params.get("hfr_min");
+  const hfrMax = params.get("hfr_max");
+  if (hfrMin) qualityFilters.hfrMin = parseFloat(hfrMin);
+  if (hfrMax) qualityFilters.hfrMax = parseFloat(hfrMax);
+
   return {
     searchQuery: params.get("search") ?? "",
     camera: params.get("camera") || null,
     telescope: params.get("telescope") || null,
     opticalFilters: params.get("filters")?.split(",").filter(Boolean) ?? [],
+    objectTypes: params.get("object_type")?.split(",").filter(Boolean) ?? [],
     dateRange: {
       start: params.get("date_from") || null,
       end: params.get("date_to") || null,
     },
     fitsQueries,
+    qualityFilters,
   };
 }
 
@@ -157,6 +170,20 @@ export function useCatalog() {
           : [...current, f];
         return { ...prev, opticalFilters: next };
       });
+    },
+
+    toggleObjectType: (t: string) => {
+      setFilters((prev) => {
+        const current = prev.objectTypes;
+        const next = current.includes(t)
+          ? current.filter((x) => x !== t)
+          : [...current, t];
+        return { ...prev, objectTypes: next };
+      });
+    },
+
+    updateQualityFilters: (qf: { hfrMin?: number; hfrMax?: number }) => {
+      setFilters((prev) => ({ ...prev, qualityFilters: qf }));
     },
 
     toggleExpanded: (targetId: string) => {
