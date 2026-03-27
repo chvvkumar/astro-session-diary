@@ -9,7 +9,7 @@ from app.config import get_async_redis
 from app.database import get_session
 from app.models import Image, Target
 from app.services.scan_state import (
-    get_scan_state, start_scanning, set_ingesting, set_idle,
+    get_scan_state, start_scanning, set_ingesting, set_idle, reset_scan,
 )
 from app.services.simbad import resolve_target_name, normalize_object_name
 from app.worker.tasks import regenerate_thumbnail, run_scan
@@ -86,6 +86,24 @@ async def scan_status():
     try:
         state = await get_scan_state(r)
         return state.to_dict()
+    finally:
+        await r.aclose()
+
+
+@router.post("/reset")
+async def reset_scan_state():
+    """Force-clear a stalled scan back to idle."""
+    r = get_async_redis()
+    try:
+        state = await get_scan_state(r)
+        await reset_scan(r)
+        return {
+            "status": "reset",
+            "previous_state": state.state,
+            "completed": state.completed,
+            "failed": state.failed,
+            "total": state.total,
+        }
     finally:
         await r.aclose()
 

@@ -87,6 +87,16 @@ export function useScan() {
       }
     },
 
+    resetScan: async () => {
+      try {
+        await api.resetScan();
+        setScanStatus({ ...defaultStatus });
+        setScanError(null);
+      } catch {
+        setScanError("Failed to reset scan state");
+      }
+    },
+
     stopPolling,
   };
 }

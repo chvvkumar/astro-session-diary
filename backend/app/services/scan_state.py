@@ -58,19 +58,13 @@ def _parse_snapshot(data: dict | None) -> ScanStateSnapshot:
 async def get_scan_state(r: aioredis.Redis) -> ScanStateSnapshot:
     data = await r.hgetall(SCAN_KEY)
     snap = _parse_snapshot(data)
-    # Auto-complete stale ingestion: no progress for STALE_TIMEOUT seconds
+    # Detect stale ingestion: no progress for STALE_TIMEOUT seconds
     if snap.state in ("scanning", "ingesting"):
         last_progress = await r.get(SCAN_PROGRESS_KEY)
         if last_progress:
             elapsed = time.time() - float(last_progress)
             if elapsed > STALE_TIMEOUT:
-                await r.hset(SCAN_KEY, mapping={
-                    "state": "complete",
-                    "completed_at": time.time(),
-                })
-                await r.expire(SCAN_KEY, EXPIRE_AFTER_COMPLETE)
-                snap.state = "complete"
-                snap.completed_at = time.time()
+                snap.state = "stalled"
     return snap
 
 
@@ -104,6 +98,12 @@ async def set_complete_if_done(r: aioredis.Redis) -> None:
             "completed_at": time.time(),
         })
         await r.expire(SCAN_KEY, EXPIRE_AFTER_COMPLETE)
+
+
+async def reset_scan(r: aioredis.Redis) -> None:
+    """Force-clear scan state back to idle. Used when scan is stalled."""
+    await r.delete(SCAN_KEY)
+    await r.delete(SCAN_PROGRESS_KEY)
 
 
 async def set_idle(r: aioredis.Redis) -> None:

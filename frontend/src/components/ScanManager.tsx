@@ -4,7 +4,7 @@ import { useScan } from "../store/scan";
 type FrameFilter = "all" | "light_only";
 
 const ScanManager: Component = () => {
-  const { scanStatus, scanError, isActive, startScan, startRegeneration, stopPolling } = useScan();
+  const { scanStatus, scanError, isActive, startScan, startRegeneration, resetScan, stopPolling } = useScan();
   const [expanded, setExpanded] = createSignal(false);
   const [frameFilter, setFrameFilter] = createSignal<FrameFilter>("all");
 
@@ -41,8 +41,19 @@ const ScanManager: Component = () => {
       case "scanning": return "Discovering files...";
       case "ingesting": return "Ingesting";
       case "complete": return "Complete";
+      case "stalled": return "Stalled";
       default: return "Ready";
     }
+  };
+
+  const lostCount = () => {
+    const s = scanStatus();
+    return s.total - s.completed - s.failed;
+  };
+
+  const handleResetAndRescan = async () => {
+    await resetScan();
+    startScan({ includeCalibration: frameFilter() === "all" });
   };
 
   return (
@@ -97,6 +108,37 @@ const ScanManager: Component = () => {
         <p class="text-xs text-red-400">{scanError()}</p>
       </Show>
 
+      {/* Stalled state — explain what happened and offer remediation */}
+      <Show when={scanStatus().state === "stalled"}>
+        <div class="bg-yellow-900/30 border border-yellow-600/50 rounded-lg p-3 space-y-2">
+          <div class="flex items-start gap-2">
+            <span class="text-yellow-400 text-sm font-medium">Scan stalled</span>
+          </div>
+          <p class="text-xs text-yellow-200/80">
+            {scanStatus().completed + scanStatus().failed} of {scanStatus().total} files were processed
+            ({scanStatus().completed} ingested, {scanStatus().failed} failed)
+            but {lostCount()} tasks stopped responding — likely due to a container restart or worker crash.
+          </p>
+          <p class="text-xs text-yellow-200/60">
+            Already-ingested files are safe. A rescan will pick up the {lostCount()} remaining files.
+          </p>
+          <div class="flex gap-2 pt-1">
+            <button
+              onClick={handleResetAndRescan}
+              class="px-3 py-1.5 bg-astro-accent text-white rounded text-xs font-medium hover:bg-astro-accent/80 transition-colors"
+            >
+              Reset & Rescan
+            </button>
+            <button
+              onClick={resetScan}
+              class="px-3 py-1.5 border border-gray-600 text-gray-300 rounded text-xs hover:border-astro-accent hover:text-white transition-colors"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      </Show>
+
       <Show when={isActive()}>
         <div class="space-y-1">
           <div class="flex justify-between text-xs text-astro-muted">
@@ -116,13 +158,13 @@ const ScanManager: Component = () => {
         </div>
       </Show>
 
-      <Show when={scanStatus().state !== "idle"}>
+      <Show when={scanStatus().state !== "idle" && scanStatus().state !== "stalled"}>
         <button onClick={() => setExpanded((v) => !v)} class="text-xs text-astro-accent hover:underline w-full text-left">
           {expanded() ? "Hide details" : "Show details"}
         </button>
       </Show>
 
-      <Show when={expanded() && scanStatus().state !== "idle"}>
+      <Show when={expanded() && scanStatus().state !== "idle" && scanStatus().state !== "stalled"}>
         <div class="border-t border-gray-700 pt-3 space-y-2 text-xs">
           <div class="grid grid-cols-2 gap-y-1.5 gap-x-4">
             <span class="text-astro-muted">Status</span><span class="text-white">{stateLabel()}</span>

@@ -84,6 +84,9 @@ export const api = {
   regenerateThumbnails: () =>
     fetchJson<ScanResult>("/scan/regenerate-thumbnails", { method: "POST" }),
 
+  resetScan: () =>
+    fetchJson<{ status: string }>("/scan/reset", { method: "POST" }),
+
   getAutoScan: () =>
     fetchJson<{ enabled: boolean; interval_minutes: number }>("/scan/autoscan"),
 

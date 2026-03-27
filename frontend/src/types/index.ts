@@ -150,7 +150,7 @@ export interface ScanResult {
 }
 
 export interface ScanStatus {
-  state: "idle" | "scanning" | "ingesting" | "complete";
+  state: "idle" | "scanning" | "ingesting" | "complete" | "stalled";
   total: number;
   completed: number;
   failed: number;
