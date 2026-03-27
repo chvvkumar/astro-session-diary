@@ -88,7 +88,7 @@ const FilterBadges: Component<{ distribution: Record<string, number>; compact?: 
           <Show
             when={props.compact}
             fallback={
-              <span class="px-2 py-0.5 rounded-full text-[11px] font-medium text-white" style={{ "background-color": getColor(name) }}>
+              <span class="px-2 py-0.5 rounded-full text-[11px] font-medium text-black" style={{ "background-color": getColor(name) }}>
                 {name}&middot;{formatHours(seconds)}
               </span>
             }
