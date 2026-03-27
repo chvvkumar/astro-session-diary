@@ -56,6 +56,11 @@ const TargetRow: Component<{
           {props.target.equipment.join(" \u00b7 ")}
         </td>
         <td class="py-2.5 px-3 text-astro-accent text-xs">{lastSession()}</td>
+        <Show when={props.target.matched_sessions != null}>
+          <td class="py-2.5 px-3 text-xs text-yellow-400">
+            {props.target.matched_sessions} of {props.target.total_sessions} sessions
+          </td>
+        </Show>
       </tr>
       <Show when={isOpen()}>
         <tr class="bg-[#1a1a1a]">
