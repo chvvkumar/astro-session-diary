@@ -62,6 +62,9 @@ def run_scan(self, include_calibration: bool = True) -> dict:
     for fits_path in new_files:
         ingest_file.delay(str(fits_path))
 
+    # Queue duplicate detection after ingest
+    detect_duplicate_targets.apply_async(countdown=30)
+
     return {
         "status": "ingesting",
         "new_files_queued": len(new_files),
@@ -194,6 +197,86 @@ def regenerate_thumbnail(self, image_id: str, fits_path: str, thumb_path: str) -
             increment_failed_sync(_redis, file_path=str(path), error=str(exc))
             return {"file": str(path), "status": "failed", "error": str(exc)}
         raise self.retry(exc=exc)
+
+
+@celery_app.task(name="detect_duplicate_targets")
+def detect_duplicate_targets():
+    """Detect potential duplicate targets by comparing unresolved names against resolved targets."""
+    from sqlalchemy import create_engine, text as sa_text, select as sa_select, func as sa_func
+    from sqlalchemy.orm import Session as SyncSession
+    from app.config import settings
+    from app.models.target import Target
+    from app.models.image import Image
+    from app.models.merge_candidate import MergeCandidate
+
+    sync_url = settings.database_url.replace("+asyncpg", "")
+    engine = create_engine(sync_url)
+
+    with SyncSession(engine) as db:
+        # Find distinct unresolved OBJECT names with image counts
+        unresolved_query = (
+            sa_select(
+                Image.raw_headers["OBJECT"].astext.label("object_name"),
+                sa_func.count(Image.id).label("img_count"),
+            )
+            .where(
+                Image.resolved_target_id.is_(None),
+                Image.image_type == "LIGHT",
+                Image.raw_headers["OBJECT"].astext.isnot(None),
+            )
+            .group_by(Image.raw_headers["OBJECT"].astext)
+        )
+        unresolved = db.execute(unresolved_query).all()
+
+        if not unresolved:
+            return {"candidates_found": 0}
+
+        # Get existing pending/accepted candidates to avoid duplicates
+        existing = db.execute(
+            sa_select(MergeCandidate.source_name).where(
+                MergeCandidate.status.in_(["pending", "accepted"])
+            )
+        )
+        existing_names = {row[0] for row in existing.all()}
+
+        candidates_found = 0
+
+        for obj_name, img_count in unresolved:
+            if not obj_name or obj_name in existing_names:
+                continue
+
+            # Trigram similarity search against all resolved target aliases
+            trgm_query = sa_text("""
+                SELECT t.id, t.primary_name,
+                       GREATEST(
+                           similarity(t.primary_name, :name),
+                           COALESCE((SELECT MAX(similarity(a, :name)) FROM unnest(t.aliases) a), 0)
+                       ) AS score
+                FROM targets t
+                WHERE t.merged_into_id IS NULL
+                  AND GREATEST(
+                      similarity(t.primary_name, :name),
+                      COALESCE((SELECT MAX(similarity(a, :name)) FROM unnest(t.aliases) a), 0)
+                  ) > 0.4
+                ORDER BY score DESC
+                LIMIT 1
+            """)
+            result = db.execute(trgm_query, {"name": obj_name}).first()
+
+            if result:
+                target_id, target_name, score = result
+                db.add(MergeCandidate(
+                    source_name=obj_name,
+                    source_image_count=img_count,
+                    suggested_target_id=target_id,
+                    similarity_score=float(score),
+                    method="trigram",
+                ))
+                candidates_found += 1
+
+        db.commit()
+
+    return {"candidates_found": candidates_found}
 
 
 # In-memory cache of object names that SIMBAD couldn't resolve.

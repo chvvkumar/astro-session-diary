@@ -111,6 +111,14 @@ async def merge_targets(
     return {"status": "ok"}
 
 
+@router.post("/detect-duplicates")
+async def trigger_duplicate_detection():
+    """Manually trigger duplicate target detection."""
+    from app.worker.tasks import detect_duplicate_targets
+    task = detect_duplicate_targets.delay()
+    return {"status": "queued", "task_id": task.id}
+
+
 @router.post("/{target_id}/unmerge")
 async def unmerge_target(
     target_id: uuid.UUID,
