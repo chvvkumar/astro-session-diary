@@ -264,6 +264,7 @@ export interface GeneralSettings {
   thumbnail_width: number;
   default_page_size: number;
   include_calibration: boolean;
+  filter_style: string;
 }
 
 export interface FilterConfig {

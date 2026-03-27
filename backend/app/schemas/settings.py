@@ -7,6 +7,7 @@ class GeneralSettings(BaseModel):
     thumbnail_width: int = 800
     default_page_size: int = 50
     include_calibration: bool = True
+    filter_style: str = "solid"
 
 
 class FilterConfig(BaseModel):
