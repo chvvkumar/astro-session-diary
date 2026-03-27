@@ -13,6 +13,7 @@ import type {
   FilterConfig,
   EquipmentConfig,
   SuggestionsResponse,
+  DiscoveredResponse,
 } from "../types";
 
 const API_BASE = import.meta.env.VITE_API_URL || "/api";
@@ -124,4 +125,13 @@ export const api = {
 
   getEquipmentSuggestions: () =>
     fetchJson<SuggestionsResponse>("/settings/suggestions/equipment"),
+
+  getDiscovered: (section: "filters" | "cameras" | "telescopes") =>
+    fetchJson<DiscoveredResponse>(`/settings/discovered/${section}`),
+
+  updateDismissedSuggestions: (dismissed: string[][]) =>
+    fetchJson<SettingsResponse>("/settings/dismissed-suggestions", {
+      method: "PUT",
+      body: JSON.stringify(dismissed),
+    }),
 };

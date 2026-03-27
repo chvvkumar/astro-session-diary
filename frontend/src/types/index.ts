@@ -236,6 +236,7 @@ export interface SettingsResponse {
   general: GeneralSettings;
   filters: Record<string, FilterConfig>;
   equipment: EquipmentConfig;
+  dismissed_suggestions: string[][];
 }
 
 export interface SuggestionGroup {
@@ -246,4 +247,13 @@ export interface SuggestionGroup {
 
 export interface SuggestionsResponse {
   suggestions: SuggestionGroup[];
+}
+
+export interface DiscoveredItem {
+  name: string;
+  count: number;
+}
+
+export interface DiscoveredResponse {
+  items: DiscoveredItem[];
 }
