@@ -140,7 +140,8 @@ export const GroupingEditor: Component<Props> = (props) => {
               <button class="px-3 py-1.5 border border-gray-600 text-gray-300 text-sm rounded hover:border-astro-accent hover:text-white transition-colors">
                 Add to...
               </button>
-              <div class="absolute left-0 top-full mt-1 bg-astro-panel border border-gray-700 rounded shadow-lg z-10 hidden group-hover:block min-w-[180px]">
+              <div class="absolute left-0 top-full pt-1 bg-transparent hidden group-hover:block min-w-[180px] z-10">
+                <div class="bg-astro-panel border border-gray-700 rounded shadow-lg">
                 <For each={props.groups}>
                   {(g, i) => (
                     <button
@@ -151,6 +152,7 @@ export const GroupingEditor: Component<Props> = (props) => {
                     </button>
                   )}
                 </For>
+                </div>
               </div>
             </div>
           </Show>
