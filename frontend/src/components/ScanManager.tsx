@@ -201,7 +201,7 @@ const ScanManager: Component = () => {
                 <For each={scanStatus().failed_files}>
                   {(f) => (
                     <div class="border border-[#2d2d2d] rounded px-2 py-1">
-                      <div class="text-astro-muted truncate" title={f.file}>{f.file}</div>
+                      <div class="text-astro-muted break-all">{f.file}</div>
                       <div class="text-red-400/70 truncate" title={f.error}>{f.error}</div>
                     </div>
                   )}
