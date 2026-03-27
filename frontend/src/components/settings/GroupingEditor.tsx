@@ -60,7 +60,7 @@ export const GroupingEditor: Component<Props> = (props) => {
 
     const newGroup: GroupEntry = { canonical, aliases };
     props.onGroupsChange([...props.groups, newGroup]);
-    setChecked(new Set());
+    setChecked(new Set<string>());
   };
 
   /** Add checked items to an existing group */
@@ -75,7 +75,7 @@ export const GroupingEditor: Component<Props> = (props) => {
       return { ...g, aliases: [...existingAliases] };
     });
     props.onGroupsChange(updated);
-    setChecked(new Set());
+    setChecked(new Set<string>());
   };
 
   /** Remove an alias from a group (moves back to ungrouped) */
