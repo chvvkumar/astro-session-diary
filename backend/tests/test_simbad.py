@@ -1,4 +1,5 @@
 import pytest
+import httpx
 from unittest.mock import AsyncMock, patch, MagicMock
 
 from app.services.simbad import (
@@ -10,6 +11,7 @@ from app.services.simbad import (
     curate_aliases,
     extract_common_name,
     build_primary_name,
+    _fetch_tap_aliases,
 )
 
 
@@ -26,8 +28,10 @@ class TestResolveTargetName:
     @pytest.mark.asyncio
     async def test_resolve_known_messier_object(self):
         mock_result = {
-            "primary_name": "M 31",
-            "aliases": ["M31", "NGC 224", "Andromeda Galaxy"],
+            "primary_name": "M 31 - Andromeda Galaxy",
+            "catalog_id": "M 31",
+            "common_name": "Andromeda Galaxy",
+            "aliases": ["M 31", "NGC 224", "Andromeda Galaxy"],
             "ra": 10.6847,
             "dec": 41.2687,
             "object_type": "Galaxy",
@@ -36,7 +40,9 @@ class TestResolveTargetName:
             result = await resolve_target_name("m 31")
 
         assert result is not None
-        assert result["primary_name"] == "M 31"
+        assert result["primary_name"] == "M 31 - Andromeda Galaxy"
+        assert result["catalog_id"] == "M 31"
+        assert result["common_name"] == "Andromeda Galaxy"
         assert "NGC 224" in result["aliases"]
         assert result["ra"] == pytest.approx(10.6847, abs=0.01)
 
@@ -311,3 +317,58 @@ class TestBuildPrimaryName:
 
     def test_neither(self):
         assert build_primary_name(None, None) == "Unknown"
+
+
+# ---------------------------------------------------------------------------
+# _fetch_tap_aliases
+# ---------------------------------------------------------------------------
+
+class TestFetchTapAliases:
+    @pytest.mark.asyncio
+    async def test_parses_tsv_response(self):
+        """TAP returns TSV with header row; function should skip header and return alias rows."""
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.text = "id\nM 31\nNGC 224\nNAME Andromeda Galaxy\n"
+        mock_resp.raise_for_status = MagicMock()
+
+        mock_client = AsyncMock()
+        mock_client.get = AsyncMock(return_value=mock_resp)
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=False)
+
+        with patch("app.services.simbad.httpx.AsyncClient", return_value=mock_client):
+            result = await _fetch_tap_aliases("M  31")
+
+        assert result == ["M 31", "NGC 224", "NAME Andromeda Galaxy"]
+
+    @pytest.mark.asyncio
+    async def test_returns_empty_on_no_results(self):
+        """When TAP returns only a header, result should be empty."""
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.text = "id\n"
+        mock_resp.raise_for_status = MagicMock()
+
+        mock_client = AsyncMock()
+        mock_client.get = AsyncMock(return_value=mock_resp)
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=False)
+
+        with patch("app.services.simbad.httpx.AsyncClient", return_value=mock_client):
+            result = await _fetch_tap_aliases("NONEXISTENT")
+
+        assert result == []
+
+    @pytest.mark.asyncio
+    async def test_returns_empty_on_http_error(self):
+        """On HTTP error, should log warning and return empty list."""
+        mock_client = AsyncMock()
+        mock_client.get = AsyncMock(side_effect=httpx.HTTPError("timeout"))
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=False)
+
+        with patch("app.services.simbad.httpx.AsyncClient", return_value=mock_client):
+            result = await _fetch_tap_aliases("M 31")
+
+        assert result == []

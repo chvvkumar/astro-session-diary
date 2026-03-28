@@ -6,7 +6,7 @@ import httpx
 
 logger = logging.getLogger(__name__)
 
-SIMBAD_TAP_URL = "https://simbad.u-strasbg.fr/simbad/sim-id"
+SIMBAD_TAP_URL = "https://simbad.cds.unistra.fr/simbad/sim-tap/sync"
 
 
 def normalize_object_name(name: str) -> str:
@@ -176,6 +176,36 @@ def build_primary_name(catalog_id: str | None, common_name: str | None) -> str:
     return "Unknown"
 
 
+async def _fetch_tap_aliases(object_name: str) -> list[str]:
+    """Fetch aliases via SIMBAD TAP (returns one alias per row)."""
+    import string
+    safe_chars = string.printable.replace('\n', '').replace('\r', '').replace('\t', '')
+    sanitized = ''.join(c for c in object_name if c in safe_chars).strip()
+
+    query = f"SELECT id FROM ident JOIN basic ON ident.oidref = basic.oid WHERE basic.main_id = '{sanitized}'"
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            resp = await client.get(
+                SIMBAD_TAP_URL,
+                params={
+                    "request": "doQuery",
+                    "lang": "adql",
+                    "format": "tsv",
+                    "query": query,
+                },
+                timeout=15.0,
+            )
+            resp.raise_for_status()
+            lines = resp.text.strip().splitlines()
+            # First line is the header ("id"), skip it
+            if len(lines) <= 1:
+                return []
+            return [line.strip() for line in lines[1:] if line.strip()]
+    except (httpx.HTTPError, ValueError) as e:
+        logger.warning("SIMBAD TAP alias query failed for '%s': %s", object_name, e)
+        return []
+
+
 async def _query_simbad(object_name: str) -> dict[str, Any] | None:
     """Query SIMBAD for an object by name. Returns structured data or None."""
     # Sanitize object name — strip newlines and control characters
@@ -185,10 +215,6 @@ async def _query_simbad(object_name: str) -> dict[str, Any] | None:
     if not sanitized:
         return None
 
-    params = {
-        "Ident": sanitized,
-        "output.format": "ASCII",
-    }
     try:
         async with httpx.AsyncClient(timeout=15.0) as client:
             # Use the SIMBAD script interface for structured results
@@ -224,29 +250,24 @@ async def _query_simbad(object_name: str) -> dict[str, Any] | None:
             ra = float(parts[2].strip()) if parts[2].strip() else None
             dec = float(parts[3].strip()) if parts[3].strip() else None
 
-            # Fetch aliases via a second query
-            alias_script = f"""
-                format object "%IDLIST[%*]"
-                query id {sanitized}
-            """
-            alias_resp = await client.post(
-                "https://simbad.cds.unistra.fr/simbad/sim-script",
-                data={"script": alias_script},
-                timeout=15.0,
-            )
-            aliases = []
-            if alias_resp.status_code == 200:
-                alias_data = alias_resp.text.split("::data::")[-1].strip()
-                aliases = [a.strip() for a in alias_data.splitlines()
-                           if a.strip() and not a.startswith("~") and not set(a.strip()).issubset({":"})]
+        # Fetch aliases via TAP (one alias per row — replaces broken %IDLIST parser)
+        raw_aliases = await _fetch_tap_aliases(main_id)
 
-            return {
-                "primary_name": main_id,
-                "aliases": aliases,
-                "ra": ra,
-                "dec": dec,
-                "object_type": obj_type,
-            }
+        # Curate aliases and extract catalog_id / common_name
+        curated = curate_aliases(raw_aliases)
+        catalog_id = extract_catalog_id(raw_aliases, main_id)
+        common_name = extract_common_name(raw_aliases)
+        primary_name = build_primary_name(catalog_id, common_name)
+
+        return {
+            "primary_name": primary_name,
+            "catalog_id": catalog_id,
+            "common_name": common_name,
+            "aliases": curated,
+            "ra": ra,
+            "dec": dec,
+            "object_type": obj_type,
+        }
 
     except (httpx.HTTPError, ValueError, IndexError) as e:
         logger.warning("SIMBAD query failed for '%s': %s", sanitized, e)
