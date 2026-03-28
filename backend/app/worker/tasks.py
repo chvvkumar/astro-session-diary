@@ -470,7 +470,7 @@ def smart_rebuild_targets(self) -> dict:
               AND t.merged_into_id IS NULL
               AND t.aliases @> ARRAY[UPPER(REGEXP_REPLACE(
                   TRIM(images.raw_headers->>'OBJECT'), '\\s+', ' ', 'g'
-              ))]
+              ))]::varchar[]
         """))
         stats["linked_unresolved"] = result.rowcount
         logger.info("smart_rebuild: linked %d unresolved images via alias match", result.rowcount)
@@ -492,13 +492,13 @@ def smart_rebuild_targets(self) -> dict:
             UPDATE targets t
             SET aliases = (
                 SELECT array(
-                    SELECT DISTINCT unnest(array_cat(t.aliases, tf.fits_names))
+                    SELECT DISTINCT unnest(array_cat(t.aliases, tf.fits_names::varchar[]))
                 )
             )
             FROM target_fits tf
             WHERE t.id = tf.tid
               AND t.merged_into_id IS NULL
-              AND NOT (t.aliases @> tf.fits_names)
+              AND NOT (t.aliases @> tf.fits_names::varchar[])
         """))
         stats["aliases_updated"] = result.rowcount
         logger.info("smart_rebuild: updated aliases for %d targets", result.rowcount)

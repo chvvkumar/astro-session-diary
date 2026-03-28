@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-from astropy.io import fits
+import fitsio
 from pathlib import Path
 from PIL import Image as PILImage
 
@@ -11,16 +11,12 @@ from app.services.thumbnail import generate_thumbnail
 def sample_fits_mono(tmp_path: Path) -> Path:
     """Create a minimal mono FITS file with synthetic star field."""
     rng = np.random.default_rng(42)
-    # Background sky + a few bright "stars"
     data = rng.normal(loc=1000, scale=50, size=(256, 256)).astype(np.float32)
-    data[128, 128] = 50000  # bright star
-    data[64, 192] = 30000   # dimmer star
+    data[128, 128] = 50000
+    data[64, 192] = 30000
 
-    hdu = fits.PrimaryHDU(data)
-    hdu.header["OBJECT"] = "TestTarget"
-    hdu.header["EXPTIME"] = 300.0
     file_path = tmp_path / "test_mono.fits"
-    hdu.writeto(file_path)
+    fitsio.write(str(file_path), data, clobber=True)
     return file_path
 
 
@@ -29,13 +25,12 @@ def sample_fits_color(tmp_path: Path) -> Path:
     """Create a minimal 3-channel color FITS file."""
     rng = np.random.default_rng(42)
     data = rng.normal(loc=1000, scale=50, size=(3, 128, 128)).astype(np.float32)
-    data[0, 64, 64] = 40000  # red channel star
-    data[1, 64, 64] = 45000  # green channel star
-    data[2, 64, 64] = 35000  # blue channel star
+    data[0, 64, 64] = 40000
+    data[1, 64, 64] = 45000
+    data[2, 64, 64] = 35000
 
-    hdu = fits.PrimaryHDU(data)
     file_path = tmp_path / "test_color.fits"
-    hdu.writeto(file_path)
+    fitsio.write(str(file_path), data, clobber=True)
     return file_path
 
 
@@ -101,9 +96,8 @@ def test_mtf_stretch_star_contrast(sample_fits_mono: Path, tmp_path: Path):
 def test_mtf_stretch_uniform_image(tmp_path: Path):
     """Uniform image (MAD=0) should produce valid thumbnail without crashing."""
     data = np.full((128, 128), 1000.0, dtype=np.float32)
-    hdu = fits.PrimaryHDU(data)
     fits_path = tmp_path / "uniform.fits"
-    hdu.writeto(fits_path)
+    fitsio.write(str(fits_path), data, clobber=True)
 
     output = tmp_path / "thumb_uniform.jpg"
     result = generate_thumbnail(fits_path, output, max_width=128)

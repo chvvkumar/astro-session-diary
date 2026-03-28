@@ -1,7 +1,7 @@
 from pathlib import Path
 
 import numpy as np
-from astropy.io import fits
+import fitsio
 from PIL import Image as PILImage
 
 
@@ -116,8 +116,7 @@ def generate_thumbnail(
     Pipeline: read → flip → resize (raw linear) → MTF stretch → save.
     Handles both mono (2D) and color (3D with shape [3, H, W]) data.
     """
-    with fits.open(fits_path) as hdul:
-        data = hdul[0].data.astype(np.float32)
+    data = fitsio.read(str(fits_path), ext=0).astype(np.float32)
 
     if data.ndim == 2:
         # Mono: normalize, flip, resize, stretch

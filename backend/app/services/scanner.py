@@ -3,7 +3,7 @@ from pathlib import Path
 from datetime import datetime
 from typing import Any, Iterator
 
-from astropy.io import fits
+import fitsio
 
 FITS_EXTENSIONS = {".fits", ".fit", ".fts", ".FITS", ".FIT", ".FTS"}
 
@@ -17,8 +17,8 @@ def _is_calibration_frame(path: Path) -> bool | None:
     Returns True for calibration, False for light/science, None if unreadable.
     """
     try:
-        with fits.open(path) as hdul:
-            image_type = (hdul[0].header.get("IMAGETYP") or "").strip().upper()
+        header = fitsio.read_header(str(path), ext=0)
+        image_type = (header.get("IMAGETYP") or "").strip().upper()
         return image_type in CALIBRATION_FRAME_TYPES
     except Exception:
         return None
@@ -68,10 +68,13 @@ def _parse_hfr_from_filename(filename: str) -> float | None:
 
 def extract_metadata(fits_path: Path) -> dict[str, Any]:
     """Extract structured metadata and raw headers from a FITS file."""
-    with fits.open(fits_path) as hdul:
-        header = hdul[0].header
+    header = fitsio.read_header(str(fits_path), ext=0)
 
-    raw_headers = {k: _serialize_header_value(v) for k, v in header.items() if k}
+    raw_headers = {
+        rec["name"]: _serialize_header_value(rec["value"])
+        for rec in header.records()
+        if rec["name"].strip()
+    }
 
     capture_date = None
     date_obs = header.get("DATE-OBS")

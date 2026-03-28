@@ -1,8 +1,8 @@
 import pytest
 import numpy as np
+import fitsio
 from pathlib import Path
 from unittest.mock import patch, MagicMock, AsyncMock
-from astropy.io import fits
 
 from app.services.scanner import extract_metadata
 from app.services.thumbnail import generate_thumbnail
@@ -11,15 +11,14 @@ from app.services.thumbnail import generate_thumbnail
 @pytest.fixture
 def sample_fits(tmp_path: Path) -> Path:
     data = np.random.default_rng(42).normal(1000, 50, (128, 128)).astype(np.float32)
-    hdu = fits.PrimaryHDU(data)
-    hdu.header["OBJECT"] = "NGC 7000"
-    hdu.header["EXPTIME"] = 600.0
-    hdu.header["FILTER"] = "OIII"
-    hdu.header["CCD-TEMP"] = -15.0
-    hdu.header["GAIN"] = 100
-    hdu.header["DATE-OBS"] = "2024-06-15T01:30:00"
+    header = fitsio.FITSHDR()
+    for k, v in {
+        "OBJECT": "NGC 7000", "EXPTIME": 600.0, "FILTER": "OIII",
+        "CCD-TEMP": -15.0, "GAIN": 100, "DATE-OBS": "2024-06-15T01:30:00",
+    }.items():
+        header.add_record({"name": k, "value": v})
     path = tmp_path / "Light_NGC7000_001.fits"
-    hdu.writeto(path)
+    fitsio.write(str(path), data, header=header, clobber=True)
     return path
 
 

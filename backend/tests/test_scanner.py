@@ -1,28 +1,35 @@
 import pytest
 from pathlib import Path
-from astropy.io import fits
+import fitsio
 import numpy as np
 
 from app.services.scanner import scan_directory, extract_metadata
 
 
+def _write_fits(path: Path, data: np.ndarray, header: dict) -> None:
+    """Write a FITS file with data and header keys."""
+    fits_header = fitsio.FITSHDR()
+    for k, v in header.items():
+        fits_header.add_record({"name": k, "value": v})
+    fitsio.write(str(path), data, header=fits_header, clobber=True)
+
+
 @pytest.fixture
 def fits_tree(tmp_path: Path) -> Path:
     """Create a directory tree with FITS files and non-FITS files."""
-    # Create FITS files in subdirectories
     for subdir in ["2024-01-15", "2024-01-16"]:
         d = tmp_path / subdir
         d.mkdir()
         for i in range(3):
             data = np.zeros((64, 64), dtype=np.float32)
-            hdu = fits.PrimaryHDU(data)
-            hdu.header["OBJECT"] = "M31"
-            hdu.header["EXPTIME"] = 300.0
-            hdu.header["FILTER"] = "Ha"
-            hdu.header["CCD-TEMP"] = -10.0
-            hdu.header["GAIN"] = 120
-            hdu.header["DATE-OBS"] = f"2024-01-{15 + int(subdir[-2:])-15}T22:{i:02d}:00"
-            hdu.writeto(d / f"Light_{i:03d}.fits")
+            _write_fits(d / f"Light_{i:03d}.fits", data, {
+                "OBJECT": "M31",
+                "EXPTIME": 300.0,
+                "FILTER": "Ha",
+                "CCD-TEMP": -10.0,
+                "GAIN": 120,
+                "DATE-OBS": f"2024-01-{15 + int(subdir[-2:])-15}T22:{i:02d}:00",
+            })
 
     # Non-FITS file (should be ignored)
     (tmp_path / "notes.txt").write_text("session notes")
