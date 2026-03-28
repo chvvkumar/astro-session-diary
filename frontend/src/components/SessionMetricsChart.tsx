@@ -1,6 +1,4 @@
-import { createMemo, createSignal, Show } from "solid-js";
-import { Line } from "solid-chartjs";
-import type { ChartData, ChartOptions } from "chart.js";
+import { createMemo, createSignal, createEffect, onCleanup, Show } from "solid-js";
 import { Chart, CategoryScale, LinearScale, PointElement, LineElement, Tooltip } from "chart.js";
 import type { SessionDetail, FrameRecord } from "../types";
 import { useSettingsContext } from "./SettingsProvider";
@@ -8,7 +6,6 @@ import { METRIC_DEFINITIONS, getMetricColor, getMetricDef } from "../utils/chart
 import MetricTogglePills from "./MetricTogglePills";
 import FilterTogglePills from "./FilterTogglePills";
 
-// Register Chart.js components
 Chart.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip);
 
 interface Props {
@@ -18,10 +15,18 @@ interface Props {
 export default function SessionMetricsChart(props: Props) {
   const { graphSettings, saveGraphSettings } = useSettingsContext();
   const [expanded, setExpanded] = createSignal(graphSettings().session_chart_expanded);
+  let canvasRef: HTMLCanvasElement | undefined;
+  let chartInstance: Chart | null = null;
 
   const filters = () => props.detail.filter_details.map((f) => f.filter_name);
 
-  const chartData = createMemo((): ChartData<"line"> => {
+  const buildChart = () => {
+    if (!canvasRef) return;
+    if (chartInstance) {
+      chartInstance.destroy();
+      chartInstance = null;
+    }
+
     const enabledMetrics = graphSettings().enabled_metrics;
     const enabledFilters = graphSettings().enabled_filters;
     const frames = [...props.detail.frames].sort(
@@ -32,7 +37,7 @@ export default function SessionMetricsChart(props: Props) {
       return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     });
 
-    const datasets: ChartData<"line">["datasets"] = [];
+    const datasets: any[] = [];
 
     for (const metricKey of enabledMetrics) {
       const def = getMetricDef(metricKey);
@@ -75,41 +80,58 @@ export default function SessionMetricsChart(props: Props) {
       }
     }
 
-    return { labels, datasets };
+    chartInstance = new Chart(canvasRef, {
+      type: "line",
+      data: { labels, datasets },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: "index", intersect: false },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: "rgba(0,0,0,0.8)",
+            titleFont: { size: 11 },
+            bodyFont: { size: 10 },
+            padding: 8,
+          },
+        },
+        scales: {
+          x: {
+            ticks: { color: "#64748b", font: { size: 9 }, maxTicksLimit: 12 },
+            grid: { color: "rgba(255,255,255,0.05)" },
+          },
+          left: {
+            type: "linear",
+            position: "left",
+            ticks: { color: "#64748b", font: { size: 9 } },
+            grid: { color: "rgba(255,255,255,0.05)" },
+          },
+          right: {
+            type: "linear",
+            position: "right",
+            ticks: { color: "#64748b", font: { size: 9 } },
+            grid: { drawOnChartArea: false },
+          },
+        },
+      },
+    });
+  };
+
+  createEffect(() => {
+    // Track reactive dependencies
+    graphSettings();
+    if (expanded()) {
+      queueMicrotask(buildChart);
+    }
   });
 
-  const chartOptions = createMemo((): ChartOptions<"line"> => ({
-    responsive: true,
-    maintainAspectRatio: false,
-    interaction: { mode: "index", intersect: false },
-    plugins: {
-      legend: { display: false },
-      tooltip: {
-        backgroundColor: "rgba(0,0,0,0.8)",
-        titleFont: { size: 11 },
-        bodyFont: { size: 10 },
-        padding: 8,
-      },
-    },
-    scales: {
-      x: {
-        ticks: { color: "#64748b", font: { size: 9 }, maxTicksLimit: 10 },
-        grid: { color: "rgba(255,255,255,0.05)" },
-      },
-      left: {
-        type: "linear",
-        position: "left",
-        ticks: { color: "#64748b", font: { size: 9 } },
-        grid: { color: "rgba(255,255,255,0.05)" },
-      },
-      right: {
-        type: "linear",
-        position: "right",
-        ticks: { color: "#64748b", font: { size: 9 } },
-        grid: { drawOnChartArea: false },
-      },
-    },
-  }));
+  onCleanup(() => {
+    if (chartInstance) {
+      chartInstance.destroy();
+      chartInstance = null;
+    }
+  });
 
   const toggleExpanded = () => {
     const next = !expanded();
@@ -138,7 +160,7 @@ export default function SessionMetricsChart(props: Props) {
             <FilterTogglePills filters={filters()} />
           </div>
           <div style={{ height: "200px" }}>
-            <Line data={chartData()} options={chartOptions()} />
+            <canvas ref={canvasRef} />
           </div>
         </div>
       </Show>

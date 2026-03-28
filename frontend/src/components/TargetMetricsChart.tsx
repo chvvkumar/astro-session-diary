@@ -1,6 +1,4 @@
-import { createMemo, Show } from "solid-js";
-import { Line } from "solid-chartjs";
-import type { ChartData, ChartOptions } from "chart.js";
+import { createMemo, createEffect, onCleanup, Show } from "solid-js";
 import { Chart, CategoryScale, LinearScale, PointElement, LineElement, Tooltip } from "chart.js";
 import type { SessionOverview } from "../types";
 import { useSettingsContext } from "./SettingsProvider";
@@ -20,6 +18,8 @@ interface Props {
 
 export default function TargetMetricsChart(props: Props) {
   const { graphSettings } = useSettingsContext();
+  let canvasRef: HTMLCanvasElement | undefined;
+  let chartInstance: Chart | null = null;
 
   const allFilters = createMemo(() => {
     const filterSet = new Set<string>();
@@ -36,13 +36,19 @@ export default function TargetMetricsChart(props: Props) {
       .sort((a, b) => a.session_date.localeCompare(b.session_date));
   });
 
-  const chartData = createMemo((): ChartData<"line"> => {
+  const buildChart = () => {
+    if (!canvasRef) return;
+    if (chartInstance) {
+      chartInstance.destroy();
+      chartInstance = null;
+    }
+
     const enabledMetrics = graphSettings().enabled_metrics;
     const enabledFilters = graphSettings().enabled_filters;
     const sessions = selectedSessions();
     const labels = sessions.map((s) => s.session_date);
 
-    const datasets: ChartData<"line">["datasets"] = [];
+    const datasets: any[] = [];
 
     for (const metricKey of enabledMetrics) {
       const def = getMetricDef(metricKey);
@@ -68,7 +74,6 @@ export default function TargetMetricsChart(props: Props) {
       for (const filterName of enabledFilters) {
         if (filterName === "overall") continue;
         const filterMedField = `median_${metricKey}` as string;
-
         datasets.push({
           label: `${def.label} (${filterName})`,
           data: sessions.map((s) => {
@@ -88,41 +93,60 @@ export default function TargetMetricsChart(props: Props) {
       }
     }
 
-    return { labels, datasets };
+    chartInstance = new Chart(canvasRef, {
+      type: "line",
+      data: { labels, datasets },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: "index", intersect: false },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: "rgba(0,0,0,0.8)",
+            titleFont: { size: 11 },
+            bodyFont: { size: 10 },
+            padding: 8,
+          },
+        },
+        scales: {
+          x: {
+            ticks: { color: "#64748b", font: { size: 9 }, maxRotation: 45 },
+            grid: { color: "rgba(255,255,255,0.05)" },
+          },
+          left: {
+            type: "linear",
+            position: "left",
+            ticks: { color: "#64748b", font: { size: 9 } },
+            grid: { color: "rgba(255,255,255,0.05)" },
+          },
+          right: {
+            type: "linear",
+            position: "right",
+            ticks: { color: "#64748b", font: { size: 9 } },
+            grid: { drawOnChartArea: false },
+          },
+        },
+      },
+    });
+  };
+
+  createEffect(() => {
+    // Track reactive dependencies
+    selectedSessions();
+    graphSettings();
+    if (props.expanded) {
+      // Defer to next microtask so canvas is mounted
+      queueMicrotask(buildChart);
+    }
   });
 
-  const chartOptions = createMemo((): ChartOptions<"line"> => ({
-    responsive: true,
-    maintainAspectRatio: false,
-    interaction: { mode: "index", intersect: false },
-    plugins: {
-      legend: { display: false },
-      tooltip: {
-        backgroundColor: "rgba(0,0,0,0.8)",
-        titleFont: { size: 11 },
-        bodyFont: { size: 10 },
-        padding: 8,
-      },
-    },
-    scales: {
-      x: {
-        ticks: { color: "#64748b", font: { size: 9 }, maxRotation: 45 },
-        grid: { color: "rgba(255,255,255,0.05)" },
-      },
-      left: {
-        type: "linear",
-        position: "left",
-        ticks: { color: "#64748b", font: { size: 9 } },
-        grid: { color: "rgba(255,255,255,0.05)" },
-      },
-      right: {
-        type: "linear",
-        position: "right",
-        ticks: { color: "#64748b", font: { size: 9 } },
-        grid: { drawOnChartArea: false },
-      },
-    },
-  }));
+  onCleanup(() => {
+    if (chartInstance) {
+      chartInstance.destroy();
+      chartInstance = null;
+    }
+  });
 
   const availableMetricKeys = () => TARGET_METRICS.map((m) => m.key);
 
@@ -137,7 +161,7 @@ export default function TargetMetricsChart(props: Props) {
           <FilterTogglePills filters={allFilters()} />
         </div>
         <div style={{ height: "200px" }}>
-          <Line data={chartData()} options={chartOptions()} />
+          <canvas ref={canvasRef} />
         </div>
       </div>
     </Show>
