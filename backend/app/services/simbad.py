@@ -15,6 +15,167 @@ def normalize_object_name(name: str) -> str:
     return cleaned
 
 
+# ---------------------------------------------------------------------------
+# Catalog priority & alias curation helpers
+# ---------------------------------------------------------------------------
+
+def _normalize_ws(s: str) -> str:
+    """Collapse multiple whitespace to single space and strip."""
+    return re.sub(r"\s+", " ", s.strip())
+
+
+# Ordered list: index = priority (lower wins).
+CATALOG_PATTERNS: list[re.Pattern] = [
+    re.compile(r"^M\s+\d+$"),                        # 0  Messier
+    re.compile(r"^NGC\s+\d+$"),                       # 1  NGC
+    re.compile(r"^IC\s+\d+[A-Z]?$"),                  # 2  IC
+    re.compile(r"^(Caldwell|C)\s+\d+$"),               # 3  Caldwell
+    re.compile(r"^SH\s+2-\d+$", re.IGNORECASE),       # 4  Sharpless
+    re.compile(r"^(PN\s+A66\s+\d+|Abell\s+\d+)$"),    # 5  Abell PN
+    re.compile(r"^Arp\s+\d+$"),                        # 6  Arp
+    re.compile(r"^HCG\s+\d+$"),                        # 7  HCG
+    re.compile(r"^B\s+\d+$"),                          # 8  Barnard
+    re.compile(r"^vdB\s+\d+$"),                        # 9  vdB
+    re.compile(r"^LBN\s+[\d.+\-]+$"),                  # 10 LBN
+    re.compile(r"^LDN\s+\d+$"),                        # 11 LDN
+    re.compile(r"^(Cr|Collinder)\s+\d+$"),             # 12 Collinder
+    re.compile(r"^(Mel|Melotte)\s+\d+$"),              # 13 Melotte
+    re.compile(r"^RCW\s+\d+$"),                        # 14 RCW
+    re.compile(r"^Pal\s+\d+$"),                        # 15 Palomar
+    re.compile(r"^(Tr|Trumpler)\s+\d+$"),              # 16 Trumpler
+    re.compile(r"^Stock\s+\d+$"),                      # 17 Stock
+    re.compile(r"^(Ced|Cederblad)\s+\d+$"),            # 18 Cederblad
+    re.compile(r"^Simeis\s+\d+$"),                     # 19 Simeis
+    re.compile(r"^DWB\s+\d+$"),                        # 20 DWB
+    re.compile(r"^SNR\s+G[\d.+\-]+$"),                 # 21 SNR G
+    re.compile(r"^Cl\s+Berkeley\s+\d+$"),              # 22 Berkeley
+    re.compile(r"^Cl\s+King\s+\d+$"),                  # 23 King
+    re.compile(r"^Gum\s+\d+$"),                        # 24 Gum
+]
+
+# Pattern to detect coordinate-based / survey IDs we want to drop
+_COORD_ID_RE = re.compile(
+    r"^("
+    r"2MASS\s|USNO|GSC|TYC|SDSS|WISE|GAIA|UCAC|IRAS\s"
+    r"|\[.*\]"           # bracket-prefixed like [BFS98]
+    r"|\d{1,2}\s?\d{2}\s?\d"  # bare RA-style coords
+    r")",
+    re.IGNORECASE,
+)
+
+
+def _catalog_priority(name: str) -> int | None:
+    """Return the priority index of *name* if it matches a known catalog pattern, else None."""
+    n = _normalize_ws(name)
+    for idx, pat in enumerate(CATALOG_PATTERNS):
+        if pat.match(n):
+            return idx
+    return None
+
+
+def extract_catalog_id(aliases: list[str], simbad_main_id: str) -> str:
+    """Pick the best catalog ID from *aliases* + *simbad_main_id* using catalog priority.
+
+    Falls back to ``_normalize_ws(simbad_main_id)`` if no catalog match is found.
+    """
+    best_name: str | None = None
+    best_pri: int | None = None
+
+    candidates = list(aliases) + [simbad_main_id]
+    for raw in candidates:
+        n = _normalize_ws(raw)
+        pri = _catalog_priority(n)
+        if pri is not None and (best_pri is None or pri < best_pri):
+            best_pri = pri
+            best_name = n
+
+    return best_name if best_name is not None else _normalize_ws(simbad_main_id)
+
+
+def curate_aliases(raw_aliases: list[str], fits_names: list[str] | None = None) -> list[str]:
+    """Filter and deduplicate aliases.
+
+    Keeps:
+    - Catalog IDs (anything matching CATALOG_PATTERNS)
+    - NAME entries from SIMBAD (title-cased, NAME prefix stripped)
+    - Normalized FITS names
+
+    Drops:
+    - Coordinate-based / survey IDs (2MASS, bracket-prefixed, etc.)
+    """
+    seen_upper: set[str] = set()
+    result: list[str] = []
+
+    def _add(value: str) -> None:
+        key = value.upper().replace(" ", "")
+        if key not in seen_upper:
+            seen_upper.add(key)
+            result.append(value)
+
+    for raw in raw_aliases:
+        n = _normalize_ws(raw)
+
+        # NAME entries -> title-cased common name
+        if n.upper().startswith("NAME "):
+            common = n[5:].strip().title()
+            _add(common)
+            continue
+
+        # Catalog match -> keep normalized
+        if _catalog_priority(n) is not None:
+            _add(n)
+            continue
+
+        # Everything else (coordinate IDs, survey IDs) -> drop
+
+    # Add FITS names
+    if fits_names:
+        for fn in fits_names:
+            n = _normalize_ws(fn)
+            if n:
+                _add(n)
+
+    return result
+
+
+def extract_common_name(
+    raw_aliases: list[str],
+    fits_names: list[str] | None = None,
+) -> str | None:
+    """Extract a human-friendly common name.
+
+    Priority:
+    1. SIMBAD ``NAME`` alias (title-cased)
+    2. FITS name that is *not* a catalog pattern
+    3. None
+    """
+    # Check SIMBAD NAME aliases first
+    for raw in raw_aliases:
+        n = _normalize_ws(raw)
+        if n.upper().startswith("NAME "):
+            return n[5:].strip().title()
+
+    # FITS name fallback
+    if fits_names:
+        for fn in fits_names:
+            n = _normalize_ws(fn)
+            if n and _catalog_priority(n) is None:
+                return n
+
+    return None
+
+
+def build_primary_name(catalog_id: str | None, common_name: str | None) -> str:
+    """Build display name: ``'NGC 7000 - North America Nebula'`` or fallback."""
+    if catalog_id and common_name:
+        return f"{catalog_id} - {common_name}"
+    if catalog_id:
+        return catalog_id
+    if common_name:
+        return common_name
+    return "Unknown"
+
+
 async def _query_simbad(object_name: str) -> dict[str, Any] | None:
     """Query SIMBAD for an object by name. Returns structured data or None."""
     # Sanitize object name — strip newlines and control characters
