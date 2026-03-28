@@ -26,16 +26,16 @@ def _normalize_ws(s: str) -> str:
 
 # Ordered list: index = priority (lower wins).
 CATALOG_PATTERNS: list[re.Pattern] = [
-    re.compile(r"^M\s+\d+$"),                        # 0  Messier
-    re.compile(r"^NGC\s+\d+$"),                       # 1  NGC
-    re.compile(r"^IC\s+\d+[A-Z]?$"),                  # 2  IC
+    re.compile(r"^M\s*\d+$"),                         # 0  Messier
+    re.compile(r"^NGC\s*\d+$"),                        # 1  NGC
+    re.compile(r"^IC\s*\d+[A-Z]?$"),                   # 2  IC
     re.compile(r"^(Caldwell|C)\s+\d+$"),               # 3  Caldwell
-    re.compile(r"^SH\s+2-\d+$", re.IGNORECASE),       # 4  Sharpless
+    re.compile(r"^SH\s*2-\d+$", re.IGNORECASE),       # 4  Sharpless
     re.compile(r"^(PN\s+A66\s+\d+|Abell\s+\d+)$"),    # 5  Abell PN
-    re.compile(r"^Arp\s+\d+$"),                        # 6  Arp
-    re.compile(r"^HCG\s+\d+$"),                        # 7  HCG
+    re.compile(r"^Arp\s*\d+$"),                        # 6  Arp
+    re.compile(r"^HCG\s*\d+$"),                        # 7  HCG
     re.compile(r"^B\s+\d+$"),                          # 8  Barnard
-    re.compile(r"^vdB\s+\d+$"),                        # 9  vdB
+    re.compile(r"^vdB\s*\d+$"),                        # 9  vdB
     re.compile(r"^LBN\s+[\d.+\-]+$"),                  # 10 LBN
     re.compile(r"^LDN\s+\d+$"),                        # 11 LDN
     re.compile(r"^(Cr|Collinder)\s+\d+$"),             # 12 Collinder
@@ -51,6 +51,7 @@ CATALOG_PATTERNS: list[re.Pattern] = [
     re.compile(r"^Cl\s+Berkeley\s+\d+$"),              # 22 Berkeley
     re.compile(r"^Cl\s+King\s+\d+$"),                  # 23 King
     re.compile(r"^Gum\s+\d+$"),                        # 24 Gum
+    re.compile(r"^Sh\s*2[\s\-]\d+$", re.IGNORECASE),  # 25 Sh2 variant
 ]
 
 # Pattern to detect coordinate-based / survey IDs we want to drop
@@ -155,10 +156,10 @@ def extract_common_name(
         if n.upper().startswith("NAME "):
             return n[5:].strip().title()
 
-    # FITS name fallback
+    # FITS name fallback — strip "Panel N" suffix
     if fits_names:
         for fn in fits_names:
-            n = _normalize_ws(fn)
+            n = _PANEL_RE.sub("", _normalize_ws(fn)).strip()
             if n and _catalog_priority(n) is None:
                 return n
 

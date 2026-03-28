@@ -52,22 +52,22 @@ async def backfill_existing_targets():
             )
             fits_names = [row[0] for row in fits_result.all() if row[0]]
 
-            # Fetch clean aliases from SIMBAD TAP using old primary_name
-            old_primary = target.primary_name
-            raw_aliases = await _fetch_tap_aliases(old_primary)
+            # Use catalog_id for TAP lookup (idempotent), fall back to primary_name
+            lookup_name = target.catalog_id or target.primary_name
+            raw_aliases = await _fetch_tap_aliases(lookup_name)
 
             if not raw_aliases:
-                # TAP failed or returned nothing — try with normalized name
-                raw_aliases = await _fetch_tap_aliases(_normalize_ws(old_primary))
+                # TAP failed — try with normalized name
+                raw_aliases = await _fetch_tap_aliases(_normalize_ws(lookup_name))
 
             if raw_aliases:
-                catalog_id = extract_catalog_id(raw_aliases, old_primary)
+                catalog_id = extract_catalog_id(raw_aliases, lookup_name)
                 common_name = extract_common_name(raw_aliases, fits_names=fits_names)
                 curated = curate_aliases(raw_aliases, fits_names=fits_names)
             else:
                 # SIMBAD unavailable — do best-effort from existing data
-                log.warning("  No TAP data for %s — using existing aliases", old_primary)
-                catalog_id = _normalize_ws(old_primary)
+                log.warning("  No TAP data for %s — using existing aliases", lookup_name)
+                catalog_id = _normalize_ws(lookup_name)
                 common_name = extract_common_name([], fits_names=fits_names)
                 curated = [normalize_object_name(n) for n in fits_names]
 
@@ -85,7 +85,7 @@ async def backfill_existing_targets():
             target.aliases = curated
 
             log.info("  %s -> %s (catalog=%s, common=%s, %d aliases)",
-                     old_primary, primary_name, catalog_id, common_name, len(curated))
+                     lookup_name, primary_name, catalog_id, common_name, len(curated))
 
             await asyncio.sleep(0.5)  # Rate limit
 
