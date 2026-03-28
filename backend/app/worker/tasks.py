@@ -201,6 +201,12 @@ def ingest_file(self, fits_path: str) -> dict:
                 increment_csv_enriched_sync(_redis)
             return {"file": str(path), "status": "ok"}
 
+    except IntegrityError:
+        # File already ingested (race between scan querying known_paths and ingest)
+        logger.info("Already ingested (duplicate): %s", path.name)
+        increment_completed_sync(_redis)
+        return {"file": str(path), "status": "duplicate"}
+
     except Exception as exc:
         logger.error("Failed to ingest %s: %s", path, exc)
         # Don't retry on unrecoverable errors (corrupt files, missing headers, etc.)
