@@ -19,7 +19,7 @@ const DashboardPage: Component = () => {
     const p = filtersAsParams();
     // Clear all filter params first, then set current ones
     const clear: Record<string, undefined> = {};
-    for (const key of ["search", "camera", "telescope", "filters", "date_from", "date_to", "fits_key", "fits_op", "fits_val"]) {
+    for (const key of ["search", "camera", "telescope", "filters", "object_type", "date_from", "date_to", "hfr_min", "hfr_max", "fits_key", "fits_op", "fits_val"]) {
       clear[key] = undefined;
     }
     setSearchParams({ ...clear, ...p }, { replace: true });
