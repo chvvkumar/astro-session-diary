@@ -9,6 +9,7 @@ class GeneralSettings(BaseModel):
     include_calibration: bool = True
     filter_style: str = "solid"
     theme: str = "deep-space"
+    text_size: str = "medium"
 
 
 class FilterConfig(BaseModel):

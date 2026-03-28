@@ -3,7 +3,7 @@ import { useSettings, getFilterColorMap, getFilterAliasMap } from "../store/sett
 import type { SettingsResponse, GeneralSettings, FilterConfig, EquipmentConfig, DisplaySettings } from "../types";
 import type { Resource } from "solid-js";
 import type { FilterBadgeStyle } from "../utils/filterStyles";
-import { applyTheme, DEFAULT_THEME_ID } from "../themes";
+import { applyTheme, applyTextSize, DEFAULT_THEME_ID, DEFAULT_TEXT_SIZE } from "../themes";
 
 interface SettingsContextValue {
   settings: Resource<SettingsResponse | undefined>;
@@ -23,10 +23,15 @@ const SettingsContext = createContext<SettingsContextValue>();
 export const SettingsProvider: ParentComponent = (props) => {
   const store = useSettings();
 
-  // Apply theme whenever settings change
+  // Apply theme and text size whenever settings change
   createEffect(() => {
     const themeId = store.settings()?.general.theme ?? DEFAULT_THEME_ID;
     applyTheme(themeId);
+  });
+
+  createEffect(() => {
+    const sizeId = store.settings()?.general.text_size ?? DEFAULT_TEXT_SIZE;
+    applyTextSize(sizeId);
   });
 
   const value: SettingsContextValue = {

@@ -36,6 +36,7 @@ export const GeneralTab: Component = () => {
     include_calibration: true,
     filter_style: "solid",
     theme: "deep-space",
+    text_size: "medium",
   });
   const [saving, setSaving] = createSignal(false);
 

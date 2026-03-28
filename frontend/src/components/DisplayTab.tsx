@@ -1,7 +1,7 @@
 import { createSignal, createEffect, For, Show } from "solid-js";
 import { useSettingsContext } from "./SettingsProvider";
 import type { DisplaySettings, MetricGroupSettings } from "../types";
-import { THEMES, type ThemeMeta } from "../themes";
+import { THEMES, TEXT_SIZES, type ThemeMeta } from "../themes";
 
 const GROUP_META: { key: keyof DisplaySettings; label: string; fieldLabels: Record<string, string> }[] = [
   { key: "quality", label: "Quality Metrics", fieldLabels: { hfr: "HFR", hfr_stdev: "HFR StDev", fwhm: "FWHM", eccentricity: "Eccentricity", detected_stars: "Detected Stars" } },
@@ -18,6 +18,7 @@ export default function DisplayTab() {
   const [saving, setSaving] = createSignal(false);
   const [collapsed, setCollapsed] = createSignal<Record<string, boolean>>({});
   const [selectedTheme, setSelectedTheme] = createSignal<string>("deep-space");
+  const [selectedTextSize, setSelectedTextSize] = createSignal<string>("medium");
   const [themeSaving, setThemeSaving] = createSignal(false);
 
   createEffect(() => {
@@ -28,6 +29,11 @@ export default function DisplayTab() {
   createEffect(() => {
     const theme = ctx.settings()?.general.theme;
     if (theme) setSelectedTheme(theme);
+  });
+
+  createEffect(() => {
+    const size = ctx.settings()?.general.text_size;
+    if (size) setSelectedTextSize(size);
   });
 
   const toggleCollapsed = (key: string) => setCollapsed((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -70,6 +76,14 @@ export default function DisplayTab() {
     }
   };
 
+  const handleTextSizeChange = async (sizeId: string) => {
+    setSelectedTextSize(sizeId);
+    const current = ctx.settings()?.general;
+    if (current) {
+      await ctx.saveGeneral({ ...current, text_size: sizeId });
+    }
+  };
+
   return (
     <div class="space-y-6">
       {/* Theme Chooser */}
@@ -101,6 +115,28 @@ export default function DisplayTab() {
                 <div class="text-[10px] mt-0.5" style={{ color: theme.tokens["text-secondary"] }}>
                   {theme.description}
                 </div>
+              </button>
+            )}
+          </For>
+        </div>
+      </div>
+
+      {/* Text Size */}
+      <div class="space-y-3">
+        <h3 class="text-sm font-medium text-theme-text-primary">Text Size</h3>
+        <div class="flex gap-2">
+          <For each={TEXT_SIZES}>
+            {(size) => (
+              <button
+                type="button"
+                class={`px-4 py-2 rounded-lg text-sm transition-colors border ${
+                  selectedTextSize() === size.id
+                    ? "border-theme-accent bg-theme-accent text-white"
+                    : "border-theme-border bg-theme-surface text-theme-text-secondary hover:border-theme-border-em"
+                }`}
+                onClick={() => handleTextSizeChange(size.id)}
+              >
+                {size.label}
               </button>
             )}
           </For>

@@ -231,6 +231,21 @@ export const THEMES: ThemeMeta[] = [
 
 export const DEFAULT_THEME_ID = "deep-space";
 
+export interface TextSizePreset {
+  id: string;
+  label: string;
+  fontSize: string;
+}
+
+export const TEXT_SIZES: TextSizePreset[] = [
+  { id: "small", label: "Small", fontSize: "13px" },
+  { id: "medium", label: "Medium", fontSize: "14px" },
+  { id: "large", label: "Large", fontSize: "16px" },
+  { id: "x-large", label: "Extra Large", fontSize: "18px" },
+];
+
+export const DEFAULT_TEXT_SIZE = "medium";
+
 export function getThemeById(id: string): ThemeMeta {
   return THEMES.find((t) => t.id === id) ?? THEMES[0];
 }
@@ -241,4 +256,9 @@ export function applyTheme(themeId: string): void {
   for (const [token, value] of Object.entries(theme.tokens)) {
     root.style.setProperty(`--color-${token}`, value);
   }
+}
+
+export function applyTextSize(sizeId: string): void {
+  const preset = TEXT_SIZES.find((s) => s.id === sizeId) ?? TEXT_SIZES[1];
+  document.documentElement.style.fontSize = preset.fontSize;
 }

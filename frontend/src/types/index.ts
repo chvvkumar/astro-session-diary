@@ -352,6 +352,7 @@ export interface GeneralSettings {
   include_calibration: boolean;
   filter_style: string;
   theme: string;
+  text_size: string;
 }
 
 export interface FilterConfig {
