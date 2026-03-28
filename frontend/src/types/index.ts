@@ -113,6 +113,12 @@ export interface TargetDetailResponse {
   avg_detected_stars: number | null;
 }
 
+export interface FrameHighlight {
+  file_name: string;
+  median_hfr: number | null;
+  eccentricity: number | null;
+}
+
 export interface FilterDetail {
   filter_name: string;
   frame_count: number;
@@ -120,6 +126,8 @@ export interface FilterDetail {
   median_hfr: number | null;
   median_eccentricity: number | null;
   exposure_time: number | null;
+  best_frame: FrameHighlight | null;
+  worst_frame: FrameHighlight | null;
 }
 
 export interface SessionInsight {

@@ -44,6 +44,12 @@ class SessionOverview(BaseModel):
     median_guiding_rms_arcsec: float | None = None
 
 
+class FrameHighlight(BaseModel):
+    file_name: str
+    median_hfr: float | None = None
+    eccentricity: float | None = None
+
+
 class FilterDetail(BaseModel):
     filter_name: str
     frame_count: int
@@ -51,6 +57,8 @@ class FilterDetail(BaseModel):
     median_hfr: float | None = None
     median_eccentricity: float | None = None
     exposure_time: float | None = None
+    best_frame: FrameHighlight | None = None
+    worst_frame: FrameHighlight | None = None
 
 
 class SessionInsight(BaseModel):

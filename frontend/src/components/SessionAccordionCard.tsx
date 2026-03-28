@@ -140,64 +140,112 @@ const SessionAccordionCard: Component<{
           <Show when={props.detail}>
             {(detail) => (
               <div class="space-y-5 pt-4">
-                {/* Row 1: Thumbnail + Quality Metrics */}
+                {/* Unified session overview table */}
                 <div class="flex gap-4">
-                  <div class="w-48 flex-shrink-0">
+                  <div class="w-[110px] flex-shrink-0 flex items-center justify-center">
                     <ReferenceThumbnail url={detail().thumbnail_url} />
                   </div>
-                  <div class="flex-1 grid grid-cols-4 gap-2">
-                    <MetricCard label="Integration" value={formatHours(detail().integration_seconds)} color="text-blue-400" />
-                    <MetricCard label="Frames" value={String(detail().frame_count)} color="text-green-400" />
-                    <MetricCard
-                      label="Median HFR"
-                      value={detail().median_hfr?.toFixed(2) ?? "—"}
-                      color="text-amber-400"
-                      subtitle={detail().min_hfr !== null ? `min ${detail().min_hfr?.toFixed(1)} · max ${detail().max_hfr?.toFixed(1)}` : undefined}
-                    />
-                    <MetricCard
-                      label="Median Ecc"
-                      value={detail().median_eccentricity?.toFixed(2) ?? "—"}
-                      color="text-purple-400"
-                      subtitle={detail().min_eccentricity !== null ? `min ${detail().min_eccentricity?.toFixed(2)} · max ${detail().max_eccentricity?.toFixed(2)}` : undefined}
-                    />
-                    <MetricCard
-                      label="Sensor Temp"
-                      value={detail().sensor_temp !== null ? `${detail().sensor_temp?.toFixed(0)}°C` : "—"}
-                      color="text-sky-300"
-                      subtitle={detail().sensor_temp_min !== null ? `range: ${detail().sensor_temp_min?.toFixed(0)} to ${detail().sensor_temp_max?.toFixed(0)}°C` : undefined}
-                    />
-                    <MetricCard label="Gain" value={detail().gain !== null ? String(detail().gain) : "—"} color="text-green-300" />
-                    <MetricCard label="Exposure" value={detail().exposure_time !== null ? `${detail().exposure_time}s` : "—"} color="text-yellow-300" />
-                    <MetricCard
-                      label="Time Span"
-                      value={detail().first_frame_time ? formatTime(detail().first_frame_time!) : "—"}
-                      color="text-red-300"
-                      subtitle={detail().last_frame_time ? `→ ${formatTime(detail().last_frame_time!)}` : undefined}
-                    />
+                  <div class="flex-1 bg-astro-dark rounded-lg overflow-hidden">
+                    <table class="w-full text-xs border-collapse">
+                      {/* Header row */}
+                      <thead>
+                        <tr class="text-[9px] text-gray-500 uppercase tracking-wider">
+                          <th class="text-left px-4 pb-1.5 pt-2.5" colspan={2}>Session</th>
+                          <th class="border-l border-[#2a2a3a] px-0 w-px" rowSpan={99}></th>
+                          <th class="text-left px-3 pb-1.5 pt-2.5"></th>
+                          <th class="text-left px-1.5 pb-1.5 pt-2.5">Frames</th>
+                          <th class="text-right px-1.5 pb-1.5 pt-2.5">HFR</th>
+                          <th class="text-right px-1.5 pb-1.5 pt-2.5">Ecc</th>
+                          <th class="text-right px-1.5 pb-1.5 pt-2.5">Exp</th>
+                          <th class="border-l border-[#2a2a3a] px-0 w-px" rowSpan={99}></th>
+                          <th class="text-center px-2 pb-1.5 pt-2.5 text-green-400" colspan={3}>★ Best Frame</th>
+                          <th class="border-l border-[#2a2a3a] px-0 w-px" rowSpan={99}></th>
+                          <th class="text-center px-2 pb-1.5 pt-2.5 text-red-400" colspan={3}>▼ Worst Frame</th>
+                        </tr>
+                        {/* Sub-header for best/worst columns */}
+                        <tr class="text-[9px] text-gray-600 border-b border-[#2a2a3a]">
+                          <th class="px-4 pb-1.5" colspan={2}></th>
+                          <th class="px-3 pb-1.5"></th>
+                          <th class="px-1.5 pb-1.5"></th>
+                          <th class="px-1.5 pb-1.5"></th>
+                          <th class="px-1.5 pb-1.5"></th>
+                          <th class="px-1.5 pb-1.5"></th>
+                          <th class="text-left px-2 pb-1.5">File</th>
+                          <th class="text-right px-1.5 pb-1.5">HFR</th>
+                          <th class="text-right px-1.5 pb-1.5">Ecc</th>
+                          <th class="text-left px-2 pb-1.5">File</th>
+                          <th class="text-right px-1.5 pb-1.5">HFR</th>
+                          <th class="text-right px-1.5 pb-1.5">Ecc</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {/* Session metrics paired with filter rows */}
+                        {(() => {
+                          const metrics = [
+                            { label: "Integration", value: formatHours(detail().integration_seconds), color: "text-blue-400" },
+                            { label: "Frames", value: String(detail().frame_count), color: "text-green-400" },
+                            { label: "HFR", value: detail().median_hfr?.toFixed(2) ?? "—", color: "text-amber-400", subtitle: detail().min_hfr !== null ? `${detail().min_hfr?.toFixed(1)}–${detail().max_hfr?.toFixed(1)}` : undefined },
+                            { label: "Eccentricity", value: detail().median_eccentricity?.toFixed(2) ?? "—", color: "text-purple-400", subtitle: detail().min_eccentricity !== null ? `${detail().min_eccentricity?.toFixed(2)}–${detail().max_eccentricity?.toFixed(2)}` : undefined },
+                            { label: "Sensor Temp", value: detail().sensor_temp !== null ? `${detail().sensor_temp?.toFixed(0)}°C` : "—", color: "text-sky-300", subtitle: detail().sensor_temp_min !== null ? `${detail().sensor_temp_min?.toFixed(0)} to ${detail().sensor_temp_max?.toFixed(0)}` : undefined },
+                            { label: "Gain / Exp", value: `${detail().gain !== null ? detail().gain : "—"} / ${detail().exposure_time !== null ? detail().exposure_time + "s" : "—"}`, color: "text-green-300" },
+                            { label: "Time Span", value: detail().first_frame_time ? `${formatTime(detail().first_frame_time!)} → ${detail().last_frame_time ? formatTime(detail().last_frame_time!) : ""}` : "—", color: "text-red-300" },
+                          ];
+                          const filters = detail().filter_details;
+                          const maxRows = Math.max(metrics.length, filters.length);
+                          const rows = [];
+                          for (let i = 0; i < maxRows; i++) {
+                            const m = metrics[i];
+                            const f = filters[i];
+                            rows.push(
+                              <tr class="border-b border-[#1d1d2d]">
+                                {/* Session metric cells */}
+                                {m ? (
+                                  <>
+                                    <td class="py-1.5 px-4 text-gray-400">{m.label}</td>
+                                    <td class="py-1.5 px-4 text-right whitespace-nowrap">
+                                      <span class={`font-bold ${m.color}`}>{m.value}</span>
+                                      {m.subtitle && <span class="text-gray-600 text-[10px] ml-1.5">{m.subtitle}</span>}
+                                    </td>
+                                  </>
+                                ) : (
+                                  <>
+                                    <td class="py-1.5 px-4"></td>
+                                    <td class="py-1.5 px-4"></td>
+                                  </>
+                                )}
+                                {/* Filter cells */}
+                                {f ? (
+                                  <>
+                                    <td class="py-1.5 px-3 font-bold text-white">{f.filter_name}</td>
+                                    <td class="py-1.5 px-1.5 text-gray-400">{f.frame_count} · {formatHours(f.integration_seconds)}</td>
+                                    <td class="py-1.5 px-1.5 text-right text-amber-400">{f.median_hfr?.toFixed(1) ?? "—"}</td>
+                                    <td class="py-1.5 px-1.5 text-right text-purple-400">{f.median_eccentricity?.toFixed(2) ?? "—"}</td>
+                                    <td class="py-1.5 px-1.5 text-right text-gray-400">{f.exposure_time ?? "—"}s</td>
+                                    {/* Best frame */}
+                                    <td class="py-1.5 px-2 text-[10px] font-mono text-gray-400 max-w-[150px] truncate">{f.best_frame?.file_name ?? ""}</td>
+                                    <td class="py-1.5 px-1.5 text-right text-green-400 font-bold">{f.best_frame?.median_hfr?.toFixed(1) ?? ""}</td>
+                                    <td class="py-1.5 px-1.5 text-right text-green-400 font-bold">{f.best_frame?.eccentricity?.toFixed(2) ?? ""}</td>
+                                    {/* Worst frame */}
+                                    <td class="py-1.5 px-2 text-[10px] font-mono text-gray-400 max-w-[150px] truncate">{f.worst_frame?.file_name ?? ""}</td>
+                                    <td class="py-1.5 px-1.5 text-right text-red-400 font-bold">{f.worst_frame?.median_hfr?.toFixed(1) ?? ""}</td>
+                                    <td class="py-1.5 px-1.5 text-right text-red-400 font-bold">{f.worst_frame?.eccentricity?.toFixed(2) ?? ""}</td>
+                                  </>
+                                ) : (
+                                  <>
+                                    <td class="py-1.5" colspan={5}></td>
+                                    <td class="py-1.5" colspan={3}></td>
+                                    <td class="py-1.5" colspan={3}></td>
+                                  </>
+                                )}
+                              </tr>
+                            );
+                          }
+                          return rows;
+                        })()}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
-
-                {/* Row 2: Filter Breakdown */}
-                <Show when={detail().filter_details.length > 0}>
-                  <div>
-                    <h4 class="text-xs font-bold text-white mb-2">Filter Breakdown</h4>
-                    <div class="flex gap-3">
-                      <For each={detail().filter_details}>
-                        {(fd) => (
-                          <div class="flex-1 bg-astro-dark rounded-lg p-3 border border-[#2d2d2d]">
-                            <div class="flex justify-between text-xs">
-                              <span class="font-bold">{fd.filter_name}</span>
-                              <span class="text-astro-muted">{fd.frame_count} frames · {formatHours(fd.integration_seconds)}</span>
-                            </div>
-                            <div class="text-[11px] text-astro-muted mt-1">
-                              HFR {fd.median_hfr?.toFixed(1) ?? "—"} · Ecc {fd.median_eccentricity?.toFixed(2) ?? "—"} · {fd.exposure_time ?? "—"}s subs
-                            </div>
-                          </div>
-                        )}
-                      </For>
-                    </div>
-                  </div>
-                </Show>
 
                 {/* Row 3: Session Insights */}
                 <Show when={detail().insights.length > 0}>
@@ -447,21 +495,6 @@ const SessionAccordionCard: Component<{
 };
 
 // --- Helper components ---
-
-const MetricCard: Component<{
-  label: string;
-  value: string;
-  color: string;
-  subtitle?: string;
-}> = (props) => (
-  <div class="bg-astro-dark rounded-lg p-2.5 text-center">
-    <div class={`text-base font-bold ${props.color}`}>{props.value}</div>
-    <div class="text-[10px] text-astro-muted">{props.label}</div>
-    <Show when={props.subtitle}>
-      <div class="text-[9px] text-astro-muted/60 mt-0.5">{props.subtitle}</div>
-    </Show>
-  </div>
-);
 
 const SortHeader: Component<{
   label: string;
