@@ -1,5 +1,6 @@
 import { Component, For } from "solid-js";
 import type { SessionSummary } from "../types";
+import FilterBadges from "./FilterBadges";
 
 function formatHours(seconds: number): string {
   return (seconds / 3600).toFixed(1) + "h";
@@ -28,7 +29,9 @@ const SessionTable: Component<{
                 <td class="py-1.5 px-2 text-white">{session.session_date}</td>
                 <td class="py-1.5 px-2 text-right text-white">{session.frame_count}</td>
                 <td class="py-1.5 px-2 text-right text-white">{formatHours(session.integration_seconds)}</td>
-                <td class="py-1.5 px-2 text-astro-muted">{session.filters_used.join(", ")}</td>
+                <td class="py-1.5 px-2">
+                  <FilterBadges distribution={Object.fromEntries(session.filters_used.map(f => [f, 0]))} compact />
+                </td>
                 <td class="py-1.5 px-2 text-right">
                   <button
                     onClick={() => props.onDeepDive(session.session_date)}

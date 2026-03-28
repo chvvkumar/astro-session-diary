@@ -77,6 +77,7 @@ const TargetTable: Component<{ targets: TargetAggregation[] }> = (props) => {
           <th class={headerClass} onClick={() => toggleSort("lastSession")}>
             Last Session{arrow("lastSession")}
           </th>
+          <th class={plainHeaderClass}></th>
         </tr>
       </thead>
       <tbody>

@@ -56,6 +56,15 @@ const TargetRow: Component<{
           {props.target.equipment.join(" \u00b7 ")}
         </td>
         <td class="py-2.5 px-3 text-astro-accent text-xs">{lastSession()}</td>
+        <td class="py-2.5 px-3">
+          <A
+            href={`/targets/${encodeURIComponent(props.target.target_id)}?view=sessions`}
+            class="text-astro-muted hover:text-white text-[11px] transition-colors"
+            onClick={(e) => e.stopPropagation()}
+          >
+            Sessions
+          </A>
+        </td>
         <Show when={props.target.matched_sessions != null}>
           <td class="py-2.5 px-3 text-xs text-yellow-400">
             {props.target.matched_sessions} of {props.target.total_sessions} sessions
@@ -64,7 +73,7 @@ const TargetRow: Component<{
       </tr>
       <Show when={isOpen()}>
         <tr class="bg-[#1a1a1a]">
-          <td colspan="6" class="px-3 py-2">
+          <td colspan="7" class="px-3 py-2">
             <SessionTable
               sessions={props.target.sessions}
               onDeepDive={(date) => {

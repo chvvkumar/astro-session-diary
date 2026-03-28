@@ -3,6 +3,7 @@ import { A, useParams, useSearchParams } from "@solidjs/router";
 import { api } from "../api/client";
 import type { TargetDetailResponse, SessionDetail } from "../types";
 import SessionAccordionCard from "../components/SessionAccordionCard";
+import FilterBadges from "../components/FilterBadges";
 
 function formatHours(seconds: number): string {
   return (seconds / 3600).toFixed(1) + "h";
@@ -35,6 +36,8 @@ const TargetDetailPage: Component = () => {
   createEffect(() => {
     const td = targetDetail();
     if (!td) return;
+    // If ?view=sessions, start with all sessions collapsed (overview mode)
+    if (searchParams.view === "sessions") return;
     const sessionDate = searchParams.session;
     if (sessionDate && typeof sessionDate === "string") {
       setExpandedSessions(new Set([sessionDate]));
@@ -132,9 +135,9 @@ const TargetDetailPage: Component = () => {
                   </div>
                   <div class="text-[10px] text-astro-muted">Avg Eccentricity</div>
                 </div>
-                <div class="bg-astro-panel rounded-lg p-3 text-center">
-                  <div class="text-sm font-bold text-white">
-                    {detail().filters_used.join(" · ")}
+                <div class="bg-astro-panel rounded-lg p-3 text-center flex flex-col items-center justify-center">
+                  <div class="mb-1">
+                    <FilterBadges distribution={Object.fromEntries(detail().filters_used.map(f => [f, 0]))} compact />
                   </div>
                   <div class="text-[10px] text-astro-muted">Filters Used</div>
                 </div>

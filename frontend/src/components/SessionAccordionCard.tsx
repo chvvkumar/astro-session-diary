@@ -2,6 +2,7 @@ import { Component, Show, For, createSignal, createEffect } from "solid-js";
 import type { SessionOverview, SessionDetail, FrameRecord } from "../types";
 import ReferenceThumbnail from "./ReferenceThumbnail";
 import RawHeaderAccordion from "./RawHeaderAccordion";
+import FilterBadges from "./FilterBadges";
 
 function formatHours(seconds: number): string {
   return (seconds / 3600).toFixed(1) + "h";
@@ -85,17 +86,19 @@ const SessionAccordionCard: Component<{
             {props.session.camera ?? ""} · {props.session.telescope ?? ""}
           </span>
         </div>
-        <div class="flex gap-4 items-center text-xs">
-          <span class="text-blue-400">{formatHours(props.session.integration_seconds)}</span>
-          <span class="text-green-400">{props.session.frame_count} fr</span>
-          <span class="text-amber-400">
+        <div class="flex items-center text-xs">
+          <span class="text-blue-400 w-12 text-right">{formatHours(props.session.integration_seconds)}</span>
+          <span class="text-green-400 w-14 text-right">{props.session.frame_count} fr</span>
+          <span class="text-amber-400 w-16 text-right">
             HFR {props.session.median_hfr?.toFixed(1) ?? "—"}
           </span>
-          <span class="text-purple-400">
+          <span class="text-purple-400 w-16 text-right">
             Ecc {props.session.median_eccentricity?.toFixed(2) ?? "—"}
           </span>
-          <span class="text-white">{props.session.filters_used.join(" · ")}</span>
-          <span class="text-astro-muted">{props.isExpanded ? "▼" : "▶"}</span>
+          <span class="ml-3">
+            <FilterBadges distribution={Object.fromEntries(props.session.filters_used.map(f => [f, 0]))} compact />
+          </span>
+          <span class="text-astro-muted ml-3">{props.isExpanded ? "▼" : "▶"}</span>
         </div>
       </div>
 
