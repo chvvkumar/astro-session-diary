@@ -82,6 +82,8 @@ async def search_targets(
             Target.merged_into_id.is_(None),
             or_(
                 Target.primary_name.ilike(pattern),
+                Target.catalog_id.ilike(pattern),
+                Target.common_name.ilike(pattern),
                 aliases_str.ilike(pattern),
             ),
         )
@@ -111,7 +113,11 @@ async def search_targets(
     # Tier 2: Fuzzy trigram matches if we need more
     if len(results) < limit:
         remaining = limit - len(results)
-        searchable_text = func.concat(Target.primary_name, ' ', func.array_to_string(Target.aliases, ' '))
+        searchable_text = func.concat(
+            func.coalesce(Target.catalog_id, ''), ' ',
+            func.coalesce(Target.common_name, ''), ' ',
+            func.array_to_string(Target.aliases, ' '),
+        )
         fuzzy_score = func.similarity(searchable_text, q)
         fuzzy_query = (
             select(Target, fuzzy_score.label("score"))
@@ -369,11 +375,17 @@ async def list_targets_aggregated(
     if search:
         pattern = f"%{search}%"
         aliases_str = func.array_to_string(Target.aliases, ' ')
-        searchable_text = func.concat(Target.primary_name, ' ', aliases_str)
+        searchable_text = func.concat(
+            func.coalesce(Target.catalog_id, ''), ' ',
+            func.coalesce(Target.common_name, ''), ' ',
+            aliases_str,
+        )
         # Search in target name, aliases, OR OBJECT header for unresolved images
         base_filter.append(
             or_(
                 Target.primary_name.ilike(pattern),
+                Target.catalog_id.ilike(pattern),
+                Target.common_name.ilike(pattern),
                 aliases_str.ilike(pattern),
                 func.similarity(searchable_text, search) > 0.3,
                 Image.raw_headers["OBJECT"].astext.ilike(pattern),
