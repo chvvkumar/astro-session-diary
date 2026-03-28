@@ -86,23 +86,17 @@ const SessionAccordionCard: Component<{
             {props.session.camera ?? ""} · {props.session.telescope ?? ""}
           </span>
         </div>
-        <div class="flex items-center text-xs font-mono">
-          <span class="text-blue-400 w-[4.5rem] text-right">{formatHours(props.session.integration_seconds)}</span>
-          <span class="text-[#444] mx-1">|</span>
-          <span class="text-green-400 w-[3.5rem] text-right">{props.session.frame_count} fr</span>
-          <span class="text-[#444] mx-1">|</span>
-          <span class="text-amber-400 w-[5rem] text-right">
-            HFR {props.session.median_hfr?.toFixed(1) ?? "—"}
-          </span>
-          <span class="text-[#444] mx-1">|</span>
-          <span class="text-purple-400 w-[5.5rem] text-right">
-            Ecc {props.session.median_eccentricity?.toFixed(2) ?? "—"}
-          </span>
-          <span class="text-[#444] mx-1">|</span>
-          <span class="w-[8rem] flex justify-end">
-            <FilterBadges distribution={Object.fromEntries(props.session.filters_used.map(f => [f, 0]))} compact />
-          </span>
-          <span class="text-astro-muted ml-2">{props.isExpanded ? "▼" : "▶"}</span>
+        <div class="flex items-center text-xs whitespace-nowrap gap-2">
+          <span class="text-blue-400 tabular-nums w-10 text-right">{formatHours(props.session.integration_seconds)}</span>
+          <span class="text-[#333]">|</span>
+          <span class="text-green-400 tabular-nums w-12 text-right">{props.session.frame_count} fr</span>
+          <span class="text-[#333]">|</span>
+          <span class="text-amber-400 tabular-nums w-14 text-right">HFR {props.session.median_hfr?.toFixed(1) ?? "—"}</span>
+          <span class="text-[#333]">|</span>
+          <span class="text-purple-400 tabular-nums w-16 text-right">Ecc {props.session.median_eccentricity?.toFixed(2) ?? "—"}</span>
+          <span class="text-[#333]">|</span>
+          <FilterBadges distribution={Object.fromEntries(props.session.filters_used.map(f => [f, 0]))} compact />
+          <span class="text-astro-muted">{props.isExpanded ? "▼" : "▶"}</span>
         </div>
       </div>
 
