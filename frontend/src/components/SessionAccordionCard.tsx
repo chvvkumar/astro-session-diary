@@ -39,6 +39,9 @@ const SessionAccordionCard: Component<{
   detail: SessionDetail | null;
   autoScroll?: boolean;
   visibleColumns?: VisibleColumns;
+  showCheckbox?: boolean;
+  checked?: boolean;
+  onCheckChange?: () => void;
 }> = (props) => {
   let cardRef: HTMLDivElement | undefined;
   const { displaySettings } = useSettingsContext();
@@ -93,6 +96,16 @@ const SessionAccordionCard: Component<{
         }`}
         onClick={props.onToggle}
       >
+        <Show when={props.showCheckbox}>
+          <td class="py-3 pl-4 pr-1 w-8" onClick={(e) => e.stopPropagation()}>
+            <input
+              type="checkbox"
+              checked={props.checked}
+              onChange={props.onCheckChange}
+              class="w-3.5 h-3.5 rounded border-theme-border cursor-pointer"
+            />
+          </td>
+        </Show>
         <td class="py-3 px-4">
           <span class="font-bold text-theme-text-primary text-sm">{props.session.session_date}</span>
           <span class="text-theme-text-secondary ml-3">

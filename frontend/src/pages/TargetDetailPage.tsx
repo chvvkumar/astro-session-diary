@@ -226,6 +226,9 @@ const TargetDetailPage: Component = () => {
               <table class="w-full border-collapse">
                 <thead>
                   <tr class="text-[10px] text-theme-text-secondary uppercase tracking-wider">
+                    <Show when={targetChartExpanded()}>
+                      <th class="py-2 pl-4 pr-1 w-8"></th>
+                    </Show>
                     <th class="py-2 px-4 text-left font-medium">Date</th>
                     <th class="py-2 px-2 text-right font-medium"></th>
                     <th class="py-2 px-2 text-right font-medium">Frames</th>
@@ -251,36 +254,23 @@ const TargetDetailPage: Component = () => {
                 <tbody>
                   <For each={detail().sessions}>
                     {(session) => (
-                      <>
-                        <Show when={targetChartExpanded()}>
-                          <tr>
-                            <td colspan="12" class="p-0">
-                              <div class="flex items-center px-2 py-1">
-                                <input
-                                  type="checkbox"
-                                  checked={selectedChartDates().includes(session.session_date)}
-                                  onChange={() => toggleChartDate(session.session_date)}
-                                  class="w-3.5 h-3.5 rounded border-theme-border cursor-pointer"
-                                />
-                              </div>
-                            </td>
-                          </tr>
-                        </Show>
-                        <SessionAccordionCard
-                          session={session}
-                          isExpanded={expandedSessions().has(session.session_date)}
-                          onToggle={() => toggleSession(session.session_date)}
-                          detail={sessionCache()[session.session_date] ?? null}
-                          autoScroll={searchParams.session === session.session_date}
-                          visibleColumns={{
-                            hfr: visible("quality", "hfr"),
-                            eccentricity: visible("quality", "eccentricity"),
-                            fwhm: visible("quality", "fwhm"),
-                            detected_stars: visible("quality", "detected_stars"),
-                            guiding_rms: visible("guiding", "rms_total"),
-                          }}
-                        />
-                      </>
+                      <SessionAccordionCard
+                        session={session}
+                        isExpanded={expandedSessions().has(session.session_date)}
+                        onToggle={() => toggleSession(session.session_date)}
+                        detail={sessionCache()[session.session_date] ?? null}
+                        autoScroll={searchParams.session === session.session_date}
+                        visibleColumns={{
+                          hfr: visible("quality", "hfr"),
+                          eccentricity: visible("quality", "eccentricity"),
+                          fwhm: visible("quality", "fwhm"),
+                          detected_stars: visible("quality", "detected_stars"),
+                          guiding_rms: visible("guiding", "rms_total"),
+                        }}
+                        showCheckbox={targetChartExpanded()}
+                        checked={selectedChartDates().includes(session.session_date)}
+                        onCheckChange={() => toggleChartDate(session.session_date)}
+                      />
                     )}
                   </For>
                 </tbody>
