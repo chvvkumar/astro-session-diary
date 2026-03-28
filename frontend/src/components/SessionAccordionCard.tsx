@@ -122,7 +122,7 @@ const SessionAccordionCard: Component<{
             <FilterBadges distribution={Object.fromEntries(props.session.filters_used.map(f => [f, 0]))} compact nowrap />
           </div>
         </td>
-        <td class="py-3 px-2 text-astro-muted">{props.isExpanded ? "▼" : "▶"}</td>
+        <td class="py-3 px-2 text-astro-muted text-xs">{props.isExpanded ? "▼ Collapse" : "▶ Expand"}</td>
       </tr>
 
       {/* Expanded content row */}
