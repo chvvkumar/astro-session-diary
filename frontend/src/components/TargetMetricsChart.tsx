@@ -1,4 +1,4 @@
-import { createMemo, createSignal, Show } from "solid-js";
+import { createMemo, Show } from "solid-js";
 import { Line } from "solid-chartjs";
 import type { ChartData, ChartOptions } from "chart.js";
 import { Chart, CategoryScale, LinearScale, PointElement, LineElement, Tooltip } from "chart.js";
@@ -18,11 +18,11 @@ interface Props {
   onToggleDate: (date: string) => void;
   onSelectAll: () => void;
   onSelectNone: () => void;
+  expanded: boolean;
 }
 
 export default function TargetMetricsChart(props: Props) {
-  const { graphSettings, saveGraphSettings } = useSettingsContext();
-  const [expanded, setExpanded] = createSignal(graphSettings().target_chart_expanded);
+  const { graphSettings } = useSettingsContext();
 
   const allFilters = createMemo(() => {
     const filterSet = new Set<string>();
@@ -126,16 +126,10 @@ export default function TargetMetricsChart(props: Props) {
     },
   }));
 
-  const toggleExpanded = () => {
-    const next = !expanded();
-    setExpanded(next);
-    saveGraphSettings({ target_chart_expanded: next });
-  };
-
   const availableMetricKeys = () => TARGET_METRICS.map((m) => m.key);
 
   return (
-    <Show when={expanded()}>
+    <Show when={props.expanded}>
       <div class="border border-theme-border rounded-lg p-3 bg-theme-base mb-4">
         <div class="flex justify-between items-start gap-4 mb-2">
           <div class="flex items-center gap-3">

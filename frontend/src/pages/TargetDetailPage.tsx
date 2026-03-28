@@ -218,6 +218,7 @@ const TargetDetailPage: Component = () => {
                 onToggleDate={toggleChartDate}
                 onSelectAll={selectAllDates}
                 onSelectNone={selectNoDates}
+                expanded={targetChartExpanded()}
               />
             </Show>
 
