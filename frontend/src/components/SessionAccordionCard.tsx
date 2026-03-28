@@ -214,16 +214,16 @@ const SessionAccordionCard: Component<{
                 {/* Row 4: Per-Frame Table (collapsed) */}
                 <div>
                   <button
-                    class="flex justify-between items-center w-full text-xs mb-2"
+                    class="flex justify-between items-center w-full text-xs py-2.5 px-3 -mx-3 rounded-lg hover:bg-[#2a2a2a] transition-colors cursor-pointer"
                     onClick={() => setShowFrames(!showFrames())}
                   >
                     <span class="font-bold text-white">
                       Per-Frame Data <span class="text-astro-muted font-normal">({detail().frames.length} frames)</span>
                     </span>
-                    <span class="text-astro-muted">{showFrames() ? "▼ Collapse" : "▶ Expand"}</span>
+                    <span class="text-astro-muted">{showFrames() ? "▼" : "▶"}</span>
                   </button>
                   <Show when={showFrames()}>
-                    <div class="bg-astro-dark rounded-lg overflow-x-auto max-h-80 overflow-y-auto">
+                    <div class="bg-astro-dark rounded-lg overflow-x-auto max-h-[600px] overflow-y-auto mt-2">
                       <table class="w-full text-[11px]">
                         <thead class="sticky top-0 bg-astro-dark">
                           <tr class="text-astro-muted border-b border-[#2d2d2d]">
