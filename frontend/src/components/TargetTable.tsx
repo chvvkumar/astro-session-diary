@@ -15,15 +15,28 @@ function getDisplayName(t: TargetAggregation): string {
 }
 
 const TargetTable: Component<{ targets: TargetAggregation[] }> = (props) => {
-  const [sortKey, setSortKey] = createSignal<SortKey>("integration");
-  const [sortDir, setSortDir] = createSignal<SortDir>("desc");
+  const stored = localStorage.getItem("dashboard_sort");
+  const initial: { key: SortKey; dir: SortDir } = stored
+    ? JSON.parse(stored)
+    : { key: "integration", dir: "desc" };
+
+  const [sortKey, setSortKey] = createSignal<SortKey>(initial.key);
+  const [sortDir, setSortDir] = createSignal<SortDir>(initial.dir);
+
+  const persistSort = (key: SortKey, dir: SortDir) => {
+    localStorage.setItem("dashboard_sort", JSON.stringify({ key, dir }));
+  };
 
   const toggleSort = (key: SortKey) => {
     if (sortKey() === key) {
-      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+      const newDir = sortDir() === "asc" ? "desc" : "asc";
+      setSortDir(newDir);
+      persistSort(key, newDir);
     } else {
+      const newDir = key === "name" ? "asc" : "desc";
       setSortKey(key);
-      setSortDir(key === "name" ? "asc" : "desc");
+      setSortDir(newDir);
+      persistSort(key, newDir);
     }
   };
 
