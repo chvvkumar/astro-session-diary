@@ -359,6 +359,25 @@ async def list_targets_aggregated(
     object_type: str | None = Query(None),
     hfr_min: float | None = Query(None),
     hfr_max: float | None = Query(None),
+    # Metric range filters
+    fwhm_min: float | None = Query(None),
+    fwhm_max: float | None = Query(None),
+    eccentricity_min: float | None = Query(None),
+    eccentricity_max: float | None = Query(None),
+    stars_min: int | None = Query(None),
+    stars_max: int | None = Query(None),
+    guiding_rms_min: float | None = Query(None),
+    guiding_rms_max: float | None = Query(None),
+    adu_mean_min: float | None = Query(None),
+    adu_mean_max: float | None = Query(None),
+    focuser_temp_min: float | None = Query(None),
+    focuser_temp_max: float | None = Query(None),
+    ambient_temp_min: float | None = Query(None),
+    ambient_temp_max: float | None = Query(None),
+    humidity_min: float | None = Query(None),
+    humidity_max: float | None = Query(None),
+    airmass_min: float | None = Query(None),
+    airmass_max: float | None = Query(None),
 ):
     """Return targets with aggregated session data, filtered by query params."""
     filter_map, cam_map, tel_map = await load_alias_maps(session)
@@ -528,6 +547,15 @@ async def list_targets_aggregated(
                 "frame_count": 0,
                 "filters_set": set(),
                 "hfr_values": [],
+                "fwhm_values": [],
+                "eccentricity_values": [],
+                "stars_values": [],
+                "guiding_rms_values": [],
+                "adu_mean_values": [],
+                "focuser_temp_values": [],
+                "ambient_temp_values": [],
+                "humidity_values": [],
+                "airmass_values": [],
             }
         s = sessions_map[tid][date_key]
         s["integration_seconds"] += exp
@@ -536,6 +564,24 @@ async def list_targets_aggregated(
             s["filters_set"].add(f)
         if image.median_hfr is not None:
             s["hfr_values"].append(image.median_hfr)
+        if image.fwhm is not None:
+            s["fwhm_values"].append(image.fwhm)
+        if image.eccentricity is not None:
+            s["eccentricity_values"].append(image.eccentricity)
+        if image.detected_stars is not None:
+            s["stars_values"].append(image.detected_stars)
+        if image.guiding_rms_arcsec is not None:
+            s["guiding_rms_values"].append(image.guiding_rms_arcsec)
+        if image.adu_mean is not None:
+            s["adu_mean_values"].append(image.adu_mean)
+        if image.focuser_temp is not None:
+            s["focuser_temp_values"].append(image.focuser_temp)
+        if image.ambient_temp is not None:
+            s["ambient_temp_values"].append(image.ambient_temp)
+        if image.humidity is not None:
+            s["humidity_values"].append(image.humidity)
+        if image.airmass is not None:
+            s["airmass_values"].append(image.airmass)
 
     # Assemble response
     target_list = []
@@ -561,6 +607,150 @@ async def list_targets_aggregated(
         else:
             build_sessions = all_sessions
             matched_session_count = None
+
+        if fwhm_min is not None or fwhm_max is not None:
+            filtered_sessions = []
+            for s in build_sessions:
+                if not s["fwhm_values"]:
+                    continue
+                median_fwhm = statistics.median(s["fwhm_values"])
+                if fwhm_min is not None and median_fwhm < fwhm_min:
+                    continue
+                if fwhm_max is not None and median_fwhm > fwhm_max:
+                    continue
+                filtered_sessions.append(s)
+            if not filtered_sessions:
+                continue
+            build_sessions = filtered_sessions
+            matched_session_count = len(filtered_sessions)
+
+        if eccentricity_min is not None or eccentricity_max is not None:
+            filtered_sessions = []
+            for s in build_sessions:
+                if not s["eccentricity_values"]:
+                    continue
+                median_ecc = statistics.median(s["eccentricity_values"])
+                if eccentricity_min is not None and median_ecc < eccentricity_min:
+                    continue
+                if eccentricity_max is not None and median_ecc > eccentricity_max:
+                    continue
+                filtered_sessions.append(s)
+            if not filtered_sessions:
+                continue
+            build_sessions = filtered_sessions
+            matched_session_count = len(filtered_sessions)
+
+        if stars_min is not None or stars_max is not None:
+            filtered_sessions = []
+            for s in build_sessions:
+                if not s["stars_values"]:
+                    continue
+                median_stars = statistics.median(s["stars_values"])
+                if stars_min is not None and median_stars < stars_min:
+                    continue
+                if stars_max is not None and median_stars > stars_max:
+                    continue
+                filtered_sessions.append(s)
+            if not filtered_sessions:
+                continue
+            build_sessions = filtered_sessions
+            matched_session_count = len(filtered_sessions)
+
+        if guiding_rms_min is not None or guiding_rms_max is not None:
+            filtered_sessions = []
+            for s in build_sessions:
+                if not s["guiding_rms_values"]:
+                    continue
+                median_rms = statistics.median(s["guiding_rms_values"])
+                if guiding_rms_min is not None and median_rms < guiding_rms_min:
+                    continue
+                if guiding_rms_max is not None and median_rms > guiding_rms_max:
+                    continue
+                filtered_sessions.append(s)
+            if not filtered_sessions:
+                continue
+            build_sessions = filtered_sessions
+            matched_session_count = len(filtered_sessions)
+
+        if adu_mean_min is not None or adu_mean_max is not None:
+            filtered_sessions = []
+            for s in build_sessions:
+                if not s["adu_mean_values"]:
+                    continue
+                median_adu = statistics.median(s["adu_mean_values"])
+                if adu_mean_min is not None and median_adu < adu_mean_min:
+                    continue
+                if adu_mean_max is not None and median_adu > adu_mean_max:
+                    continue
+                filtered_sessions.append(s)
+            if not filtered_sessions:
+                continue
+            build_sessions = filtered_sessions
+            matched_session_count = len(filtered_sessions)
+
+        if focuser_temp_min is not None or focuser_temp_max is not None:
+            filtered_sessions = []
+            for s in build_sessions:
+                if not s["focuser_temp_values"]:
+                    continue
+                median_ft = statistics.median(s["focuser_temp_values"])
+                if focuser_temp_min is not None and median_ft < focuser_temp_min:
+                    continue
+                if focuser_temp_max is not None and median_ft > focuser_temp_max:
+                    continue
+                filtered_sessions.append(s)
+            if not filtered_sessions:
+                continue
+            build_sessions = filtered_sessions
+            matched_session_count = len(filtered_sessions)
+
+        if ambient_temp_min is not None or ambient_temp_max is not None:
+            filtered_sessions = []
+            for s in build_sessions:
+                if not s["ambient_temp_values"]:
+                    continue
+                median_at = statistics.median(s["ambient_temp_values"])
+                if ambient_temp_min is not None and median_at < ambient_temp_min:
+                    continue
+                if ambient_temp_max is not None and median_at > ambient_temp_max:
+                    continue
+                filtered_sessions.append(s)
+            if not filtered_sessions:
+                continue
+            build_sessions = filtered_sessions
+            matched_session_count = len(filtered_sessions)
+
+        if humidity_min is not None or humidity_max is not None:
+            filtered_sessions = []
+            for s in build_sessions:
+                if not s["humidity_values"]:
+                    continue
+                median_hum = statistics.median(s["humidity_values"])
+                if humidity_min is not None and median_hum < humidity_min:
+                    continue
+                if humidity_max is not None and median_hum > humidity_max:
+                    continue
+                filtered_sessions.append(s)
+            if not filtered_sessions:
+                continue
+            build_sessions = filtered_sessions
+            matched_session_count = len(filtered_sessions)
+
+        if airmass_min is not None or airmass_max is not None:
+            filtered_sessions = []
+            for s in build_sessions:
+                if not s["airmass_values"]:
+                    continue
+                median_am = statistics.median(s["airmass_values"])
+                if airmass_min is not None and median_am < airmass_min:
+                    continue
+                if airmass_max is not None and median_am > airmass_max:
+                    continue
+                filtered_sessions.append(s)
+            if not filtered_sessions:
+                continue
+            build_sessions = filtered_sessions
+            matched_session_count = len(filtered_sessions)
 
         sessions = []
         for s in build_sessions:
