@@ -35,6 +35,44 @@ class Image(Base):
     median_hfr: Mapped[float | None] = mapped_column(Float, nullable=True)
     eccentricity: Mapped[float | None] = mapped_column(Float, nullable=True)
 
+    # --- CSV metrics (N.I.N.A. ImageMetaData) ---
+    # Quality
+    hfr_stdev: Mapped[float | None] = mapped_column(Float, nullable=True)
+    fwhm: Mapped[float | None] = mapped_column(Float, nullable=True)
+    detected_stars: Mapped[int | None] = mapped_column(Integer, nullable=True)
+
+    # Guiding
+    guiding_rms_arcsec: Mapped[float | None] = mapped_column(Float, nullable=True)
+    guiding_rms_ra_arcsec: Mapped[float | None] = mapped_column(Float, nullable=True)
+    guiding_rms_dec_arcsec: Mapped[float | None] = mapped_column(Float, nullable=True)
+
+    # ADU
+    adu_stdev: Mapped[float | None] = mapped_column(Float, nullable=True)
+    adu_mean: Mapped[float | None] = mapped_column(Float, nullable=True)
+    adu_median: Mapped[float | None] = mapped_column(Float, nullable=True)
+    adu_min: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    adu_max: Mapped[int | None] = mapped_column(Integer, nullable=True)
+
+    # Focuser
+    focuser_position: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    focuser_temp: Mapped[float | None] = mapped_column(Float, nullable=True)
+
+    # Mount
+    rotator_position: Mapped[float | None] = mapped_column(Float, nullable=True)
+    pier_side: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    airmass: Mapped[float | None] = mapped_column(Float, nullable=True)
+
+    # Weather
+    ambient_temp: Mapped[float | None] = mapped_column(Float, nullable=True)
+    dew_point: Mapped[float | None] = mapped_column(Float, nullable=True)
+    humidity: Mapped[float | None] = mapped_column(Float, nullable=True)
+    pressure: Mapped[float | None] = mapped_column(Float, nullable=True)
+    wind_speed: Mapped[float | None] = mapped_column(Float, nullable=True)
+    wind_direction: Mapped[float | None] = mapped_column(Float, nullable=True)
+    wind_gust: Mapped[float | None] = mapped_column(Float, nullable=True)
+    cloud_cover: Mapped[float | None] = mapped_column(Float, nullable=True)
+    sky_quality: Mapped[float | None] = mapped_column(Float, nullable=True)
+
     # Complete raw FITS headers as JSONB
     raw_headers: Mapped[dict | None] = mapped_column(JSONB, nullable=True, default=dict)
 
