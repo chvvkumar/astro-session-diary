@@ -351,6 +351,7 @@ export interface GeneralSettings {
   default_page_size: number;
   include_calibration: boolean;
   filter_style: string;
+  theme: string;
 }
 
 export interface FilterConfig {

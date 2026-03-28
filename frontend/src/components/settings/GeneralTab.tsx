@@ -35,6 +35,7 @@ export const GeneralTab: Component = () => {
     default_page_size: 50,
     include_calibration: true,
     filter_style: "solid",
+    theme: "deep-space",
   });
   const [saving, setSaving] = createSignal(false);
 

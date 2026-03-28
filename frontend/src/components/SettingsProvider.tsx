@@ -1,8 +1,9 @@
-import { createContext, useContext, type ParentComponent } from "solid-js";
+import { createContext, useContext, createEffect, type ParentComponent } from "solid-js";
 import { useSettings, getFilterColorMap, getFilterAliasMap } from "../store/settings";
 import type { SettingsResponse, GeneralSettings, FilterConfig, EquipmentConfig, DisplaySettings } from "../types";
 import type { Resource } from "solid-js";
 import type { FilterBadgeStyle } from "../utils/filterStyles";
+import { applyTheme, DEFAULT_THEME_ID } from "../themes";
 
 interface SettingsContextValue {
   settings: Resource<SettingsResponse | undefined>;
@@ -21,6 +22,12 @@ const SettingsContext = createContext<SettingsContextValue>();
 
 export const SettingsProvider: ParentComponent = (props) => {
   const store = useSettings();
+
+  // Apply theme whenever settings change
+  createEffect(() => {
+    const themeId = store.settings()?.general.theme ?? DEFAULT_THEME_ID;
+    applyTheme(themeId);
+  });
 
   const value: SettingsContextValue = {
     settings: store.settings,

@@ -4,7 +4,7 @@ import { Toast } from "./components/Toast";
 
 const App: Component<ParentProps> = (props) => {
   return (
-    <div class="min-h-screen bg-astro-dark">
+    <div class="min-h-screen bg-theme-base text-theme-text-primary">
       <NavBar />
       {props.children}
       <Toast />

@@ -8,6 +8,7 @@ class GeneralSettings(BaseModel):
     default_page_size: int = 50
     include_calibration: bool = True
     filter_style: str = "solid"
+    theme: str = "deep-space"
 
 
 class FilterConfig(BaseModel):
