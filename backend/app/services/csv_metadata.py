@@ -1,11 +1,33 @@
 """Parse N.I.N.A. Session Metadata plugin CSV files (ImageMetaData.csv, WeatherData.csv)."""
 
 import csv
-import functools
 import math
 import ntpath
+import os
 from pathlib import Path
 from typing import Optional
+
+
+# mtime-aware cache: re-parses when the CSV file is modified
+_cache: dict[str, tuple[float, dict]] = {}  # path -> (mtime, parsed_data)
+
+
+def _cached_parse(csv_path: Path, parser):
+    """Return cached result if file hasn't changed, otherwise re-parse."""
+    key = str(csv_path)
+    try:
+        mtime = os.path.getmtime(csv_path)
+    except OSError:
+        _cache.pop(key, None)
+        return {}
+
+    cached = _cache.get(key)
+    if cached and cached[0] == mtime:
+        return cached[1]
+
+    result = parser(csv_path)
+    _cache[key] = (mtime, result)
+    return result
 
 
 def _float_or_none(value: str) -> Optional[float]:
@@ -75,17 +97,8 @@ def _extract_filename(filepath: str) -> str:
     return ntpath.basename(filepath)
 
 
-@functools.lru_cache(maxsize=128)
-def parse_image_metadata_csv(directory: Path) -> dict[str, dict]:
-    """Parse ImageMetaData.csv from the given directory.
-
-    Returns a dict keyed by filename (last segment of the FilePath column).
-    NaN values and HFR == 0.0 are converted to None.
-    """
-    csv_path = Path(directory) / "ImageMetaData.csv"
-    if not csv_path.exists():
-        return {}
-
+def _parse_image_csv(csv_path: Path) -> dict[str, dict]:
+    """Parse a single ImageMetaData.csv file."""
     result: dict[str, dict] = {}
 
     with open(csv_path, newline="", encoding="utf-8-sig") as f:
@@ -116,17 +129,8 @@ def parse_image_metadata_csv(directory: Path) -> dict[str, dict]:
     return result
 
 
-@functools.lru_cache(maxsize=128)
-def parse_weather_csv(directory: Path) -> dict[str, dict]:
-    """Parse WeatherData.csv from the given directory.
-
-    Returns a dict keyed by ExposureStartUTC (string).
-    NaN values are converted to None.
-    """
-    csv_path = Path(directory) / "WeatherData.csv"
-    if not csv_path.exists():
-        return {}
-
+def _parse_weather_csv(csv_path: Path) -> dict[str, dict]:
+    """Parse a single WeatherData.csv file."""
     result: dict[str, dict] = {}
 
     with open(csv_path, newline="", encoding="utf-8-sig") as f:
@@ -146,6 +150,28 @@ def parse_weather_csv(directory: Path) -> dict[str, dict]:
             result[key] = entry
 
     return result
+
+
+def parse_image_metadata_csv(directory: Path) -> dict[str, dict]:
+    """Parse ImageMetaData.csv from the given directory.
+
+    Returns a dict keyed by filename (last segment of the FilePath column).
+    NaN values and HFR == 0.0 are converted to None.
+    Results are cached and automatically invalidated when the file is modified.
+    """
+    csv_path = Path(directory) / "ImageMetaData.csv"
+    return _cached_parse(csv_path, _parse_image_csv)
+
+
+def parse_weather_csv(directory: Path) -> dict[str, dict]:
+    """Parse WeatherData.csv from the given directory.
+
+    Returns a dict keyed by ExposureStartUTC (string).
+    NaN values are converted to None.
+    Results are cached and automatically invalidated when the file is modified.
+    """
+    csv_path = Path(directory) / "WeatherData.csv"
+    return _cached_parse(csv_path, _parse_weather_csv)
 
 
 def get_csv_metrics(fits_path: Path) -> dict:

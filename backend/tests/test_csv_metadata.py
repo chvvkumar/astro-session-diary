@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 
+from app.services import csv_metadata
 from app.services.csv_metadata import (
     get_csv_metrics,
     parse_image_metadata_csv,
@@ -13,12 +14,10 @@ from app.services.csv_metadata import (
 
 @pytest.fixture(autouse=True)
 def clear_caches():
-    """Clear LRU caches between tests so temp dirs don't collide."""
-    parse_image_metadata_csv.cache_clear()
-    parse_weather_csv.cache_clear()
+    """Clear mtime cache between tests so temp dirs don't collide."""
+    csv_metadata._cache.clear()
     yield
-    parse_image_metadata_csv.cache_clear()
-    parse_weather_csv.cache_clear()
+    csv_metadata._cache.clear()
 
 
 def _write_csv(directory: Path, filename: str, header: str, rows: list[str]):
