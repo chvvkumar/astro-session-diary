@@ -62,6 +62,17 @@ export interface SessionDetail {
   filter_details: FilterDetail[];
   insights: SessionInsight[];
   frames: FrameRecord[];
+  median_fwhm: number | null;
+  min_fwhm: number | null;
+  max_fwhm: number | null;
+  median_guiding_rms: number | null;
+  min_guiding_rms: number | null;
+  max_guiding_rms: number | null;
+  median_detected_stars: number | null;
+  median_airmass: number | null;
+  median_ambient_temp: number | null;
+  median_humidity: number | null;
+  median_cloud_cover: number | null;
 }
 
 // === Target Detail (Deep Dive Page) ===
@@ -75,6 +86,9 @@ export interface SessionOverview {
   filters_used: string[];
   camera: string | null;
   telescope: string | null;
+  median_fwhm: number | null;
+  median_detected_stars: number | null;
+  median_guiding_rms_arcsec: number | null;
 }
 
 export interface TargetDetailResponse {
@@ -94,6 +108,9 @@ export interface TargetDetailResponse {
   last_session_date: string;
   session_count: number;
   sessions: SessionOverview[];
+  avg_fwhm: number | null;
+  avg_guiding_rms_arcsec: number | null;
+  avg_detected_stars: number | null;
 }
 
 export interface FilterDetail {
@@ -119,6 +136,31 @@ export interface FrameRecord {
   sensor_temp: number | null;
   gain: number | null;
   file_name: string;
+  hfr_stdev: number | null;
+  fwhm: number | null;
+  detected_stars: number | null;
+  guiding_rms_arcsec: number | null;
+  guiding_rms_ra_arcsec: number | null;
+  guiding_rms_dec_arcsec: number | null;
+  adu_stdev: number | null;
+  adu_mean: number | null;
+  adu_median: number | null;
+  adu_min: number | null;
+  adu_max: number | null;
+  focuser_position: number | null;
+  focuser_temp: number | null;
+  rotator_position: number | null;
+  pier_side: string | null;
+  airmass: number | null;
+  ambient_temp: number | null;
+  dew_point: number | null;
+  humidity: number | null;
+  pressure: number | null;
+  wind_speed: number | null;
+  wind_direction: number | null;
+  wind_gust: number | null;
+  cloud_cover: number | null;
+  sky_quality: number | null;
 }
 
 // === Equipment ===

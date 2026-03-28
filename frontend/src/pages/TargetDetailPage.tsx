@@ -4,6 +4,8 @@ import { api } from "../api/client";
 import type { TargetDetailResponse, SessionDetail } from "../types";
 import SessionAccordionCard from "../components/SessionAccordionCard";
 import FilterBadges from "../components/FilterBadges";
+import { useSettingsContext } from "../components/SettingsProvider";
+import { isFieldVisible } from "../utils/displaySettings";
 
 function formatHours(seconds: number): string {
   return (seconds / 3600).toFixed(1) + "h";
@@ -17,6 +19,9 @@ function formatCoord(val: number | null, label: string): string {
 const TargetDetailPage: Component = () => {
   const params = useParams<{ targetId: string }>();
   const [searchParams] = useSearchParams();
+  const { displaySettings } = useSettingsContext();
+  const visible = (group: Parameters<typeof isFieldVisible>[1], field: string) =>
+    isFieldVisible(displaySettings(), group, field);
 
   const [targetDetail] = createResource(
     () => params.targetId,
@@ -114,28 +119,56 @@ const TargetDetailPage: Component = () => {
               </div>
 
               {/* Cumulative stats bar */}
-              <div class="grid grid-cols-5 gap-3 mt-4">
-                <div class="bg-astro-panel rounded-lg p-3 text-center">
+              <div class="flex flex-wrap gap-3 mt-4">
+                <div class="bg-astro-panel rounded-lg p-3 text-center min-w-[100px]">
                   <div class="text-lg font-bold text-blue-400">{formatHours(detail().total_integration_seconds)}</div>
                   <div class="text-[10px] text-astro-muted">Total Integration</div>
                 </div>
-                <div class="bg-astro-panel rounded-lg p-3 text-center">
+                <div class="bg-astro-panel rounded-lg p-3 text-center min-w-[100px]">
                   <div class="text-lg font-bold text-green-400">{detail().total_frames.toLocaleString()}</div>
                   <div class="text-[10px] text-astro-muted">Total Frames</div>
                 </div>
-                <div class="bg-astro-panel rounded-lg p-3 text-center">
-                  <div class="text-lg font-bold text-amber-400">
-                    {detail().avg_hfr?.toFixed(2) ?? "—"}
+                <Show when={visible("quality", "hfr")}>
+                  <div class="bg-astro-panel rounded-lg p-3 text-center min-w-[100px]">
+                    <div class="text-lg font-bold text-amber-400">
+                      {detail().avg_hfr?.toFixed(2) ?? "—"}
+                    </div>
+                    <div class="text-[10px] text-astro-muted">Avg HFR</div>
                   </div>
-                  <div class="text-[10px] text-astro-muted">Avg HFR</div>
-                </div>
-                <div class="bg-astro-panel rounded-lg p-3 text-center">
-                  <div class="text-lg font-bold text-purple-400">
-                    {detail().avg_eccentricity?.toFixed(2) ?? "—"}
+                </Show>
+                <Show when={visible("quality", "eccentricity")}>
+                  <div class="bg-astro-panel rounded-lg p-3 text-center min-w-[100px]">
+                    <div class="text-lg font-bold text-purple-400">
+                      {detail().avg_eccentricity?.toFixed(2) ?? "—"}
+                    </div>
+                    <div class="text-[10px] text-astro-muted">Avg Eccentricity</div>
                   </div>
-                  <div class="text-[10px] text-astro-muted">Avg Eccentricity</div>
-                </div>
-                <div class="bg-astro-panel rounded-lg p-3 text-center flex flex-col items-center justify-center">
+                </Show>
+                <Show when={visible("quality", "fwhm")}>
+                  <div class="bg-astro-panel rounded-lg p-3 text-center min-w-[100px]">
+                    <div class="text-lg font-bold text-sky-400">
+                      {detail().avg_fwhm?.toFixed(2) ?? "—"}
+                    </div>
+                    <div class="text-[10px] text-astro-muted">Avg FWHM</div>
+                  </div>
+                </Show>
+                <Show when={visible("quality", "detected_stars")}>
+                  <div class="bg-astro-panel rounded-lg p-3 text-center min-w-[100px]">
+                    <div class="text-lg font-bold text-teal-400">
+                      {detail().avg_detected_stars?.toFixed(0) ?? "—"}
+                    </div>
+                    <div class="text-[10px] text-astro-muted">Avg Stars</div>
+                  </div>
+                </Show>
+                <Show when={visible("guiding", "rms_total")}>
+                  <div class="bg-astro-panel rounded-lg p-3 text-center min-w-[100px]">
+                    <div class="text-lg font-bold text-rose-400">
+                      {detail().avg_guiding_rms_arcsec !== null ? `${detail().avg_guiding_rms_arcsec?.toFixed(2)}"` : "—"}
+                    </div>
+                    <div class="text-[10px] text-astro-muted">Avg Guide RMS</div>
+                  </div>
+                </Show>
+                <div class="bg-astro-panel rounded-lg p-3 text-center flex flex-col items-center justify-center min-w-[100px]">
                   <div class="mb-1">
                     <FilterBadges distribution={Object.fromEntries(detail().filters_used.map(f => [f, 0]))} compact />
                   </div>
@@ -152,8 +185,21 @@ const TargetDetailPage: Component = () => {
                     <th class="py-2 px-4 text-left font-medium">Date</th>
                     <th class="py-2 px-2 text-right font-medium"></th>
                     <th class="py-2 px-2 text-right font-medium">Frames</th>
-                    <th class="py-2 px-2 text-right font-medium">HFR</th>
-                    <th class="py-2 px-2 text-right font-medium">Eccentricity</th>
+                    <Show when={visible("quality", "hfr")}>
+                      <th class="py-2 px-2 text-right font-medium">HFR</th>
+                    </Show>
+                    <Show when={visible("quality", "eccentricity")}>
+                      <th class="py-2 px-2 text-right font-medium">Eccentricity</th>
+                    </Show>
+                    <Show when={visible("quality", "fwhm")}>
+                      <th class="py-2 px-2 text-right font-medium">FWHM</th>
+                    </Show>
+                    <Show when={visible("quality", "detected_stars")}>
+                      <th class="py-2 px-2 text-right font-medium">Stars</th>
+                    </Show>
+                    <Show when={visible("guiding", "rms_total")}>
+                      <th class="py-2 px-2 text-right font-medium">Guide RMS</th>
+                    </Show>
                     <th class="py-2 px-2 text-right font-medium">Filters</th>
                     <th class="py-2 px-2"></th>
                   </tr>
@@ -167,6 +213,13 @@ const TargetDetailPage: Component = () => {
                         onToggle={() => toggleSession(session.session_date)}
                         detail={sessionCache()[session.session_date] ?? null}
                         autoScroll={searchParams.session === session.session_date}
+                        visibleColumns={{
+                          hfr: visible("quality", "hfr"),
+                          eccentricity: visible("quality", "eccentricity"),
+                          fwhm: visible("quality", "fwhm"),
+                          detected_stars: visible("quality", "detected_stars"),
+                          guiding_rms: visible("guiding", "rms_total"),
+                        }}
                       />
                     )}
                   </For>
