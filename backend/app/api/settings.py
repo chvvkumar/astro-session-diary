@@ -12,6 +12,7 @@ from app.schemas.settings import (
     GeneralSettings, FilterConfig, EquipmentConfig, EquipmentAliases,
     SettingsResponse, SuggestionsResponse, SuggestionGroup,
     DiscoveredItem, DiscoveredResponse,
+    DisplaySettings, default_display_settings,
 )
 
 router = APIRouter(prefix="/settings", tags=["settings"])
@@ -74,11 +75,14 @@ def _row_to_response(row: UserSettings) -> SettingsResponse:
     }
     equipment = EquipmentConfig(cameras=eq_cameras, telescopes=eq_telescopes)
 
+    display = DisplaySettings(**row.display) if row.display else default_display_settings()
+
     return SettingsResponse(
         general=general,
         filters=filters,
         equipment=equipment,
         dismissed_suggestions=row.dismissed_suggestions or [],
+        display=display,
     )
 
 
@@ -244,6 +248,17 @@ async def update_dismissed_suggestions(
     row.dismissed_suggestions = [sorted(group) for group in payload]
     await session.commit()
     await session.refresh(row)
+    return _row_to_response(row)
+
+
+@router.put("/display")
+async def update_display(
+    payload: DisplaySettings,
+    session: AsyncSession = Depends(get_session),
+):
+    row = await _get_or_create_settings(session)
+    row.display = payload.model_dump()
+    await session.commit()
     return _row_to_response(row)
 
 
