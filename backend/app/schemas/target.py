@@ -30,6 +30,15 @@ class SessionSummary(BaseModel):
     filters_used: list[str]
 
 
+class FilterMedian(BaseModel):
+    filter_name: str
+    median_hfr: float | None = None
+    median_eccentricity: float | None = None
+    median_fwhm: float | None = None
+    median_guiding_rms: float | None = None
+    median_detected_stars: float | None = None
+
+
 class SessionOverview(BaseModel):
     session_date: str
     integration_seconds: float
@@ -42,6 +51,7 @@ class SessionOverview(BaseModel):
     median_fwhm: float | None = None
     median_detected_stars: float | None = None
     median_guiding_rms_arcsec: float | None = None
+    filter_medians: list[FilterMedian] = []
 
 
 class FrameHighlight(BaseModel):
@@ -57,8 +67,6 @@ class FilterDetail(BaseModel):
     median_hfr: float | None = None
     median_eccentricity: float | None = None
     exposure_time: float | None = None
-    best_frame: FrameHighlight | None = None
-    worst_frame: FrameHighlight | None = None
 
 
 class SessionInsight(BaseModel):

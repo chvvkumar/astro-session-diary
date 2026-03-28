@@ -157,25 +157,11 @@ const SessionAccordionCard: Component<{
                         <col style={{ width: "40px" }} />
                         <col style={{ width: "40px" }} />
                         <col style={{ width: "40px" }} />
-                        {/* Best: file, hfr, ecc */}
-                        <col />
-                        <col style={{ width: "40px" }} />
-                        <col style={{ width: "40px" }} />
-                        {/* Worst: file, hfr, ecc */}
-                        <col />
-                        <col style={{ width: "40px" }} />
-                        <col style={{ width: "40px" }} />
                       </colgroup>
                       <thead>
                         <tr class="text-[9px] text-theme-text-tertiary uppercase tracking-wider border-b border-theme-border">
                           <th class="text-left px-3 pb-1.5 pt-2.5" colspan={2}>Session</th>
                           <th class="text-left px-2 pb-1.5 pt-2.5 border-l border-theme-border" colspan={5}>Filters</th>
-                          <th class="text-left px-2 pb-1.5 pt-2.5 border-l border-theme-border" colspan={3}>
-                            <span class="text-metric-best">★ Best Frame</span>
-                          </th>
-                          <th class="text-left px-2 pb-1.5 pt-2.5 border-l border-theme-border" colspan={3}>
-                            <span class="text-metric-worst">▼ Worst Frame</span>
-                          </th>
                         </tr>
                         <tr class="text-[9px] text-theme-text-tertiary border-b border-theme-border">
                           <th class="px-3 pb-1"></th>
@@ -185,12 +171,6 @@ const SessionAccordionCard: Component<{
                           <th class="px-2 pb-1 text-right">HFR</th>
                           <th class="px-2 pb-1 text-right">Ecc</th>
                           <th class="px-2 pb-1 text-right">Exp</th>
-                          <th class="px-2 pb-1 text-left border-l border-theme-border">File</th>
-                          <th class="px-2 pb-1 text-right">HFR</th>
-                          <th class="px-2 pb-1 text-right">Ecc</th>
-                          <th class="px-2 pb-1 text-left border-l border-theme-border">File</th>
-                          <th class="px-2 pb-1 text-right">HFR</th>
-                          <th class="px-2 pb-1 text-right">Ecc</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -233,18 +213,10 @@ const SessionAccordionCard: Component<{
                                     <td class="py-1.5 px-2 text-right text-metric-hfr">{f.median_hfr?.toFixed(1) ?? "—"}</td>
                                     <td class="py-1.5 px-2 text-right text-metric-eccentricity">{f.median_eccentricity?.toFixed(2) ?? "—"}</td>
                                     <td class="py-1.5 px-2 text-right text-theme-text-secondary">{f.exposure_time ?? "—"}s</td>
-                                    <td class="py-1.5 px-2 text-[10px] font-mono text-theme-text-secondary truncate border-l border-theme-border">{f.best_frame?.file_name ?? ""}</td>
-                                    <td class="py-1.5 px-2 text-right text-metric-best font-bold">{f.best_frame?.median_hfr?.toFixed(1) ?? ""}</td>
-                                    <td class="py-1.5 px-2 text-right text-metric-best font-bold">{f.best_frame?.eccentricity?.toFixed(2) ?? ""}</td>
-                                    <td class="py-1.5 px-2 text-[10px] font-mono text-theme-text-secondary truncate border-l border-theme-border">{f.worst_frame?.file_name ?? ""}</td>
-                                    <td class="py-1.5 px-2 text-right text-metric-worst font-bold">{f.worst_frame?.median_hfr?.toFixed(1) ?? ""}</td>
-                                    <td class="py-1.5 px-2 text-right text-metric-worst font-bold">{f.worst_frame?.eccentricity?.toFixed(2) ?? ""}</td>
                                   </>
                                 ) : (
                                   <>
                                     <td class="py-1.5 border-l border-theme-border" colspan={5}></td>
-                                    <td class="py-1.5 border-l border-theme-border" colspan={3}></td>
-                                    <td class="py-1.5 border-l border-theme-border" colspan={3}></td>
                                   </>
                                 )}
                               </tr>

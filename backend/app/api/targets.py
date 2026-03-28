@@ -14,7 +14,7 @@ from app.services.normalization import load_alias_maps, normalize_filter, normal
 from app.schemas.target import (
     TargetAggregationResponse, TargetAggregation, SessionSummary,
     AggregateStats, EquipmentResponse, SessionDetailResponse,
-    TargetDetailResponse, SessionOverview, FilterDetail, FrameHighlight, SessionInsight, FrameRecord,
+    TargetDetailResponse, SessionOverview, FilterDetail, FilterMedian, SessionInsight, FrameRecord,
     TargetSearchResultFuzzy, ObjectTypeCount,
 )
 
@@ -303,6 +303,30 @@ async def get_target_detail(
         sess_guiding_rms = [i.guiding_rms_arcsec for i in sess_images if i.guiding_rms_arcsec is not None]
         sess_filters = sorted({normalize_filter(i.filter_used, filter_map) for i in sess_images if i.filter_used})
         sess_exp = sum(i.exposure_time or 0 for i in sess_images)
+
+        # Per-filter medians for chart overlay
+        filter_groups_sess: dict[str, list] = defaultdict(list)
+        for img in sess_images:
+            f = normalize_filter(img.filter_used, filter_map)
+            if f:
+                filter_groups_sess[f].append(img)
+
+        sess_filter_medians = []
+        for fname, fimages in sorted(filter_groups_sess.items()):
+            f_hfr = [i.median_hfr for i in fimages if i.median_hfr is not None]
+            f_ecc = [i.eccentricity for i in fimages if i.eccentricity is not None]
+            f_fwhm = [i.fwhm for i in fimages if i.fwhm is not None]
+            f_guiding = [i.guiding_rms_arcsec for i in fimages if i.guiding_rms_arcsec is not None]
+            f_stars = [i.detected_stars for i in fimages if i.detected_stars is not None]
+            sess_filter_medians.append(FilterMedian(
+                filter_name=fname,
+                median_hfr=statistics.median(f_hfr) if f_hfr else None,
+                median_eccentricity=statistics.median(f_ecc) if f_ecc else None,
+                median_fwhm=statistics.median(f_fwhm) if f_fwhm else None,
+                median_guiding_rms=statistics.median(f_guiding) if f_guiding else None,
+                median_detected_stars=statistics.median(f_stars) if f_stars else None,
+            ))
+
         session_overviews.append(SessionOverview(
             session_date=date_key,
             integration_seconds=sess_exp,
@@ -315,6 +339,7 @@ async def get_target_detail(
             median_fwhm=statistics.median(sess_fwhm) if sess_fwhm else None,
             median_detected_stars=statistics.median(sess_detected_stars) if sess_detected_stars else None,
             median_guiding_rms_arcsec=statistics.median(sess_guiding_rms) if sess_guiding_rms else None,
+            filter_medians=sess_filter_medians,
         ))
 
     sorted_dates = sorted(sessions_map.keys())
@@ -993,22 +1018,6 @@ async def get_session_detail(
         f_hfr = [i.median_hfr for i in fimages if i.median_hfr is not None]
         f_ecc = [i.eccentricity for i in fimages if i.eccentricity is not None]
         f_exp = sum(i.exposure_time or 0 for i in fimages)
-        hfr_frames = [i for i in fimages if i.median_hfr is not None]
-        best_frame = None
-        worst_frame = None
-        if hfr_frames:
-            best = min(hfr_frames, key=lambda i: i.median_hfr)
-            worst = max(hfr_frames, key=lambda i: i.median_hfr)
-            best_frame = FrameHighlight(
-                file_name=best.file_name,
-                median_hfr=best.median_hfr,
-                eccentricity=best.eccentricity,
-            )
-            worst_frame = FrameHighlight(
-                file_name=worst.file_name,
-                median_hfr=worst.median_hfr,
-                eccentricity=worst.eccentricity,
-            )
         filter_details.append(FilterDetail(
             filter_name=fname,
             frame_count=len(fimages),
@@ -1016,8 +1025,6 @@ async def get_session_detail(
             median_hfr=statistics.median(f_hfr) if f_hfr else None,
             median_eccentricity=statistics.median(f_ecc) if f_ecc else None,
             exposure_time=fimages[0].exposure_time,
-            best_frame=best_frame,
-            worst_frame=worst_frame,
         ))
 
     frames = []

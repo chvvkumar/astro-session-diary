@@ -77,6 +77,15 @@ export interface SessionDetail {
 
 // === Target Detail (Deep Dive Page) ===
 
+export interface FilterMedian {
+  filter_name: string;
+  median_hfr: number | null;
+  median_eccentricity: number | null;
+  median_fwhm: number | null;
+  median_guiding_rms: number | null;
+  median_detected_stars: number | null;
+}
+
 export interface SessionOverview {
   session_date: string;
   integration_seconds: number;
@@ -89,6 +98,7 @@ export interface SessionOverview {
   median_fwhm: number | null;
   median_detected_stars: number | null;
   median_guiding_rms_arcsec: number | null;
+  filter_medians: FilterMedian[];
 }
 
 export interface TargetDetailResponse {
@@ -113,12 +123,6 @@ export interface TargetDetailResponse {
   avg_detected_stars: number | null;
 }
 
-export interface FrameHighlight {
-  file_name: string;
-  median_hfr: number | null;
-  eccentricity: number | null;
-}
-
 export interface FilterDetail {
   filter_name: string;
   frame_count: number;
@@ -126,8 +130,6 @@ export interface FilterDetail {
   median_hfr: number | null;
   median_eccentricity: number | null;
   exposure_time: number | null;
-  best_frame: FrameHighlight | null;
-  worst_frame: FrameHighlight | null;
 }
 
 export interface SessionInsight {
@@ -369,12 +371,20 @@ export interface EquipmentConfig {
   telescopes: Record<string, EquipmentAliases>;
 }
 
+export interface GraphSettings {
+  enabled_metrics: string[];
+  enabled_filters: string[];
+  session_chart_expanded: boolean;
+  target_chart_expanded: boolean;
+}
+
 export interface SettingsResponse {
   general: GeneralSettings;
   filters: Record<string, FilterConfig>;
   equipment: EquipmentConfig;
   dismissed_suggestions: string[][];
   display: DisplaySettings;
+  graph: GraphSettings;
 }
 
 export interface SuggestionGroup {
