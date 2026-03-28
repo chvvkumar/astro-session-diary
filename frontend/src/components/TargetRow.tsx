@@ -59,7 +59,7 @@ const TargetRow: Component<{
         <td class="py-2.5 px-3">
           <A
             href={`/targets/${encodeURIComponent(props.target.target_id)}?view=sessions`}
-            class="text-astro-muted hover:text-white text-[11px] transition-colors"
+            class="px-2.5 py-1 border border-gray-600 rounded text-[11px] text-astro-muted hover:text-white hover:border-astro-accent transition-colors"
             onClick={(e) => e.stopPropagation()}
           >
             Sessions
