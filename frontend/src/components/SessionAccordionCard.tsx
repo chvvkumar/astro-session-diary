@@ -146,40 +146,54 @@ const SessionAccordionCard: Component<{
                     <ReferenceThumbnail url={detail().thumbnail_url} />
                   </div>
                   <div class="flex-1 bg-astro-dark rounded-lg overflow-hidden">
-                    <table class="w-full text-xs border-collapse">
-                      {/* Header row */}
+                    <table class="w-full text-xs table-fixed" style={{ "border-collapse": "collapse" }}>
+                      <colgroup>
+                        {/* Session: label + value */}
+                        <col style={{ width: "90px" }} />
+                        <col style={{ width: "120px" }} />
+                        {/* Filter: name, frames, hfr, ecc, exp */}
+                        <col style={{ width: "28px" }} />
+                        <col style={{ width: "80px" }} />
+                        <col style={{ width: "40px" }} />
+                        <col style={{ width: "40px" }} />
+                        <col style={{ width: "40px" }} />
+                        {/* Best: file, hfr, ecc */}
+                        <col />
+                        <col style={{ width: "40px" }} />
+                        <col style={{ width: "40px" }} />
+                        {/* Worst: file, hfr, ecc */}
+                        <col />
+                        <col style={{ width: "40px" }} />
+                        <col style={{ width: "40px" }} />
+                      </colgroup>
                       <thead>
-                        <tr class="text-[9px] text-gray-500 uppercase tracking-wider">
-                          <th class="text-left px-4 pb-1.5 pt-2.5" colspan={2}>Session</th>
-                          <th class="border-l border-[#2a2a3a] px-0 w-px" rowSpan={99}></th>
-                          <th class="text-left px-3 pb-1.5 pt-2.5"></th>
-                          <th class="text-left px-1.5 pb-1.5 pt-2.5">Frames</th>
-                          <th class="text-right px-1.5 pb-1.5 pt-2.5">HFR</th>
-                          <th class="text-right px-1.5 pb-1.5 pt-2.5">Ecc</th>
-                          <th class="text-right px-1.5 pb-1.5 pt-2.5">Exp</th>
-                          <th class="border-l border-[#2a2a3a] px-0 w-px" rowSpan={99}></th>
-                          <th class="text-center px-2 pb-1.5 pt-2.5 text-green-400" colspan={3}>★ Best Frame</th>
-                          <th class="border-l border-[#2a2a3a] px-0 w-px" rowSpan={99}></th>
-                          <th class="text-center px-2 pb-1.5 pt-2.5 text-red-400" colspan={3}>▼ Worst Frame</th>
+                        <tr class="text-[9px] text-gray-500 uppercase tracking-wider border-b border-[#2a2a3a]">
+                          <th class="text-left px-3 pb-1.5 pt-2.5" colspan={2}>Session</th>
+                          <th class="text-left px-2 pb-1.5 pt-2.5 border-l border-[#2a2a3a]" colspan={5}>Filters</th>
+                          <th class="text-left px-2 pb-1.5 pt-2.5 border-l border-[#2a2a3a]" colspan={3}>
+                            <span class="text-green-400">★ Best Frame</span>
+                          </th>
+                          <th class="text-left px-2 pb-1.5 pt-2.5 border-l border-[#2a2a3a]" colspan={3}>
+                            <span class="text-red-400">▼ Worst Frame</span>
+                          </th>
                         </tr>
-                        {/* Sub-header for best/worst columns */}
                         <tr class="text-[9px] text-gray-600 border-b border-[#2a2a3a]">
-                          <th class="px-4 pb-1.5" colspan={2}></th>
-                          <th class="px-3 pb-1.5"></th>
-                          <th class="px-1.5 pb-1.5"></th>
-                          <th class="px-1.5 pb-1.5"></th>
-                          <th class="px-1.5 pb-1.5"></th>
-                          <th class="px-1.5 pb-1.5"></th>
-                          <th class="text-left px-2 pb-1.5">File</th>
-                          <th class="text-right px-1.5 pb-1.5">HFR</th>
-                          <th class="text-right px-1.5 pb-1.5">Ecc</th>
-                          <th class="text-left px-2 pb-1.5">File</th>
-                          <th class="text-right px-1.5 pb-1.5">HFR</th>
-                          <th class="text-right px-1.5 pb-1.5">Ecc</th>
+                          <th class="px-3 pb-1"></th>
+                          <th class="px-2 pb-1"></th>
+                          <th class="px-2 pb-1 border-l border-[#2a2a3a]"></th>
+                          <th class="px-2 pb-1 text-left">Frames</th>
+                          <th class="px-2 pb-1 text-right">HFR</th>
+                          <th class="px-2 pb-1 text-right">Ecc</th>
+                          <th class="px-2 pb-1 text-right">Exp</th>
+                          <th class="px-2 pb-1 text-left border-l border-[#2a2a3a]">File</th>
+                          <th class="px-2 pb-1 text-right">HFR</th>
+                          <th class="px-2 pb-1 text-right">Ecc</th>
+                          <th class="px-2 pb-1 text-left border-l border-[#2a2a3a]">File</th>
+                          <th class="px-2 pb-1 text-right">HFR</th>
+                          <th class="px-2 pb-1 text-right">Ecc</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {/* Session metrics paired with filter rows */}
                         {(() => {
                           const metrics = [
                             { label: "Integration", value: formatHours(detail().integration_seconds), color: "text-blue-400" },
@@ -198,43 +212,39 @@ const SessionAccordionCard: Component<{
                             const f = filters[i];
                             rows.push(
                               <tr class="border-b border-[#1d1d2d]">
-                                {/* Session metric cells */}
                                 {m ? (
                                   <>
-                                    <td class="py-1.5 px-4 text-gray-400">{m.label}</td>
-                                    <td class="py-1.5 px-4 text-right whitespace-nowrap">
+                                    <td class="py-1.5 px-3 text-gray-400">{m.label}</td>
+                                    <td class="py-1.5 px-2 text-right whitespace-nowrap">
                                       <span class={`font-bold ${m.color}`}>{m.value}</span>
-                                      {m.subtitle && <span class="text-gray-600 text-[10px] ml-1.5">{m.subtitle}</span>}
+                                      {m.subtitle && <span class="text-gray-600 text-[10px] ml-1">{m.subtitle}</span>}
                                     </td>
                                   </>
                                 ) : (
                                   <>
-                                    <td class="py-1.5 px-4"></td>
-                                    <td class="py-1.5 px-4"></td>
+                                    <td class="py-1.5 px-3"></td>
+                                    <td class="py-1.5 px-2"></td>
                                   </>
                                 )}
-                                {/* Filter cells */}
                                 {f ? (
                                   <>
-                                    <td class="py-1.5 px-3 font-bold text-white">{f.filter_name}</td>
-                                    <td class="py-1.5 px-1.5 text-gray-400">{f.frame_count} · {formatHours(f.integration_seconds)}</td>
-                                    <td class="py-1.5 px-1.5 text-right text-amber-400">{f.median_hfr?.toFixed(1) ?? "—"}</td>
-                                    <td class="py-1.5 px-1.5 text-right text-purple-400">{f.median_eccentricity?.toFixed(2) ?? "—"}</td>
-                                    <td class="py-1.5 px-1.5 text-right text-gray-400">{f.exposure_time ?? "—"}s</td>
-                                    {/* Best frame */}
-                                    <td class="py-1.5 px-2 text-[10px] font-mono text-gray-400 max-w-[150px] truncate">{f.best_frame?.file_name ?? ""}</td>
-                                    <td class="py-1.5 px-1.5 text-right text-green-400 font-bold">{f.best_frame?.median_hfr?.toFixed(1) ?? ""}</td>
-                                    <td class="py-1.5 px-1.5 text-right text-green-400 font-bold">{f.best_frame?.eccentricity?.toFixed(2) ?? ""}</td>
-                                    {/* Worst frame */}
-                                    <td class="py-1.5 px-2 text-[10px] font-mono text-gray-400 max-w-[150px] truncate">{f.worst_frame?.file_name ?? ""}</td>
-                                    <td class="py-1.5 px-1.5 text-right text-red-400 font-bold">{f.worst_frame?.median_hfr?.toFixed(1) ?? ""}</td>
-                                    <td class="py-1.5 px-1.5 text-right text-red-400 font-bold">{f.worst_frame?.eccentricity?.toFixed(2) ?? ""}</td>
+                                    <td class="py-1.5 px-2 font-bold text-white border-l border-[#2a2a3a]">{f.filter_name}</td>
+                                    <td class="py-1.5 px-2 text-gray-400">{f.frame_count} · {formatHours(f.integration_seconds)}</td>
+                                    <td class="py-1.5 px-2 text-right text-amber-400">{f.median_hfr?.toFixed(1) ?? "—"}</td>
+                                    <td class="py-1.5 px-2 text-right text-purple-400">{f.median_eccentricity?.toFixed(2) ?? "—"}</td>
+                                    <td class="py-1.5 px-2 text-right text-gray-400">{f.exposure_time ?? "—"}s</td>
+                                    <td class="py-1.5 px-2 text-[10px] font-mono text-gray-400 truncate border-l border-[#2a2a3a]">{f.best_frame?.file_name ?? ""}</td>
+                                    <td class="py-1.5 px-2 text-right text-green-400 font-bold">{f.best_frame?.median_hfr?.toFixed(1) ?? ""}</td>
+                                    <td class="py-1.5 px-2 text-right text-green-400 font-bold">{f.best_frame?.eccentricity?.toFixed(2) ?? ""}</td>
+                                    <td class="py-1.5 px-2 text-[10px] font-mono text-gray-400 truncate border-l border-[#2a2a3a]">{f.worst_frame?.file_name ?? ""}</td>
+                                    <td class="py-1.5 px-2 text-right text-red-400 font-bold">{f.worst_frame?.median_hfr?.toFixed(1) ?? ""}</td>
+                                    <td class="py-1.5 px-2 text-right text-red-400 font-bold">{f.worst_frame?.eccentricity?.toFixed(2) ?? ""}</td>
                                   </>
                                 ) : (
                                   <>
-                                    <td class="py-1.5" colspan={5}></td>
-                                    <td class="py-1.5" colspan={3}></td>
-                                    <td class="py-1.5" colspan={3}></td>
+                                    <td class="py-1.5 border-l border-[#2a2a3a]" colspan={5}></td>
+                                    <td class="py-1.5 border-l border-[#2a2a3a]" colspan={3}></td>
+                                    <td class="py-1.5 border-l border-[#2a2a3a]" colspan={3}></td>
                                   </>
                                 )}
                               </tr>
