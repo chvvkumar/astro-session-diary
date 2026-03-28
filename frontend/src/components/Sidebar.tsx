@@ -13,7 +13,7 @@ const Sidebar: Component = () => {
   const { resetFilters } = useCatalog();
 
   return (
-    <aside class="w-72 min-h-[calc(100vh-57px)] border-r border-[#2d2d2d] p-4 space-y-6 overflow-y-auto">
+    <aside class="w-72 min-h-[calc(100vh-57px)] border-r border-theme-border p-4 space-y-6 overflow-y-auto">
       <SearchBar />
       <ObjectTypeToggles />
       <DateRangePicker />
@@ -24,7 +24,7 @@ const Sidebar: Component = () => {
       <FitsQueryBuilder />
       <button
         onClick={resetFilters}
-        class="w-full py-2 text-xs text-astro-muted hover:text-white border border-gray-700 hover:border-gray-500 rounded transition-colors"
+        class="w-full py-2 text-xs text-theme-text-secondary hover:text-theme-text-primary border border-theme-border hover:border-theme-border-em rounded transition-colors"
       >
         Reset Filters
       </button>

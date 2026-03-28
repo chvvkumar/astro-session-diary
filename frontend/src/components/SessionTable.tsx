@@ -11,10 +11,10 @@ const SessionTable: Component<{
   onDeepDive: (date: string) => void;
 }> = (props) => {
   return (
-    <div class="border-t border-[#2d2d2d] mt-2">
+    <div class="border-t border-theme-border mt-2">
       <table class="w-full text-xs">
         <thead>
-          <tr class="text-astro-muted border-b border-[#2d2d2d]">
+          <tr class="text-theme-text-secondary border-b border-theme-border">
             <th class="text-left py-1.5 px-2 font-normal">Date</th>
             <th class="text-right py-1.5 px-2 font-normal">Frames</th>
             <th class="text-right py-1.5 px-2 font-normal">Integration</th>
@@ -25,10 +25,10 @@ const SessionTable: Component<{
         <tbody>
           <For each={props.sessions}>
             {(session) => (
-              <tr class="border-b border-[#2d2d2d]/50 hover:bg-astro-panel/50">
-                <td class="py-1.5 px-2 text-white">{session.session_date}</td>
-                <td class="py-1.5 px-2 text-right text-white">{session.frame_count}</td>
-                <td class="py-1.5 px-2 text-right text-white">{formatHours(session.integration_seconds)}</td>
+              <tr class="border-b border-theme-border/50 hover:bg-astro-panel/50">
+                <td class="py-1.5 px-2 text-theme-text-primary">{session.session_date}</td>
+                <td class="py-1.5 px-2 text-right text-theme-text-primary">{session.frame_count}</td>
+                <td class="py-1.5 px-2 text-right text-theme-text-primary">{formatHours(session.integration_seconds)}</td>
                 <td class="py-1.5 px-2">
                   <FilterBadges distribution={Object.fromEntries(session.filters_used.map(f => [f, 0]))} compact />
                 </td>

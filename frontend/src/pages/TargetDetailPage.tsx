@@ -68,33 +68,33 @@ const TargetDetailPage: Component = () => {
   };
 
   return (
-    <div class="min-h-[calc(100vh-57px)] bg-astro-dark">
+    <div class="min-h-[calc(100vh-57px)] bg-theme-base">
       {/* Back nav */}
-      <div class="px-4 py-3 border-b border-[#2d2d2d]">
-        <A href="/" class="text-astro-muted hover:text-white text-sm transition-colors">
+      <div class="px-4 py-3 border-b border-theme-border">
+        <A href="/" class="text-theme-text-secondary hover:text-theme-text-primary text-sm transition-colors">
           ← Back to Dashboard
         </A>
       </div>
 
       <Show when={targetDetail.loading}>
-        <div class="p-8 text-astro-muted">Loading target data...</div>
+        <div class="p-8 text-theme-text-secondary">Loading target data...</div>
       </Show>
 
       <Show when={targetDetail.error}>
-        <div class="p-8 text-red-400">Failed to load target detail</div>
+        <div class="p-8 text-theme-error">Failed to load target detail</div>
       </Show>
 
       <Show when={targetDetail()}>
         {(detail) => (
           <>
             {/* Target Hero */}
-            <div class="px-6 py-5 border-b border-[#2d2d2d]">
+            <div class="px-6 py-5 border-b border-theme-border">
               <div class="flex justify-between items-start">
                 <div>
-                  <h1 class="text-2xl font-bold text-white">
+                  <h1 class="text-2xl font-bold text-theme-text-primary">
                     {detail().primary_name}
                   </h1>
-                  <div class="text-xs text-astro-muted mt-1 space-x-2">
+                  <div class="text-xs text-theme-text-secondary mt-1 space-x-2">
                     <Show when={detail().object_type}>
                       <span>{detail().object_type}</span>
                       <span>·</span>
@@ -110,7 +110,7 @@ const TargetDetailPage: Component = () => {
                     </Show>
                   </div>
                 </div>
-                <div class="text-right text-xs text-astro-muted">
+                <div class="text-right text-xs text-theme-text-secondary">
                   <div>{detail().session_count} sessions</div>
                   <div class="mt-0.5">
                     {detail().first_session_date} → {detail().last_session_date}
@@ -120,59 +120,59 @@ const TargetDetailPage: Component = () => {
 
               {/* Cumulative stats bar */}
               <div class="flex flex-wrap gap-3 mt-4">
-                <div class="bg-astro-panel rounded-lg p-3 text-center min-w-[100px]">
-                  <div class="text-lg font-bold text-blue-400">{formatHours(detail().total_integration_seconds)}</div>
-                  <div class="text-[10px] text-astro-muted">Total Integration</div>
+                <div class="bg-theme-surface rounded-lg p-3 text-center min-w-[100px]">
+                  <div class="text-lg font-bold text-metric-integration">{formatHours(detail().total_integration_seconds)}</div>
+                  <div class="text-[10px] text-theme-text-secondary">Total Integration</div>
                 </div>
-                <div class="bg-astro-panel rounded-lg p-3 text-center min-w-[100px]">
-                  <div class="text-lg font-bold text-green-400">{detail().total_frames.toLocaleString()}</div>
-                  <div class="text-[10px] text-astro-muted">Total Frames</div>
+                <div class="bg-theme-surface rounded-lg p-3 text-center min-w-[100px]">
+                  <div class="text-lg font-bold text-metric-frames">{detail().total_frames.toLocaleString()}</div>
+                  <div class="text-[10px] text-theme-text-secondary">Total Frames</div>
                 </div>
                 <Show when={visible("quality", "hfr")}>
-                  <div class="bg-astro-panel rounded-lg p-3 text-center min-w-[100px]">
-                    <div class="text-lg font-bold text-amber-400">
+                  <div class="bg-theme-surface rounded-lg p-3 text-center min-w-[100px]">
+                    <div class="text-lg font-bold text-metric-hfr">
                       {detail().avg_hfr?.toFixed(2) ?? "—"}
                     </div>
-                    <div class="text-[10px] text-astro-muted">Avg HFR</div>
+                    <div class="text-[10px] text-theme-text-secondary">Avg HFR</div>
                   </div>
                 </Show>
                 <Show when={visible("quality", "eccentricity")}>
-                  <div class="bg-astro-panel rounded-lg p-3 text-center min-w-[100px]">
-                    <div class="text-lg font-bold text-purple-400">
+                  <div class="bg-theme-surface rounded-lg p-3 text-center min-w-[100px]">
+                    <div class="text-lg font-bold text-metric-eccentricity">
                       {detail().avg_eccentricity?.toFixed(2) ?? "—"}
                     </div>
-                    <div class="text-[10px] text-astro-muted">Avg Eccentricity</div>
+                    <div class="text-[10px] text-theme-text-secondary">Avg Eccentricity</div>
                   </div>
                 </Show>
                 <Show when={visible("quality", "fwhm")}>
-                  <div class="bg-astro-panel rounded-lg p-3 text-center min-w-[100px]">
+                  <div class="bg-theme-surface rounded-lg p-3 text-center min-w-[100px]">
                     <div class="text-lg font-bold text-sky-400">
                       {detail().avg_fwhm?.toFixed(2) ?? "—"}
                     </div>
-                    <div class="text-[10px] text-astro-muted">Avg FWHM</div>
+                    <div class="text-[10px] text-theme-text-secondary">Avg FWHM</div>
                   </div>
                 </Show>
                 <Show when={visible("quality", "detected_stars")}>
-                  <div class="bg-astro-panel rounded-lg p-3 text-center min-w-[100px]">
-                    <div class="text-lg font-bold text-teal-400">
+                  <div class="bg-theme-surface rounded-lg p-3 text-center min-w-[100px]">
+                    <div class="text-lg font-bold text-metric-stars">
                       {detail().avg_detected_stars?.toFixed(0) ?? "—"}
                     </div>
-                    <div class="text-[10px] text-astro-muted">Avg Stars</div>
+                    <div class="text-[10px] text-theme-text-secondary">Avg Stars</div>
                   </div>
                 </Show>
                 <Show when={visible("guiding", "rms_total")}>
-                  <div class="bg-astro-panel rounded-lg p-3 text-center min-w-[100px]">
-                    <div class="text-lg font-bold text-rose-400">
+                  <div class="bg-theme-surface rounded-lg p-3 text-center min-w-[100px]">
+                    <div class="text-lg font-bold text-metric-guiding">
                       {detail().avg_guiding_rms_arcsec !== null ? `${detail().avg_guiding_rms_arcsec?.toFixed(2)}"` : "—"}
                     </div>
-                    <div class="text-[10px] text-astro-muted">Avg Guide RMS</div>
+                    <div class="text-[10px] text-theme-text-secondary">Avg Guide RMS</div>
                   </div>
                 </Show>
-                <div class="bg-astro-panel rounded-lg p-3 text-center flex flex-col items-center justify-center min-w-[100px]">
+                <div class="bg-theme-surface rounded-lg p-3 text-center flex flex-col items-center justify-center min-w-[100px]">
                   <div class="mb-1">
                     <FilterBadges distribution={Object.fromEntries(detail().filters_used.map(f => [f, 0]))} compact />
                   </div>
-                  <div class="text-[10px] text-astro-muted">Filters Used</div>
+                  <div class="text-[10px] text-theme-text-secondary">Filters Used</div>
                 </div>
               </div>
             </div>
@@ -181,7 +181,7 @@ const TargetDetailPage: Component = () => {
             <div class="px-6 py-4">
               <table class="w-full border-collapse">
                 <thead>
-                  <tr class="text-[10px] text-astro-muted uppercase tracking-wider">
+                  <tr class="text-[10px] text-theme-text-secondary uppercase tracking-wider">
                     <th class="py-2 px-4 text-left font-medium">Date</th>
                     <th class="py-2 px-2 text-right font-medium"></th>
                     <th class="py-2 px-2 text-right font-medium">Frames</th>

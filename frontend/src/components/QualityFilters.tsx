@@ -33,7 +33,7 @@ const QualityFilters: Component = () => {
 
   return (
     <div class="space-y-2">
-      <label class="text-xs text-astro-muted">Quality (HFR)</label>
+      <label class="text-xs text-theme-text-secondary">Quality (HFR)</label>
       <div class="flex gap-2 items-center">
         <input
           type="number"
@@ -45,9 +45,9 @@ const QualityFilters: Component = () => {
             applyFilters();
           }}
           placeholder="Min"
-          class="w-full px-2 py-1.5 bg-astro-dark border border-gray-700 rounded text-xs text-white placeholder-astro-muted focus:outline-none focus:ring-1 focus:ring-astro-accent"
+          class="w-full px-2 py-1.5 bg-theme-base border border-theme-border rounded text-xs text-theme-text-primary placeholder-astro-muted focus:outline-none focus:ring-1 focus:border-theme-accent"
         />
-        <span class="text-astro-muted text-xs">&ndash;</span>
+        <span class="text-theme-text-secondary text-xs">&ndash;</span>
         <input
           type="number"
           step="0.1"
@@ -58,7 +58,7 @@ const QualityFilters: Component = () => {
             applyFilters();
           }}
           placeholder="Max"
-          class="w-full px-2 py-1.5 bg-astro-dark border border-gray-700 rounded text-xs text-white placeholder-astro-muted focus:outline-none focus:ring-1 focus:ring-astro-accent"
+          class="w-full px-2 py-1.5 bg-theme-base border border-theme-border rounded text-xs text-theme-text-primary placeholder-astro-muted focus:outline-none focus:ring-1 focus:border-theme-accent"
         />
       </div>
     </div>

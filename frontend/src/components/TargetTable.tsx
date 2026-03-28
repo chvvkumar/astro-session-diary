@@ -69,13 +69,13 @@ const TargetTable: Component<{ targets: TargetAggregation[] }> = (props) => {
     return sortDir() === "asc" ? " \u2191" : " \u2193";
   };
 
-  const headerClass = "text-left py-2 px-3 font-medium cursor-pointer select-none hover:text-white transition-colors whitespace-nowrap";
+  const headerClass = "text-left py-2 px-3 font-medium cursor-pointer select-none hover:text-theme-text-primary transition-colors whitespace-nowrap";
   const plainHeaderClass = "text-left py-2 px-3 font-medium whitespace-nowrap";
 
   return (
     <table class="w-full text-sm border-collapse">
       <thead>
-        <tr class="text-astro-muted text-[11px] uppercase tracking-wider border-b border-[#2d2d2d]">
+        <tr class="text-theme-text-secondary text-[11px] uppercase tracking-wider border-b border-theme-border">
           <th class={headerClass} onClick={() => toggleSort("name")}>
             Target Name{arrow("name")}
           </th>

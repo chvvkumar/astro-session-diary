@@ -40,7 +40,7 @@ const SearchBar: Component = () => {
 
   return (
     <div class="relative">
-      <label class="text-xs text-astro-muted mb-1 block">Search Targets</label>
+      <label class="text-xs text-theme-text-secondary mb-1 block">Search Targets</label>
       <input
         type="text"
         value={query()}
@@ -48,20 +48,20 @@ const SearchBar: Component = () => {
         onFocus={() => suggestions().length > 0 && setShowSuggestions(true)}
         onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
         placeholder="M31, NGC 7000..."
-        class="w-full px-3 py-2 bg-astro-dark border border-gray-700 rounded text-sm text-white placeholder-astro-muted focus:outline-none focus:ring-1 focus:ring-astro-accent"
+        class="w-full px-3 py-2 bg-theme-base border border-theme-border rounded text-sm text-theme-text-primary placeholder-astro-muted focus:outline-none focus:ring-1 focus:ring-astro-accent"
       />
       <Show when={showSuggestions()}>
-        <div class="absolute z-50 w-full mt-1 bg-astro-panel border border-gray-700 rounded shadow-lg max-h-48 overflow-y-auto">
+        <div class="absolute z-50 w-full mt-1 bg-astro-panel border border-theme-border rounded shadow-lg max-h-48 overflow-y-auto">
           <For each={suggestions()}>
             {(target) => (
               <button
                 type="button"
-                class="w-full text-left px-3 py-2 hover:bg-astro-accent/20 text-white text-sm"
+                class="w-full text-left px-3 py-2 hover:bg-astro-accent/20 text-theme-text-primary text-sm"
                 onMouseDown={() => selectTarget(target)}
               >
                 <span class="font-medium">{target.primary_name}</span>
                 <Show when={target.object_type}>
-                  <span class="text-astro-muted ml-2">({target.object_type})</span>
+                  <span class="text-theme-text-secondary ml-2">({target.object_type})</span>
                 </Show>
                 <Show when={target.match_source}>
                   <span class="text-astro-accent text-xs ml-2">
@@ -69,7 +69,7 @@ const SearchBar: Component = () => {
                   </span>
                 </Show>
                 <Show when={target.similarity_score < 1.0}>
-                  <span class="text-astro-muted text-xs ml-1">
+                  <span class="text-theme-text-secondary text-xs ml-1">
                     ~{Math.round(target.similarity_score * 100)}%
                   </span>
                 </Show>

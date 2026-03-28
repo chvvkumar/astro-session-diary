@@ -47,14 +47,14 @@ const FitsQueryBuilder: Component = () => {
 
   return (
     <div class="space-y-2">
-      <label class="text-xs text-astro-muted">FITS Header Query</label>
+      <label class="text-xs text-theme-text-secondary">FITS Header Query</label>
 
       {/* Existing rows */}
       <For each={filters().fitsQueries}>
         {(row, i) => (
           <div class="flex items-center gap-1 text-xs">
-            <span class="text-white font-mono flex-1 truncate">{row.key} {row.operator} {row.value}</span>
-            <button onClick={() => removeRow(i())} class="text-red-400 hover:text-red-300 px-1">&times;</button>
+            <span class="text-theme-text-primary font-mono flex-1 truncate">{row.key} {row.operator} {row.value}</span>
+            <button onClick={() => removeRow(i())} class="text-theme-error hover:text-theme-error px-1">&times;</button>
           </div>
         )}
       </For>
@@ -65,7 +65,7 @@ const FitsQueryBuilder: Component = () => {
           <select
             value={newKey()}
             onChange={(e) => setNewKey(e.currentTarget.value)}
-            class="flex-1 px-1.5 py-1.5 bg-astro-dark border border-gray-700 rounded text-xs text-white font-mono focus:outline-none focus:ring-1 focus:ring-astro-accent"
+            class="flex-1 px-1.5 py-1.5 bg-theme-base border border-theme-border rounded text-xs text-theme-text-primary font-mono focus:outline-none focus:ring-1 focus:border-theme-accent"
           >
             <option value="" disabled>Header Key</option>
             <Show when={fitsKeys()}>
@@ -77,7 +77,7 @@ const FitsQueryBuilder: Component = () => {
           <select
             value={newOp()}
             onChange={(e) => setNewOp(e.currentTarget.value)}
-            class="w-16 px-1 py-1.5 bg-astro-dark border border-gray-700 rounded text-xs text-white focus:outline-none"
+            class="w-16 px-1 py-1.5 bg-theme-base border border-theme-border rounded text-xs text-theme-text-primary focus:outline-none"
           >
             <For each={OPERATORS}>{(op) => <option value={op.value}>{op.label}</option>}</For>
           </select>
@@ -89,9 +89,9 @@ const FitsQueryBuilder: Component = () => {
             onInput={(e) => setNewVal(e.currentTarget.value)}
             onKeyDown={onKeyDown}
             placeholder="Value"
-            class="flex-1 px-2 py-1.5 bg-astro-dark border border-gray-700 rounded text-xs text-white focus:outline-none focus:ring-1 focus:ring-astro-accent"
+            class="flex-1 px-2 py-1.5 bg-theme-base border border-theme-border rounded text-xs text-theme-text-primary focus:outline-none focus:ring-1 focus:border-theme-accent"
           />
-          <button onClick={addRow} class="px-3 py-1.5 bg-astro-accent text-white rounded text-xs hover:bg-astro-accent/80">+</button>
+          <button onClick={addRow} class="px-3 py-1.5 bg-theme-accent text-theme-text-primary rounded text-xs hover:bg-theme-accent/80">+</button>
         </div>
       </div>
     </div>

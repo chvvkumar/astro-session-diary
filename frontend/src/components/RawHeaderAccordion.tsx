@@ -9,7 +9,7 @@ const RawHeaderAccordion: Component<{ headers: Record<string, unknown> | null }>
   };
 
   return (
-    <div class="border-t border-[#2d2d2d] pt-2">
+    <div class="border-t border-theme-border pt-2">
       <button
         onClick={() => setOpen((v) => !v)}
         class="text-xs text-astro-accent hover:underline w-full text-left"
@@ -19,8 +19,8 @@ const RawHeaderAccordion: Component<{ headers: Record<string, unknown> | null }>
       <Show when={open()}>
         <div class="mt-2 max-h-64 overflow-y-auto">
           <table class="w-full text-xs">
-            <thead class="sticky top-0 bg-astro-panel">
-              <tr class="text-astro-muted">
+            <thead class="sticky top-0 bg-theme-surface">
+              <tr class="text-theme-text-secondary">
                 <th class="text-left py-1 px-2 font-normal">Key</th>
                 <th class="text-left py-1 px-2 font-normal">Value</th>
               </tr>
@@ -28,9 +28,9 @@ const RawHeaderAccordion: Component<{ headers: Record<string, unknown> | null }>
             <tbody>
               <For each={entries()}>
                 {([key, value]) => (
-                  <tr class="border-t border-[#2d2d2d]/30">
-                    <td class="py-1 px-2 text-astro-muted font-mono">{key}</td>
-                    <td class="py-1 px-2 text-white font-mono break-all">{String(value)}</td>
+                  <tr class="border-t border-theme-border/30">
+                    <td class="py-1 px-2 text-theme-text-secondary font-mono">{key}</td>
+                    <td class="py-1 px-2 text-theme-text-primary font-mono break-all">{String(value)}</td>
                   </tr>
                 )}
               </For>

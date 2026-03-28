@@ -45,10 +45,16 @@ function hexToRgba(hex: string, alpha: number): string {
 }
 
 
+function getThemeVar(name: string, fallback: string): string {
+  return getComputedStyle(document.documentElement).getPropertyValue(`--color-${name}`).trim() || fallback;
+}
+
 export function getFilterBadgeStyle(
   styleName: FilterBadgeStyle,
   hexColor: string,
 ): FilterBadgeStyleResult {
+  const badgeBg = () => getThemeVar("badge-bg", "#2a2a3a");
+  const badgeText = () => getThemeVar("badge-text", "#d1d5db");
   switch (styleName) {
     case "solid":
       return {
@@ -82,23 +88,23 @@ export function getFilterBadgeStyle(
     case "text-only":
       return {
         style: {
-          "background-color": "#2a2a3a",
+          "background-color": badgeBg(),
           color: hexColor,
         },
       };
     case "indicator-dots":
       return {
         style: {
-          "background-color": "#2a2a3a",
-          color: "#d1d5db",
+          "background-color": badgeBg(),
+          color: badgeText(),
         },
         dot: hexColor,
       };
     case "underline":
       return {
         style: {
-          "background-color": "#2a2a3a",
-          color: "#d1d5db",
+          "background-color": badgeBg(),
+          color: badgeText(),
           "border-bottom": `2px solid ${hexColor}`,
         },
       };

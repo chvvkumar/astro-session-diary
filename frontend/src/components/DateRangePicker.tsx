@@ -14,7 +14,7 @@ const DateRangePicker: Component = () => {
 
   return (
     <div class="space-y-2">
-      <label class="text-xs text-astro-muted">Date Range</label>
+      <label class="text-xs text-theme-text-secondary">Date Range</label>
       <div class="flex gap-2">
         <input
           type="date"
@@ -25,7 +25,7 @@ const DateRangePicker: Component = () => {
           onInput={(e) =>
             updateFilter("dateRange", { ...filters().dateRange, start: e.currentTarget.value || null })
           }
-          class="flex-1 px-2 py-1.5 bg-astro-dark border border-gray-700 rounded text-xs text-white focus:outline-none focus:ring-1 focus:ring-astro-accent"
+          class="flex-1 px-2 py-1.5 bg-theme-base border border-theme-border rounded text-xs text-theme-text-primary focus:outline-none focus:ring-1 focus:border-theme-accent"
         />
         <input
           type="date"
@@ -36,7 +36,7 @@ const DateRangePicker: Component = () => {
           onInput={(e) =>
             updateFilter("dateRange", { ...filters().dateRange, end: e.currentTarget.value || null })
           }
-          class="flex-1 px-2 py-1.5 bg-astro-dark border border-gray-700 rounded text-xs text-white focus:outline-none focus:ring-1 focus:ring-astro-accent"
+          class="flex-1 px-2 py-1.5 bg-theme-base border border-theme-border rounded text-xs text-theme-text-primary focus:outline-none focus:ring-1 focus:border-theme-accent"
         />
       </div>
     </div>

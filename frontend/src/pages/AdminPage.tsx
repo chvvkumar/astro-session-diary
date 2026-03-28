@@ -15,11 +15,11 @@ const AdminPage: Component = () => {
     <div class="p-4 space-y-4 max-w-7xl mx-auto">
 
       <Show when={stats.loading && !stats()}>
-        <div class="text-center text-astro-muted py-8">Loading analytics...</div>
+        <div class="text-center text-theme-text-secondary py-8">Loading analytics...</div>
       </Show>
 
       <Show when={stats.error && !stats()}>
-        <div class="text-center text-red-400 py-8">Failed to load stats</div>
+        <div class="text-center text-theme-error py-8">Failed to load stats</div>
       </Show>
 
       <Show when={stats()}>

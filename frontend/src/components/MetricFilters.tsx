@@ -60,7 +60,7 @@ const MetricRow: Component<MetricRowProps> = (props) => {
 
   return (
     <div class="space-y-1">
-      <span class="text-xs text-astro-muted">{props.label}</span>
+      <span class="text-xs text-theme-text-secondary">{props.label}</span>
       <div class="flex gap-2 items-center">
         <input
           type="number"
@@ -71,9 +71,9 @@ const MetricRow: Component<MetricRowProps> = (props) => {
             apply(e.currentTarget.value, maxVal());
           }}
           placeholder="Min"
-          class="w-full px-2 py-1.5 bg-astro-dark border border-gray-700 rounded text-xs text-white placeholder-astro-muted focus:outline-none focus:ring-1 focus:ring-astro-accent"
+          class="w-full px-2 py-1.5 bg-theme-base border border-theme-border rounded text-xs text-theme-text-primary placeholder-astro-muted focus:outline-none focus:ring-1 focus:border-theme-accent"
         />
-        <span class="text-astro-muted text-xs">&ndash;</span>
+        <span class="text-theme-text-secondary text-xs">&ndash;</span>
         <input
           type="number"
           step={props.step}
@@ -83,7 +83,7 @@ const MetricRow: Component<MetricRowProps> = (props) => {
             apply(minVal(), e.currentTarget.value);
           }}
           placeholder="Max"
-          class="w-full px-2 py-1.5 bg-astro-dark border border-gray-700 rounded text-xs text-white placeholder-astro-muted focus:outline-none focus:ring-1 focus:ring-astro-accent"
+          class="w-full px-2 py-1.5 bg-theme-base border border-theme-border rounded text-xs text-theme-text-primary placeholder-astro-muted focus:outline-none focus:ring-1 focus:border-theme-accent"
         />
       </div>
     </div>
@@ -131,7 +131,7 @@ const MetricFilters: Component = () => {
       <div class="space-y-2">
         {/* Main section header */}
         <button
-          class="w-full flex items-center justify-between text-xs text-astro-muted uppercase tracking-wider font-medium hover:text-white transition-colors"
+          class="w-full flex items-center justify-between text-xs text-theme-text-secondary uppercase tracking-wider font-medium hover:text-theme-text-primary transition-colors"
           onClick={() => setOpen((v) => !v)}
         >
           <span>Metrics</span>
@@ -155,7 +155,7 @@ const MetricFilters: Component = () => {
                   <div class="space-y-2">
                     {/* Sub-section header */}
                     <button
-                      class="w-full flex items-center justify-between text-xs text-astro-muted hover:text-white transition-colors"
+                      class="w-full flex items-center justify-between text-xs text-theme-text-secondary hover:text-theme-text-primary transition-colors"
                       onClick={() => toggleGroup(group.key)}
                     >
                       <span>{group.label}</span>
