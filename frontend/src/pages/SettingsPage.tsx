@@ -6,12 +6,14 @@ import { FiltersTab } from "../components/settings/FiltersTab";
 import { EquipmentTab } from "../components/settings/EquipmentTab";
 import { MergesTab } from "../components/settings/MergesTab";
 import ScanManager from "../components/ScanManager";
+import DisplayTab from "../components/DisplayTab";
 
 const TABS = [
   { id: "general", label: "General" },
   { id: "scan", label: "Scan & Ingest" },
   { id: "filters", label: "Filters" },
   { id: "equipment", label: "Equipment" },
+  { id: "display", label: "Display" },
   { id: "merges", label: "Target Merges" },
 ] as const;
 
@@ -53,6 +55,9 @@ export const SettingsPage: Component = () => {
       </Show>
       <Show when={activeTab() === "equipment"}>
         <EquipmentTab />
+      </Show>
+      <Show when={activeTab() === "display"}>
+        <DisplayTab />
       </Show>
       <Show when={activeTab() === "merges"}>
         <MergesTab />

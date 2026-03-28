@@ -18,6 +18,7 @@ import type {
   EquipmentConfig,
   SuggestionsResponse,
   DiscoveredResponse,
+  DisplaySettings,
 } from "../types";
 
 const API_BASE = import.meta.env.VITE_API_URL || "/api";
@@ -161,6 +162,13 @@ export const api = {
     fetchJson<SettingsResponse>("/settings/dismissed-suggestions", {
       method: "PUT",
       body: JSON.stringify(dismissed),
+    }),
+
+  updateDisplay: (display: DisplaySettings) =>
+    fetchJson<SettingsResponse>("/settings/display", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(display),
     }),
 
   getObjectTypes: () =>

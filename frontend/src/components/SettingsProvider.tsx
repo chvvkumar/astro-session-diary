@@ -1,6 +1,6 @@
 import { createContext, useContext, type ParentComponent } from "solid-js";
 import { useSettings, getFilterColorMap, getFilterAliasMap } from "../store/settings";
-import type { SettingsResponse, GeneralSettings, FilterConfig, EquipmentConfig } from "../types";
+import type { SettingsResponse, GeneralSettings, FilterConfig, EquipmentConfig, DisplaySettings } from "../types";
 import type { Resource } from "solid-js";
 import type { FilterBadgeStyle } from "../utils/filterStyles";
 
@@ -13,6 +13,8 @@ interface SettingsContextValue {
   saveFilters: (f: Record<string, FilterConfig>) => Promise<SettingsResponse>;
   saveEquipment: (e: EquipmentConfig) => Promise<SettingsResponse>;
   refetchSettings: () => void;
+  displaySettings: () => DisplaySettings | undefined;
+  saveDisplay: (display: DisplaySettings) => Promise<void>;
 }
 
 const SettingsContext = createContext<SettingsContextValue>();
@@ -29,6 +31,8 @@ export const SettingsProvider: ParentComponent = (props) => {
     saveFilters: store.saveFilters,
     saveEquipment: store.saveEquipment,
     refetchSettings: store.refetchSettings,
+    displaySettings: () => store.settings()?.display,
+    saveDisplay: store.saveDisplay,
   };
 
   return (

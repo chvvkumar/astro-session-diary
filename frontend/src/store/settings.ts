@@ -1,6 +1,6 @@
 import { createResource } from "solid-js";
 import { api } from "../api/client";
-import type { SettingsResponse, GeneralSettings, FilterConfig, EquipmentConfig } from "../types";
+import type { SettingsResponse, GeneralSettings, FilterConfig, EquipmentConfig, DisplaySettings } from "../types";
 
 const [settingsData, { refetch: refetchSettings }] = createResource(() => api.getSettings());
 
@@ -25,6 +25,11 @@ export function useSettings() {
       const result = await api.updateEquipment(equipment);
       refetchSettings();
       return result;
+    },
+
+    async saveDisplay(display: DisplaySettings) {
+      await api.updateDisplay(display);
+      refetchSettings();
     },
 
     getFilterSuggestions: () => api.getFilterSuggestions(),

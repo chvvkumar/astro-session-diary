@@ -277,6 +277,20 @@ export interface StatsResponse {
 
 // === Settings ===
 
+export interface MetricGroupSettings {
+  enabled: boolean;
+  fields: Record<string, boolean>;
+}
+
+export interface DisplaySettings {
+  quality: MetricGroupSettings;
+  guiding: MetricGroupSettings;
+  adu: MetricGroupSettings;
+  focuser: MetricGroupSettings;
+  weather: MetricGroupSettings;
+  mount: MetricGroupSettings;
+}
+
 export interface GeneralSettings {
   auto_scan_enabled: boolean;
   auto_scan_interval: number;
@@ -305,6 +319,7 @@ export interface SettingsResponse {
   filters: Record<string, FilterConfig>;
   equipment: EquipmentConfig;
   dismissed_suggestions: string[][];
+  display: DisplaySettings;
 }
 
 export interface SuggestionGroup {
