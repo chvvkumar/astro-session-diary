@@ -33,9 +33,9 @@ async function fetchStatus() {
   }
 }
 
-function startPolling() {
+function startPolling(skipInitialFetch = false) {
   if (pollInterval) return;
-  fetchStatus(); // immediate first fetch
+  if (!skipInitialFetch) fetchStatus(); // immediate first fetch
   pollInterval = setInterval(fetchStatus, 2000);
 }
 
@@ -69,23 +69,25 @@ export function useScan() {
       setScanError(null);
       // Immediately show scanning state so the UI responds instantly
       setScanStatus((prev) => ({ ...prev, state: "scanning", completed: 0, failed: 0, total: 0 }));
-      startPolling();
       try {
         await api.triggerScan(options);
       } catch {
         // POST /scan may timeout on large directories, but scan still starts server-side
       }
+      // Start polling after trigger so the server has queued the task;
+      // skip initial fetch since we already set state optimistically
+      startPolling(true);
     },
 
     startRegeneration: async () => {
       setScanError(null);
       setScanStatus((prev) => ({ ...prev, state: "scanning", completed: 0, failed: 0, total: 0 }));
-      startPolling();
       try {
         await api.regenerateThumbnails();
       } catch {
         // POST may timeout but regeneration still starts server-side
       }
+      startPolling(true);
     },
 
     resetScan: async () => {
