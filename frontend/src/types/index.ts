@@ -181,6 +181,7 @@ export interface ActiveFilters {
   dateRange: { start: string | null; end: string | null };
   fitsQueries: { key: string; operator: string; value: string }[];
   qualityFilters: { hfrMin?: number; hfrMax?: number };
+  metricFilters: Record<string, { min?: number; max?: number }>;
 }
 
 // === Scan (unchanged) ===

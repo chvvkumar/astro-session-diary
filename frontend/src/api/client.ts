@@ -58,6 +58,10 @@ function buildTargetQuery(filters: ActiveFilters): string {
     params.append("fits_op", fq.operator);
     params.append("fits_val", fq.value);
   }
+  for (const [metric, range] of Object.entries(filters.metricFilters)) {
+    if (range.min != null) params.set(`${metric}_min`, String(range.min));
+    if (range.max != null) params.set(`${metric}_max`, String(range.max));
+  }
   return params.toString();
 }
 

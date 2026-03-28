@@ -13,6 +13,7 @@ const defaultFilters: ActiveFilters = {
   dateRange: { start: null, end: null },
   fitsQueries: [],
   qualityFilters: {},
+  metricFilters: {},
 };
 
 // ---------------------------------------------------------------------------
@@ -35,12 +36,18 @@ function filtersToParams(f: ActiveFilters): Record<string, string> {
     p.fits_op = f.fitsQueries.map((q) => q.operator).join(",");
     p.fits_val = f.fitsQueries.map((q) => q.value).join(",");
   }
+  for (const [metric, range] of Object.entries(f.metricFilters)) {
+    if (range.min != null) p[`${metric}_min`] = String(range.min);
+    if (range.max != null) p[`${metric}_max`] = String(range.max);
+  }
   return p;
 }
 
 function paramsToFilters(params: URLSearchParams): ActiveFilters | null {
   // Return null if no filter params are present
-  const keys = ["search", "camera", "telescope", "filters", "date_from", "date_to", "fits_key", "object_type", "hfr_min", "hfr_max"];
+  const metricKeys = ["fwhm", "eccentricity", "stars", "guiding_rms", "adu_mean", "focuser_temp", "ambient_temp", "humidity", "airmass"];
+  const keys = ["search", "camera", "telescope", "filters", "date_from", "date_to", "fits_key", "object_type", "hfr_min", "hfr_max",
+    ...metricKeys.flatMap((k) => [`${k}_min`, `${k}_max`])];
   if (!keys.some((k) => params.has(k))) return null;
 
   const fitsKeys = params.get("fits_key")?.split(",") ?? [];
@@ -58,6 +65,17 @@ function paramsToFilters(params: URLSearchParams): ActiveFilters | null {
   if (hfrMin) qualityFilters.hfrMin = parseFloat(hfrMin);
   if (hfrMax) qualityFilters.hfrMax = parseFloat(hfrMax);
 
+  const metricFilters: Record<string, { min?: number; max?: number }> = {};
+  for (const key of metricKeys) {
+    const min = params.get(`${key}_min`);
+    const max = params.get(`${key}_max`);
+    if (min != null || max != null) {
+      metricFilters[key] = {};
+      if (min != null) metricFilters[key].min = parseFloat(min);
+      if (max != null) metricFilters[key].max = parseFloat(max);
+    }
+  }
+
   return {
     searchQuery: params.get("search") ?? "",
     camera: params.get("camera") || null,
@@ -70,6 +88,7 @@ function paramsToFilters(params: URLSearchParams): ActiveFilters | null {
     },
     fitsQueries,
     qualityFilters,
+    metricFilters,
   };
 }
 
@@ -184,6 +203,18 @@ export function useCatalog() {
 
     updateQualityFilters: (qf: { hfrMin?: number; hfrMax?: number }) => {
       setFilters((prev) => ({ ...prev, qualityFilters: qf }));
+    },
+
+    updateMetricFilter: (metric: string, range: { min?: number; max?: number }) => {
+      setFilters((prev) => {
+        const updated = { ...prev.metricFilters };
+        if (range.min == null && range.max == null) {
+          delete updated[metric];
+        } else {
+          updated[metric] = range;
+        }
+        return { ...prev, metricFilters: updated };
+      });
     },
 
     toggleExpanded: (targetId: string) => {

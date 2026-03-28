@@ -6,6 +6,7 @@ import DateRangePicker from "./DateRangePicker";
 import FilterToggles from "./FilterToggles";
 import HardwareSelects from "./HardwareSelects";
 import QualityFilters from "./QualityFilters";
+import MetricFilters from "./MetricFilters";
 import FitsQueryBuilder from "./FitsQueryBuilder";
 
 const Sidebar: Component = () => {
@@ -19,6 +20,7 @@ const Sidebar: Component = () => {
       <FilterToggles />
       <HardwareSelects />
       <QualityFilters />
+      <MetricFilters />
       <FitsQueryBuilder />
       <button
         onClick={resetFilters}
