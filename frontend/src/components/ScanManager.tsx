@@ -10,6 +10,18 @@ const ScanManager: Component = () => {
   const { settings } = useSettingsContext();
   const [expanded, setExpanded] = createSignal(true);
   const [frameFilter, setFrameFilter] = createSignal<FrameFilter>("all");
+  const [dbSummary, setDbSummary] = createSignal<import("../types").DbSummary | null>(null);
+
+  const refreshDbSummary = async () => {
+    try { setDbSummary(await api.getDbSummary()); } catch { /* ignore */ }
+  };
+  refreshDbSummary();
+
+  // Refresh DB summary when scan completes or goes idle
+  createEffect(() => {
+    const s = scanStatus().state;
+    if (s === "complete" || s === "idle") refreshDbSummary();
+  });
 
   // Sync frameFilter from server settings once loaded
   createEffect(() => {
@@ -72,13 +84,6 @@ const ScanManager: Component = () => {
       <div class="flex justify-between items-center">
         <h3 class="text-white font-medium">Scan & Ingest</h3>
         <div class="flex gap-2">
-          <button
-            onClick={() => startRegeneration()}
-            disabled={isActive()}
-            class="px-3 py-1.5 border border-[#2d2d2d] text-astro-muted rounded text-sm disabled:opacity-50 hover:text-white hover:border-astro-accent transition-colors"
-          >
-            Regen Thumbnails
-          </button>
           <button
             onClick={() => startScan({ includeCalibration: frameFilter() === "all" })}
             disabled={isActive()}
@@ -223,15 +228,51 @@ const ScanManager: Component = () => {
         </div>
       </Show>
 
-      {/* Rebuild Target Database */}
-      <RebuildTargetsSection disabled={isActive()} />
+      {/* Database Summary */}
+      <Show when={dbSummary()}>
+        <div class="border-t border-gray-700 pt-3 mt-1">
+          <div class="grid grid-cols-4 gap-2 text-center">
+            <div>
+              <div class="text-sm font-medium text-white">{dbSummary()!.total_images.toLocaleString()}</div>
+              <div class="text-xs text-astro-muted">Total Images</div>
+            </div>
+            <div>
+              <div class="text-sm font-medium text-white">{dbSummary()!.light_frames.toLocaleString()}</div>
+              <div class="text-xs text-astro-muted">Light Frames</div>
+            </div>
+            <div>
+              <div class="text-sm font-medium text-white">{dbSummary()!.resolved_targets}</div>
+              <div class="text-xs text-astro-muted">Targets</div>
+            </div>
+            <div>
+              <div class={`text-sm font-medium ${dbSummary()!.unresolved_images > 0 ? "text-yellow-400" : "text-white"}`}>
+                {dbSummary()!.unresolved_images}
+              </div>
+              <div class="text-xs text-astro-muted">Unresolved</div>
+            </div>
+          </div>
+          <Show when={dbSummary()!.cached_simbad > 0 || dbSummary()!.pending_merges > 0}>
+            <div class="flex gap-4 mt-2 text-xs text-astro-muted justify-center">
+              <Show when={dbSummary()!.cached_simbad > 0}>
+                <span>{dbSummary()!.cached_simbad} SIMBAD cached ({dbSummary()!.cached_negative} negative)</span>
+              </Show>
+              <Show when={dbSummary()!.pending_merges > 0}>
+                <span class="text-yellow-400">{dbSummary()!.pending_merges} pending merges</span>
+              </Show>
+            </div>
+          </Show>
+        </div>
+      </Show>
+
+      {/* Database Maintenance */}
+      <RebuildTargetsSection disabled={isActive()} onRegenThumbnails={startRegeneration} onRefreshSummary={refreshDbSummary} />
 
     </div>
   );
 };
 
 
-const RebuildTargetsSection: Component<{ disabled: boolean }> = (props) => {
+const RebuildTargetsSection: Component<{ disabled: boolean; onRegenThumbnails: () => void; onRefreshSummary: () => void }> = (props) => {
   const [showFullConfirm, setShowFullConfirm] = createSignal(false);
   const [rebuildState, setRebuildState] = createSignal<import("../types").RebuildStatus>({
     state: "idle", mode: "", message: "", started_at: null, completed_at: null, details: {},
@@ -241,9 +282,11 @@ const RebuildTargetsSection: Component<{ disabled: boolean }> = (props) => {
   const fetchRebuildStatus = async () => {
     try {
       const status = await api.getRebuildStatus();
+      const prev = rebuildState().state;
       setRebuildState(status);
       if (status.state !== "running") {
         if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+        if (prev === "running" && status.state === "complete") props.onRefreshSummary();
       }
     } catch { /* ignore */ }
   };
@@ -312,6 +355,23 @@ const RebuildTargetsSection: Component<{ disabled: boolean }> = (props) => {
         </button>
       </div>
 
+      {/* Regenerate Thumbnails */}
+      <div class="flex justify-between items-center">
+        <div>
+          <p class="text-xs text-white">Regenerate Thumbnails</p>
+          <p class="text-xs text-astro-muted">
+            Re-create all image thumbnails with current stretch settings.
+          </p>
+        </div>
+        <button
+          onClick={() => props.onRegenThumbnails()}
+          disabled={props.disabled || isRunning()}
+          class="px-3 py-1.5 border border-gray-600 text-astro-muted rounded text-sm disabled:opacity-50 hover:text-white hover:border-astro-accent transition-colors"
+        >
+          Regenerate
+        </button>
+      </div>
+
       {/* Full Rebuild */}
       <div class="flex justify-between items-center">
         <div>
@@ -335,7 +395,8 @@ const RebuildTargetsSection: Component<{ disabled: boolean }> = (props) => {
           <p class="text-xs text-red-200/70">
             This will delete all target records, merge history, and suggested merges.
             All targets will be re-resolved from scratch using SIMBAD. Fast if results
-            are cached from a previous run, otherwise may take several minutes.
+            are cached from a previous run. First run may take 30 minutes or more
+            depending on the number of unique targets and SIMBAD response times.
           </p>
           <div class="flex gap-2 pt-1">
             <button

@@ -293,6 +293,34 @@ async def rebuild_status():
         await r.aclose()
 
 
+@router.get("/db-summary")
+async def db_summary(session: AsyncSession = Depends(get_session)):
+    """Lightweight database summary for the Scan & Ingest page."""
+    result = await session.execute(text("""
+        SELECT
+            (SELECT COUNT(*) FROM images) AS total_images,
+            (SELECT COUNT(*) FROM images WHERE image_type = 'LIGHT') AS light_frames,
+            (SELECT COUNT(*) FROM targets WHERE merged_into_id IS NULL) AS resolved_targets,
+            (SELECT COUNT(*) FROM images
+             WHERE resolved_target_id IS NULL AND image_type = 'LIGHT'
+               AND raw_headers->>'OBJECT' IS NOT NULL
+               AND raw_headers->>'OBJECT' != '') AS unresolved_images,
+            (SELECT COUNT(*) FROM simbad_cache) AS cached_simbad,
+            (SELECT COUNT(*) FROM simbad_cache WHERE main_id IS NULL) AS cached_negative,
+            (SELECT COUNT(*) FROM merge_candidates WHERE status = 'pending') AS pending_merges
+    """))
+    row = result.one()
+    return {
+        "total_images": row[0],
+        "light_frames": row[1],
+        "resolved_targets": row[2],
+        "unresolved_images": row[3],
+        "cached_simbad": row[4],
+        "cached_negative": row[5],
+        "pending_merges": row[6],
+    }
+
+
 VALID_INTERVALS = {60, 120, 240, 480, 720, 1440}
 
 

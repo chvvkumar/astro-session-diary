@@ -109,6 +109,9 @@ export const api = {
   getRebuildStatus: () =>
     fetchJson<import("../types").RebuildStatus>("/scan/rebuild-status"),
 
+  getDbSummary: () =>
+    fetchJson<import("../types").DbSummary>("/scan/db-summary"),
+
   getAutoScan: () =>
     fetchJson<{ enabled: boolean; interval_minutes: number }>("/scan/autoscan"),
 

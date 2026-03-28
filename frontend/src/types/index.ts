@@ -177,6 +177,16 @@ export interface RebuildStatus {
   details: Record<string, number>;
 }
 
+export interface DbSummary {
+  total_images: number;
+  light_frames: number;
+  resolved_targets: number;
+  unresolved_images: number;
+  cached_simbad: number;
+  cached_negative: number;
+  pending_merges: number;
+}
+
 // === Search ===
 
 export interface TargetSearchResult {
