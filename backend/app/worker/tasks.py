@@ -321,12 +321,15 @@ def _resolve_or_cache_target(object_name: str) -> str | None:
 
     # Cache the new target (handle race condition with other workers)
     with Session(_sync_engine) as session:
-        aliases = [normalize_object_name(a) for a in result.get("aliases", [])]
-        if normalized not in aliases:
+        aliases = result.get("aliases", [])
+        # Ensure the original FITS OBJECT name is in aliases
+        if normalized not in [a.upper() for a in aliases]:
             aliases.append(normalized)
 
         target = Target(
             primary_name=result["primary_name"],
+            catalog_id=result.get("catalog_id"),
+            common_name=result.get("common_name"),
             aliases=aliases,
             ra=result.get("ra"),
             dec=result.get("dec"),
