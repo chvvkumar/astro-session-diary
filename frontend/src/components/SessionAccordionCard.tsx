@@ -100,7 +100,7 @@ const SessionAccordionCard: Component<{
         </div>
         {/* Right: filter badges */}
         <div class="flex justify-end ml-4">
-          <FilterBadges distribution={Object.fromEntries(props.session.filters_used.map(f => [f, 0]))} compact />
+          <FilterBadges distribution={Object.fromEntries(props.session.filters_used.map(f => [f, 0]))} compact nowrap />
         </div>
         {/* Expand toggle */}
         <span class="text-astro-muted ml-3">{props.isExpanded ? "▼" : "▶"}</span>

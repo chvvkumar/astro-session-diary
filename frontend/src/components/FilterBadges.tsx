@@ -61,7 +61,7 @@ function formatHours(seconds: number): string {
   return (seconds / 3600).toFixed(1) + "h";
 }
 
-const FilterBadges: Component<{ distribution: Record<string, number>; compact?: boolean }> = (props) => {
+const FilterBadges: Component<{ distribution: Record<string, number>; compact?: boolean; nowrap?: boolean }> = (props) => {
   const { filterColorMap, filterAliasMap, filterBadgeStyle } = useSettingsContext();
 
   function getColor(name: string): string {
@@ -83,7 +83,7 @@ const FilterBadges: Component<{ distribution: Record<string, number>; compact?: 
     });
 
   return (
-    <div class="flex gap-1.5 flex-wrap">
+    <div class={`flex gap-1.5 ${props.nowrap ? "flex-nowrap" : "flex-wrap"}`}>
       <For each={entries()}>
         {([name, seconds]) => {
           const badgeStyle = () => getFilterBadgeStyle(filterBadgeStyle(), getColor(name));
