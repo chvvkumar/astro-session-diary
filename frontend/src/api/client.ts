@@ -103,6 +103,9 @@ export const api = {
   rebuildTargets: () =>
     fetchJson<{ status: string; message: string }>("/scan/rebuild-targets", { method: "POST" }),
 
+  smartRebuildTargets: () =>
+    fetchJson<{ status: string; message: string }>("/scan/smart-rebuild-targets", { method: "POST" }),
+
   getAutoScan: () =>
     fetchJson<{ enabled: boolean; interval_minutes: number }>("/scan/autoscan"),
 

@@ -207,9 +207,8 @@ async def _fetch_tap_aliases(object_name: str) -> list[str]:
         return []
 
 
-async def _query_simbad(object_name: str) -> dict[str, Any] | None:
-    """Query SIMBAD for an object by name. Returns structured data or None."""
-    # Sanitize object name — strip newlines and control characters
+async def _query_simbad_raw(object_name: str) -> dict[str, Any] | None:
+    """Query SIMBAD for raw data (main_id, aliases, coords, type). No curation."""
     import string
     safe_chars = string.printable.replace('\n', '').replace('\r', '').replace('\t', '')
     sanitized = ''.join(c for c in object_name if c in safe_chars).strip()
@@ -218,7 +217,6 @@ async def _query_simbad(object_name: str) -> dict[str, Any] | None:
 
     try:
         async with httpx.AsyncClient(timeout=15.0) as client:
-            # Use the SIMBAD script interface for structured results
             script = f"""
                 format object "%MAIN_ID|%OTYPELIST|%COO(d;A)|%COO(d;D)"
                 query id {sanitized}
@@ -231,7 +229,6 @@ async def _query_simbad(object_name: str) -> dict[str, Any] | None:
             resp.raise_for_status()
 
             text = resp.text
-            # Parse the response — look for data lines after ::data::
             if "::error::" in text:
                 logger.info("SIMBAD found no match for '%s'", sanitized)
                 return None
@@ -251,20 +248,11 @@ async def _query_simbad(object_name: str) -> dict[str, Any] | None:
             ra = float(parts[2].strip()) if parts[2].strip() else None
             dec = float(parts[3].strip()) if parts[3].strip() else None
 
-        # Fetch aliases via TAP (one alias per row — replaces broken %IDLIST parser)
         raw_aliases = await _fetch_tap_aliases(main_id)
 
-        # Curate aliases and extract catalog_id / common_name
-        curated = curate_aliases(raw_aliases)
-        catalog_id = extract_catalog_id(raw_aliases, main_id)
-        common_name = extract_common_name(raw_aliases)
-        primary_name = build_primary_name(catalog_id, common_name)
-
         return {
-            "primary_name": primary_name,
-            "catalog_id": catalog_id,
-            "common_name": common_name,
-            "aliases": curated,
+            "main_id": main_id,
+            "raw_aliases": raw_aliases,
             "ra": ra,
             "dec": dec,
             "object_type": obj_type,
@@ -273,6 +261,38 @@ async def _query_simbad(object_name: str) -> dict[str, Any] | None:
     except (httpx.HTTPError, ValueError, IndexError) as e:
         logger.warning("SIMBAD query failed for '%s': %s", sanitized, e)
         return None
+
+
+def curate_simbad_result(
+    raw: dict[str, Any],
+    fits_names: list[str] | None = None,
+) -> dict[str, Any]:
+    """Apply curation to raw SIMBAD data: extract catalog_id, common_name, curate aliases."""
+    raw_aliases = raw.get("raw_aliases", [])
+    main_id = raw.get("main_id", "")
+
+    curated = curate_aliases(raw_aliases, fits_names=fits_names)
+    catalog_id = extract_catalog_id(raw_aliases, main_id)
+    common_name = extract_common_name(raw_aliases, fits_names=fits_names)
+    primary_name = build_primary_name(catalog_id, common_name)
+
+    return {
+        "primary_name": primary_name,
+        "catalog_id": catalog_id,
+        "common_name": common_name,
+        "aliases": curated,
+        "ra": raw.get("ra"),
+        "dec": raw.get("dec"),
+        "object_type": raw.get("object_type"),
+    }
+
+
+async def _query_simbad(object_name: str) -> dict[str, Any] | None:
+    """Query SIMBAD, cache result, return curated data."""
+    raw = await _query_simbad_raw(object_name)
+    if raw is None:
+        return None
+    return curate_simbad_result(raw)
 
 
 # Common names that SIMBAD's script interface doesn't resolve.
@@ -351,9 +371,47 @@ def _get_simbad_id(object_name: str) -> str:
     return object_name
 
 
+def get_cached_simbad(query_name: str, db_session) -> dict[str, Any] | None:
+    """Look up a cached SIMBAD result. Returns raw dict or None."""
+    from app.models.simbad_cache import SimbadCache
+    row = db_session.execute(
+        __import__("sqlalchemy").select(SimbadCache).where(SimbadCache.query_name == query_name)
+    ).scalar_one_or_none()
+    if row is None:
+        return None
+    if row.main_id is None:
+        return {"_negative": True}  # Cached negative result
+    return {
+        "main_id": row.main_id,
+        "raw_aliases": row.raw_aliases or [],
+        "ra": row.ra,
+        "dec": row.dec,
+        "object_type": row.object_type,
+    }
+
+
+def save_simbad_cache(query_name: str, raw: dict[str, Any] | None, db_session) -> None:
+    """Persist a SIMBAD result (or negative) to the cache table."""
+    from app.models.simbad_cache import SimbadCache
+    from sqlalchemy.dialects.postgresql import insert as pg_insert
+
+    values = {
+        "query_name": query_name,
+        "main_id": raw["main_id"] if raw else None,
+        "raw_aliases": raw.get("raw_aliases", []) if raw else [],
+        "ra": raw.get("ra") if raw else None,
+        "dec": raw.get("dec") if raw else None,
+        "object_type": raw.get("object_type") if raw else None,
+    }
+    stmt = pg_insert(SimbadCache).values(**values).on_conflict_do_update(
+        index_elements=["query_name"],
+        set_=values,
+    )
+    db_session.execute(stmt)
+
+
 async def resolve_target_name(object_name: str) -> dict[str, Any] | None:
-    """Resolve an object name via SIMBAD. Returns dict with primary_name,
-    aliases, ra, dec, object_type — or None if not found."""
+    """Resolve an object name via SIMBAD. Returns curated dict or None."""
     # Try direct query first
     result = await _query_simbad(object_name)
     if result:
@@ -368,3 +426,55 @@ async def resolve_target_name(object_name: str) -> dict[str, Any] | None:
             return result
 
     return None
+
+
+def resolve_target_name_cached(
+    object_name: str, db_session, *, skip_simbad: bool = False,
+) -> dict[str, Any] | None:
+    """Resolve with persistent DB cache. Sync version for Celery workers.
+
+    If skip_simbad=True, only returns cached data (for smart rebuild).
+    """
+    import asyncio
+
+    normalized = normalize_object_name(object_name)
+
+    # Check cache
+    cached = get_cached_simbad(normalized, db_session)
+    if cached is not None:
+        if cached.get("_negative"):
+            return None
+        return curate_simbad_result(cached)
+
+    # Also try with common name mapping
+    mapped = _get_simbad_id(object_name)
+    if mapped != object_name:
+        mapped_norm = normalize_object_name(mapped)
+        cached = get_cached_simbad(mapped_norm, db_session)
+        if cached is not None:
+            if cached.get("_negative"):
+                return None
+            return curate_simbad_result(cached)
+
+    if skip_simbad:
+        return None
+
+    # Query SIMBAD and cache
+    loop = asyncio.new_event_loop()
+    try:
+        raw = loop.run_until_complete(_query_simbad_raw(object_name))
+    finally:
+        loop.close()
+
+    if raw is None and mapped != object_name:
+        loop = asyncio.new_event_loop()
+        try:
+            raw = loop.run_until_complete(_query_simbad_raw(mapped))
+        finally:
+            loop.close()
+
+    # Cache the result (positive or negative)
+    save_simbad_cache(normalized, raw, db_session)
+    if raw is None:
+        return None
+    return curate_simbad_result(raw)

@@ -222,59 +222,79 @@ const ScanManager: Component = () => {
 
 
 const RebuildTargetsSection: Component<{ disabled: boolean }> = (props) => {
-  const [showConfirm, setShowConfirm] = createSignal(false);
-  const [rebuilding, setRebuilding] = createSignal(false);
+  const [showFullConfirm, setShowFullConfirm] = createSignal(false);
+  const [busy, setBusy] = createSignal(false);
   const [result, setResult] = createSignal<string | null>(null);
 
-  const handleRebuild = async () => {
-    setShowConfirm(false);
-    setRebuilding(true);
+  const runAction = async (action: () => Promise<{ message?: string }>, label: string) => {
+    setShowFullConfirm(false);
+    setBusy(true);
     setResult(null);
     try {
-      const res = await api.rebuildTargets();
-      setResult(res.message || "Rebuild queued successfully");
+      const res = await action();
+      setResult(res.message || `${label} queued successfully`);
     } catch (e: any) {
-      setResult(`Error: ${e?.message || "Failed to start rebuild"}`);
+      setResult(`Error: ${e?.message || `Failed to start ${label.toLowerCase()}`}`);
     } finally {
-      setRebuilding(false);
+      setBusy(false);
     }
   };
 
   return (
-    <div class="border-t border-gray-700 pt-3 mt-3 space-y-2">
+    <div class="border-t border-gray-700 pt-3 mt-3 space-y-3">
+      <h4 class="text-white text-sm font-medium">Target Database Maintenance</h4>
+
+      {/* Quick Fix */}
       <div class="flex justify-between items-center">
         <div>
-          <h4 class="text-white text-sm font-medium">Rebuild Target Database</h4>
-          <p class="text-xs text-astro-muted mt-0.5">
+          <p class="text-xs text-white">Quick Fix</p>
+          <p class="text-xs text-astro-muted">
+            Repair links, aliases, and names using cached data. No SIMBAD calls.
+          </p>
+        </div>
+        <button
+          onClick={() => runAction(api.smartRebuildTargets, "Quick fix")}
+          disabled={props.disabled || busy()}
+          class="px-3 py-1.5 border border-gray-600 text-astro-muted rounded text-sm disabled:opacity-50 hover:text-white hover:border-astro-accent transition-colors"
+        >
+          {busy() ? "Running..." : "Quick Fix"}
+        </button>
+      </div>
+
+      {/* Full Rebuild */}
+      <div class="flex justify-between items-center">
+        <div>
+          <p class="text-xs text-white">Full Rebuild</p>
+          <p class="text-xs text-astro-muted">
             Delete all targets and re-resolve from FITS headers via SIMBAD.
           </p>
         </div>
         <button
-          onClick={() => setShowConfirm(true)}
-          disabled={props.disabled || rebuilding()}
+          onClick={() => setShowFullConfirm(true)}
+          disabled={props.disabled || busy()}
           class="px-3 py-1.5 border border-red-600/50 text-red-400 rounded text-sm disabled:opacity-50 hover:bg-red-600/20 hover:text-red-300 transition-colors"
         >
-          {rebuilding() ? "Rebuilding..." : "Rebuild Targets"}
+          {busy() ? "Running..." : "Full Rebuild"}
         </button>
       </div>
 
-      <Show when={showConfirm()}>
+      <Show when={showFullConfirm()}>
         <div class="bg-red-900/30 border border-red-600/50 rounded-lg p-3 space-y-2">
           <p class="text-sm text-red-300 font-medium">Are you sure?</p>
           <p class="text-xs text-red-200/70">
             This will delete all target records, merge history, and suggested merges.
-            All targets will be re-resolved from scratch using SIMBAD. This may take
-            several minutes depending on how many unique object names exist.
+            All targets will be re-resolved from scratch using SIMBAD. Fast if results
+            are cached from a previous run, otherwise may take several minutes.
           </p>
           <div class="flex gap-2 pt-1">
             <button
-              onClick={handleRebuild}
+              onClick={() => runAction(api.rebuildTargets, "Full rebuild")}
               class="px-3 py-1.5 bg-red-600 text-white rounded text-xs font-medium hover:bg-red-700 transition-colors"
             >
               Yes, rebuild everything
             </button>
             <button
-              onClick={() => setShowConfirm(false)}
+              onClick={() => setShowFullConfirm(false)}
               class="px-3 py-1.5 border border-gray-600 text-gray-300 rounded text-xs hover:border-white hover:text-white transition-colors"
             >
               Cancel

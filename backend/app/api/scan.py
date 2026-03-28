@@ -12,7 +12,7 @@ from app.services.scan_state import (
     get_scan_state, get_failed_files, start_scanning, set_ingesting, set_idle, reset_scan,
 )
 from app.services.simbad import resolve_target_name, normalize_object_name
-from app.worker.tasks import regenerate_thumbnail, run_scan, rebuild_targets
+from app.worker.tasks import regenerate_thumbnail, run_scan, rebuild_targets, smart_rebuild_targets
 
 logger = logging.getLogger(__name__)
 
@@ -242,6 +242,7 @@ async def trigger_rebuild_targets():
 
     This is a destructive operation that clears all targets, merge history,
     and re-resolves everything from scratch. Runs as a background Celery task.
+    Uses persistent SIMBAD cache — fast on repeat runs.
     """
     r = get_async_redis()
     try:
@@ -254,6 +255,28 @@ async def trigger_rebuild_targets():
 
         rebuild_targets.delay()
         return {"status": "accepted", "message": "Target rebuild queued as background task"}
+    finally:
+        await r.aclose()
+
+
+@router.post("/smart-rebuild-targets")
+async def trigger_smart_rebuild():
+    """Quick fix: repair target data using local DB + SIMBAD cache only.
+
+    No SIMBAD network calls. Fixes orphaned images, missing aliases,
+    inconsistent names, and stale merge candidates.
+    """
+    r = get_async_redis()
+    try:
+        state = await get_scan_state(r)
+        if state.state in ("scanning", "ingesting"):
+            raise HTTPException(
+                status_code=409,
+                detail="A scan is already running. Wait for it to complete first.",
+            )
+
+        smart_rebuild_targets.delay()
+        return {"status": "accepted", "message": "Smart rebuild queued as background task"}
     finally:
         await r.aclose()
 

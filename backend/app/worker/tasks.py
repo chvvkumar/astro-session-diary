@@ -9,7 +9,12 @@ from app.config import settings
 from app.models import Image, Target
 from app.models.user_settings import UserSettings, SETTINGS_ROW_ID
 from app.services.scanner import extract_metadata
-from app.services.simbad import resolve_target_name, normalize_object_name
+from app.services.simbad import (
+    resolve_target_name, normalize_object_name, resolve_target_name_cached,
+    curate_simbad_result, get_cached_simbad, save_simbad_cache,
+    curate_aliases, extract_catalog_id, extract_common_name, build_primary_name,
+    _normalize_ws,
+)
 from app.services.thumbnail import generate_thumbnail
 from app.worker.celery_app import celery_app
 
@@ -286,17 +291,15 @@ _simbad_negative_cache: set[str] = set()
 
 
 def _resolve_or_cache_target(object_name: str) -> str | None:
-    """Check local DB for target, fall back to SIMBAD, cache result."""
-    import asyncio
-
+    """Check local DB for target, fall back to SIMBAD (with DB cache), create target."""
     normalized = normalize_object_name(object_name)
 
-    # Check negative cache first (fastest path)
+    # Check in-memory negative cache (fastest path, survives within worker lifetime)
     if normalized in _simbad_negative_cache:
         return None
 
     with Session(_sync_engine) as session:
-        # Check local cache: search aliases array
+        # Check local targets: search aliases array
         stmt = select(Target).where(Target.aliases.any(normalized))
         existing = session.execute(stmt).scalar_one_or_none()
         if existing:
@@ -308,21 +311,18 @@ def _resolve_or_cache_target(object_name: str) -> str | None:
         if existing:
             return str(existing.id)
 
-    # Query SIMBAD
-    loop = asyncio.new_event_loop()
-    try:
-        result = loop.run_until_complete(resolve_target_name(object_name))
-    finally:
-        loop.close()
+    # Resolve via SIMBAD (uses persistent DB cache)
+    with Session(_sync_engine) as session:
+        result = resolve_target_name_cached(object_name, session)
+        session.commit()  # Persist cache entry
 
     if result is None:
         _simbad_negative_cache.add(normalized)
         return None
 
-    # Cache the new target (handle race condition with other workers)
+    # Create target record
     with Session(_sync_engine) as session:
         aliases = result.get("aliases", [])
-        # Ensure the original FITS OBJECT name is in aliases
         if normalized not in [a.upper() for a in aliases]:
             aliases.append(normalized)
 
@@ -416,3 +416,151 @@ def rebuild_targets(self) -> dict:
 
     logger.info("rebuild_targets: done — resolved=%d, failed=%d", resolved, failed)
     return {"status": "complete", "resolved": resolved, "failed": failed, "total": len(object_names)}
+
+
+@celery_app.task(bind=True)
+def smart_rebuild_targets(self) -> dict:
+    """Quick fix: repair target data using only local DB + SIMBAD cache.
+
+    No SIMBAD network calls. Fixes:
+    1. Images pointing to soft-deleted (merged) targets → redirect to winner
+    2. Unresolved images that match existing target aliases → link them
+    3. Missing FITS OBJECT names in aliases → add them
+    4. primary_name inconsistent with catalog_id + common_name → rebuild
+    5. Re-derive catalog_id/common_name from cached SIMBAD data if available
+    6. Stale merge candidates → clean up
+    """
+    logger.info("smart_rebuild: starting")
+    stats = {}
+
+    with Session(_sync_engine) as session:
+        # Phase 1: Redirect images pointing to merged targets
+        result = session.execute(text("""
+            UPDATE images
+            SET resolved_target_id = t.merged_into_id
+            FROM targets t
+            WHERE images.resolved_target_id = t.id
+              AND t.merged_into_id IS NOT NULL
+        """))
+        stats["redirected_merged"] = result.rowcount
+        logger.info("smart_rebuild: redirected %d images from merged targets", result.rowcount)
+
+        # Phase 2: Link unresolved images to existing targets via alias match
+        result = session.execute(text("""
+            UPDATE images
+            SET resolved_target_id = t.id
+            FROM targets t
+            WHERE images.resolved_target_id IS NULL
+              AND images.image_type = 'LIGHT'
+              AND images.raw_headers->>'OBJECT' IS NOT NULL
+              AND t.merged_into_id IS NULL
+              AND t.aliases @> ARRAY[UPPER(REGEXP_REPLACE(
+                  TRIM(images.raw_headers->>'OBJECT'), '\\s+', ' ', 'g'
+              ))]
+        """))
+        stats["linked_unresolved"] = result.rowcount
+        logger.info("smart_rebuild: linked %d unresolved images via alias match", result.rowcount)
+
+        # Phase 3: Ensure all FITS OBJECT names are in target aliases
+        result = session.execute(text("""
+            WITH target_fits AS (
+                SELECT
+                    img.resolved_target_id as tid,
+                    array_agg(DISTINCT UPPER(REGEXP_REPLACE(
+                        TRIM(img.raw_headers->>'OBJECT'), '\\s+', ' ', 'g'
+                    ))) as fits_names
+                FROM images img
+                WHERE img.resolved_target_id IS NOT NULL
+                  AND img.image_type = 'LIGHT'
+                  AND img.raw_headers->>'OBJECT' IS NOT NULL
+                GROUP BY img.resolved_target_id
+            )
+            UPDATE targets t
+            SET aliases = (
+                SELECT array(
+                    SELECT DISTINCT unnest(array_cat(t.aliases, tf.fits_names))
+                )
+            )
+            FROM target_fits tf
+            WHERE t.id = tf.tid
+              AND t.merged_into_id IS NULL
+              AND NOT (t.aliases @> tf.fits_names)
+        """))
+        stats["aliases_updated"] = result.rowcount
+        logger.info("smart_rebuild: updated aliases for %d targets", result.rowcount)
+
+        # Phase 4: Re-derive catalog_id/common_name from SIMBAD cache
+        from app.models.simbad_cache import SimbadCache
+        targets = session.execute(
+            select(Target).where(Target.merged_into_id.is_(None))
+        ).scalars().all()
+
+        rederived = 0
+        for target in targets:
+            # Try to find cached SIMBAD data for this target
+            cached = get_cached_simbad(normalize_object_name(target.catalog_id or target.primary_name), session)
+            if cached and not cached.get("_negative"):
+                # Get FITS names for this target
+                fits_result = session.execute(text("""
+                    SELECT DISTINCT raw_headers->>'OBJECT'
+                    FROM images
+                    WHERE resolved_target_id = :tid
+                      AND raw_headers->>'OBJECT' IS NOT NULL
+                """), {"tid": target.id})
+                fits_names = [r[0] for r in fits_result.all() if r[0]]
+
+                curated = curate_simbad_result(cached, fits_names=fits_names)
+                new_primary = curated["primary_name"]
+                new_catalog = curated["catalog_id"]
+                new_common = curated["common_name"]
+
+                if (target.primary_name != new_primary or
+                        target.catalog_id != new_catalog or
+                        target.common_name != new_common):
+                    target.catalog_id = new_catalog
+                    target.common_name = new_common
+                    target.primary_name = new_primary
+                    rederived += 1
+
+        stats["rederived"] = rederived
+        logger.info("smart_rebuild: re-derived catalog_id/common_name for %d targets", rederived)
+
+        # Phase 5: Rebuild primary_name for any remaining mismatches
+        result = session.execute(text("""
+            UPDATE targets
+            SET primary_name = CASE
+                WHEN catalog_id IS NOT NULL AND common_name IS NOT NULL
+                    THEN catalog_id || ' - ' || common_name
+                WHEN catalog_id IS NOT NULL THEN catalog_id
+                WHEN common_name IS NOT NULL THEN common_name
+                ELSE 'Unknown'
+            END
+            WHERE merged_into_id IS NULL
+              AND primary_name != CASE
+                WHEN catalog_id IS NOT NULL AND common_name IS NOT NULL
+                    THEN catalog_id || ' - ' || common_name
+                WHEN catalog_id IS NOT NULL THEN catalog_id
+                WHEN common_name IS NOT NULL THEN common_name
+                ELSE 'Unknown'
+            END
+        """))
+        stats["names_rebuilt"] = result.rowcount
+        logger.info("smart_rebuild: rebuilt %d primary_names", result.rowcount)
+
+        # Phase 6: Clean stale merge candidates
+        result = session.execute(text("""
+            DELETE FROM merge_candidates
+            WHERE suggested_target_id NOT IN (
+                SELECT id FROM targets WHERE merged_into_id IS NULL
+            )
+        """))
+        stats["stale_candidates_removed"] = result.rowcount
+        logger.info("smart_rebuild: removed %d stale merge candidates", result.rowcount)
+
+        session.commit()
+
+    # Queue duplicate detection
+    detect_duplicate_targets.apply_async(countdown=5)
+
+    logger.info("smart_rebuild: done — %s", stats)
+    return {"status": "complete", **stats}
