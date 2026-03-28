@@ -40,6 +40,19 @@ class DisplaySettings(BaseModel):
     mount: MetricGroupSettings
 
 
+class GraphSettings(BaseModel):
+    enabled_metrics: list[str] = Field(
+        default_factory=lambda: ["hfr", "eccentricity", "fwhm", "guiding_rms"]
+    )
+    enabled_filters: list[str] = Field(default_factory=lambda: ["overall"])
+    session_chart_expanded: bool = False
+    target_chart_expanded: bool = False
+
+
+def default_graph_settings() -> GraphSettings:
+    return GraphSettings()
+
+
 def default_display_settings() -> DisplaySettings:
     return DisplaySettings(
         quality=MetricGroupSettings(
@@ -75,6 +88,7 @@ class SettingsResponse(BaseModel):
     equipment: EquipmentConfig
     dismissed_suggestions: list[list[str]] = Field(default_factory=list)
     display: DisplaySettings = Field(default_factory=default_display_settings)
+    graph: GraphSettings = Field(default_factory=default_graph_settings)
 
 
 class SuggestionGroup(BaseModel):
