@@ -39,6 +39,9 @@ class SessionOverview(BaseModel):
     filters_used: list[str]
     camera: str | None = None
     telescope: str | None = None
+    median_fwhm: float | None = None
+    median_detected_stars: float | None = None
+    median_guiding_rms_arcsec: float | None = None
 
 
 class FilterDetail(BaseModel):
@@ -64,6 +67,31 @@ class FrameRecord(BaseModel):
     sensor_temp: float | None = None
     gain: int | None = None
     file_name: str
+    hfr_stdev: float | None = None
+    fwhm: float | None = None
+    detected_stars: int | None = None
+    guiding_rms_arcsec: float | None = None
+    guiding_rms_ra_arcsec: float | None = None
+    guiding_rms_dec_arcsec: float | None = None
+    adu_stdev: float | None = None
+    adu_mean: float | None = None
+    adu_median: float | None = None
+    adu_min: int | None = None
+    adu_max: int | None = None
+    focuser_position: int | None = None
+    focuser_temp: float | None = None
+    rotator_position: float | None = None
+    pier_side: str | None = None
+    airmass: float | None = None
+    ambient_temp: float | None = None
+    dew_point: float | None = None
+    humidity: float | None = None
+    pressure: float | None = None
+    wind_speed: float | None = None
+    wind_direction: float | None = None
+    wind_gust: float | None = None
+    cloud_cover: float | None = None
+    sky_quality: float | None = None
 
 
 class TargetAggregation(BaseModel):
@@ -110,6 +138,9 @@ class TargetDetailResponse(BaseModel):
     last_session_date: str
     session_count: int
     sessions: list[SessionOverview]
+    avg_fwhm: float | None = None
+    avg_guiding_rms_arcsec: float | None = None
+    avg_detected_stars: float | None = None
 
 
 class SessionDetailResponse(BaseModel):
@@ -137,6 +168,17 @@ class SessionDetailResponse(BaseModel):
     filter_details: list[FilterDetail] = []
     insights: list[SessionInsight] = []
     frames: list[FrameRecord] = []
+    median_fwhm: float | None = None
+    min_fwhm: float | None = None
+    max_fwhm: float | None = None
+    median_guiding_rms: float | None = None
+    min_guiding_rms: float | None = None
+    max_guiding_rms: float | None = None
+    median_detected_stars: float | None = None
+    median_airmass: float | None = None
+    median_ambient_temp: float | None = None
+    median_humidity: float | None = None
+    median_cloud_cover: float | None = None
 
 
 class EquipmentResponse(BaseModel):

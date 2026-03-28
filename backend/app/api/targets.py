@@ -262,6 +262,9 @@ async def get_target_detail(
     sessions_map: dict[str, list] = defaultdict(list)
     all_hfr = []
     all_ecc = []
+    all_fwhm = []
+    all_guiding_rms = []
+    all_detected_stars = []
     equipment_set: set[str] = set()
     filters_set: set[str] = set()
     total_exp = 0.0
@@ -274,6 +277,12 @@ async def get_target_detail(
             all_hfr.append(img.median_hfr)
         if img.eccentricity is not None:
             all_ecc.append(img.eccentricity)
+        if img.fwhm is not None:
+            all_fwhm.append(img.fwhm)
+        if img.guiding_rms_arcsec is not None:
+            all_guiding_rms.append(img.guiding_rms_arcsec)
+        if img.detected_stars is not None:
+            all_detected_stars.append(img.detected_stars)
         cam = normalize_equipment(img.camera, cam_map)
         tel = normalize_equipment(img.telescope, tel_map)
         f = normalize_filter(img.filter_used, filter_map)
@@ -289,6 +298,9 @@ async def get_target_detail(
         sess_images = sessions_map[date_key]
         sess_hfr = [i.median_hfr for i in sess_images if i.median_hfr is not None]
         sess_ecc = [i.eccentricity for i in sess_images if i.eccentricity is not None]
+        sess_fwhm = [i.fwhm for i in sess_images if i.fwhm is not None]
+        sess_detected_stars = [i.detected_stars for i in sess_images if i.detected_stars is not None]
+        sess_guiding_rms = [i.guiding_rms_arcsec for i in sess_images if i.guiding_rms_arcsec is not None]
         sess_filters = sorted({normalize_filter(i.filter_used, filter_map) for i in sess_images if i.filter_used})
         sess_exp = sum(i.exposure_time or 0 for i in sess_images)
         session_overviews.append(SessionOverview(
@@ -300,6 +312,9 @@ async def get_target_detail(
             filters_used=sess_filters,
             camera=normalize_equipment(sess_images[0].camera, cam_map),
             telescope=normalize_equipment(sess_images[0].telescope, tel_map),
+            median_fwhm=statistics.median(sess_fwhm) if sess_fwhm else None,
+            median_detected_stars=statistics.median(sess_detected_stars) if sess_detected_stars else None,
+            median_guiding_rms_arcsec=statistics.median(sess_guiding_rms) if sess_guiding_rms else None,
         ))
 
     sorted_dates = sorted(sessions_map.keys())
@@ -321,6 +336,9 @@ async def get_target_detail(
         last_session_date=sorted_dates[-1] if sorted_dates else "",
         session_count=len(sessions_map),
         sessions=session_overviews,
+        avg_fwhm=statistics.mean(all_fwhm) if all_fwhm else None,
+        avg_guiding_rms_arcsec=statistics.mean(all_guiding_rms) if all_guiding_rms else None,
+        avg_detected_stars=statistics.mean(all_detected_stars) if all_detected_stars else None,
     )
 
 
@@ -732,6 +750,13 @@ async def get_session_detail(
     hfr_values = []
     ecc_values = []
     temp_values = []
+    fwhm_values = []
+    guiding_rms_values = []
+    detected_stars_values = []
+    airmass_values = []
+    ambient_temp_values = []
+    humidity_values = []
+    cloud_cover_values = []
 
     for img in images:
         f = normalize_filter(img.filter_used, filter_map)
@@ -743,6 +768,20 @@ async def get_session_detail(
             ecc_values.append(img.eccentricity)
         if img.sensor_temp is not None:
             temp_values.append(img.sensor_temp)
+        if img.fwhm is not None:
+            fwhm_values.append(img.fwhm)
+        if img.guiding_rms_arcsec is not None:
+            guiding_rms_values.append(img.guiding_rms_arcsec)
+        if img.detected_stars is not None:
+            detected_stars_values.append(img.detected_stars)
+        if img.airmass is not None:
+            airmass_values.append(img.airmass)
+        if img.ambient_temp is not None:
+            ambient_temp_values.append(img.ambient_temp)
+        if img.humidity is not None:
+            humidity_values.append(img.humidity)
+        if img.cloud_cover is not None:
+            cloud_cover_values.append(img.cloud_cover)
 
     ref_image = images[0]
     thumb_url = None
@@ -784,6 +823,31 @@ async def get_session_detail(
             sensor_temp=img.sensor_temp,
             gain=img.camera_gain,
             file_name=img.file_name,
+            hfr_stdev=img.hfr_stdev,
+            fwhm=img.fwhm,
+            detected_stars=img.detected_stars,
+            guiding_rms_arcsec=img.guiding_rms_arcsec,
+            guiding_rms_ra_arcsec=img.guiding_rms_ra_arcsec,
+            guiding_rms_dec_arcsec=img.guiding_rms_dec_arcsec,
+            adu_stdev=img.adu_stdev,
+            adu_mean=img.adu_mean,
+            adu_median=img.adu_median,
+            adu_min=img.adu_min,
+            adu_max=img.adu_max,
+            focuser_position=img.focuser_position,
+            focuser_temp=img.focuser_temp,
+            rotator_position=img.rotator_position,
+            pier_side=img.pier_side,
+            airmass=img.airmass,
+            ambient_temp=img.ambient_temp,
+            dew_point=img.dew_point,
+            humidity=img.humidity,
+            pressure=img.pressure,
+            wind_speed=img.wind_speed,
+            wind_direction=img.wind_direction,
+            wind_gust=img.wind_gust,
+            cloud_cover=img.cloud_cover,
+            sky_quality=img.sky_quality,
         ))
 
     is_best_hfr = False
@@ -837,4 +901,15 @@ async def get_session_detail(
         filter_details=filter_details,
         insights=insights,
         frames=frames,
+        median_fwhm=statistics.median(fwhm_values) if fwhm_values else None,
+        min_fwhm=min(fwhm_values) if fwhm_values else None,
+        max_fwhm=max(fwhm_values) if fwhm_values else None,
+        median_guiding_rms=statistics.median(guiding_rms_values) if guiding_rms_values else None,
+        min_guiding_rms=min(guiding_rms_values) if guiding_rms_values else None,
+        max_guiding_rms=max(guiding_rms_values) if guiding_rms_values else None,
+        median_detected_stars=statistics.median(detected_stars_values) if detected_stars_values else None,
+        median_airmass=statistics.median(airmass_values) if airmass_values else None,
+        median_ambient_temp=statistics.median(ambient_temp_values) if ambient_temp_values else None,
+        median_humidity=statistics.median(humidity_values) if humidity_values else None,
+        median_cloud_cover=statistics.median(cloud_cover_values) if cloud_cover_values else None,
     )
