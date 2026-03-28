@@ -75,13 +75,14 @@ async def search_targets(
     pattern = f"%{q}%"
 
     # Tier 1: Exact substring matches — exclude soft-deleted
+    aliases_str = func.array_to_string(Target.aliases, ' ')
     exact_query = (
         select(Target)
         .where(
             Target.merged_into_id.is_(None),
             or_(
                 Target.primary_name.ilike(pattern),
-                Target.aliases.any(func.upper(q)),
+                aliases_str.ilike(pattern),
             ),
         )
         .limit(limit)
@@ -110,14 +111,16 @@ async def search_targets(
     # Tier 2: Fuzzy trigram matches if we need more
     if len(results) < limit:
         remaining = limit - len(results)
+        searchable_text = func.concat(Target.primary_name, ' ', func.array_to_string(Target.aliases, ' '))
+        fuzzy_score = func.similarity(searchable_text, q)
         fuzzy_query = (
-            select(Target, func.similarity(Target.primary_name, q).label("score"))
+            select(Target, fuzzy_score.label("score"))
             .where(
                 Target.merged_into_id.is_(None),
                 Target.id.notin_(exact_ids) if exact_ids else True,
-                func.similarity(Target.primary_name, q) > 0.15,
+                fuzzy_score > 0.3,
             )
-            .order_by(func.similarity(Target.primary_name, q).desc())
+            .order_by(fuzzy_score.desc())
             .limit(remaining)
         )
         fuzzy_result = await session.execute(fuzzy_query)
@@ -365,11 +368,14 @@ async def list_targets_aggregated(
         base_filter.append(Image.capture_date <= date_to)
     if search:
         pattern = f"%{search}%"
-        # Search in target name OR OBJECT header for unresolved images
+        aliases_str = func.array_to_string(Target.aliases, ' ')
+        searchable_text = func.concat(Target.primary_name, ' ', aliases_str)
+        # Search in target name, aliases, OR OBJECT header for unresolved images
         base_filter.append(
             or_(
                 Target.primary_name.ilike(pattern),
-                func.similarity(Target.primary_name, search) > 0.15,
+                aliases_str.ilike(pattern),
+                func.similarity(searchable_text, search) > 0.3,
                 Image.raw_headers["OBJECT"].astext.ilike(pattern),
             )
         )
