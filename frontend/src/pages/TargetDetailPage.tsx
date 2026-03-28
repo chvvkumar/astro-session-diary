@@ -147,6 +147,17 @@ const TargetDetailPage: Component = () => {
             {/* Session Table */}
             <div class="px-6 py-4">
               <table class="w-full border-collapse">
+                <thead>
+                  <tr class="text-[10px] text-astro-muted uppercase tracking-wider">
+                    <th class="py-2 px-4 text-left font-medium">Date</th>
+                    <th class="py-2 px-2 text-right font-medium"></th>
+                    <th class="py-2 px-2 text-right font-medium">Frames</th>
+                    <th class="py-2 px-2 text-right font-medium">HFR</th>
+                    <th class="py-2 px-2 text-right font-medium">Eccentricity</th>
+                    <th class="py-2 px-2 text-right font-medium">Filters</th>
+                    <th class="py-2 px-2"></th>
+                  </tr>
+                </thead>
                 <tbody>
                   <For each={detail().sessions}>
                     {(session) => (

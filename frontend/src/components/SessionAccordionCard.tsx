@@ -86,8 +86,8 @@ const SessionAccordionCard: Component<{
         </td>
         <td class="py-3 px-2 text-right text-blue-400 tabular-nums whitespace-nowrap">{formatHours(props.session.integration_seconds)}</td>
         <td class="py-3 px-2 text-right text-green-400 tabular-nums whitespace-nowrap">{props.session.frame_count} fr</td>
-        <td class="py-3 px-2 text-right text-amber-400 tabular-nums whitespace-nowrap">HFR {props.session.median_hfr?.toFixed(1) ?? "—"}</td>
-        <td class="py-3 px-2 text-right text-purple-400 tabular-nums whitespace-nowrap">Ecc {props.session.median_eccentricity?.toFixed(2) ?? "—"}</td>
+        <td class="py-3 px-2 text-right text-amber-400 tabular-nums whitespace-nowrap">{props.session.median_hfr?.toFixed(1) ?? "—"}</td>
+        <td class="py-3 px-2 text-right text-purple-400 tabular-nums whitespace-nowrap">{props.session.median_eccentricity?.toFixed(2) ?? "—"}</td>
         <td class="py-3 px-2">
           <div class="flex justify-end">
             <FilterBadges distribution={Object.fromEntries(props.session.filters_used.map(f => [f, 0]))} compact nowrap />
