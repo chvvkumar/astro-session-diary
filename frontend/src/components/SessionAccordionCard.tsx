@@ -12,9 +12,9 @@ function formatHours(seconds: number): string {
 
 
 const INSIGHT_STYLES: Record<string, string> = {
-  good: "text-green-400",
-  warning: "text-amber-400",
-  info: "text-astro-muted",
+  good: "text-theme-success",
+  warning: "text-theme-warning",
+  info: "text-theme-text-secondary",
 };
 
 const INSIGHT_ICONS: Record<string, string> = {
@@ -87,33 +87,33 @@ const SessionAccordionCard: Component<{
       {/* Collapsed header row */}
       <tr
         ref={cardRef}
-        class={`border-b border-[#2d2d2d] cursor-pointer hover:bg-[#2a2a2a] transition-colors text-xs ${
-          props.isExpanded ? "bg-astro-panel" : ""
+        class={`border-b border-theme-border cursor-pointer hover:bg-theme-elevated transition-colors text-xs ${
+          props.isExpanded ? "bg-theme-surface" : ""
         }`}
         onClick={props.onToggle}
       >
         <td class="py-3 px-4">
-          <span class="font-bold text-white text-sm">{props.session.session_date}</span>
-          <span class="text-astro-muted ml-3">
+          <span class="font-bold text-theme-text-primary text-sm">{props.session.session_date}</span>
+          <span class="text-theme-text-secondary ml-3">
             {props.session.camera ?? ""} · {props.session.telescope ?? ""}
           </span>
         </td>
-        <td class="py-3 px-2 text-right text-blue-400 tabular-nums whitespace-nowrap">{formatHours(props.session.integration_seconds)}</td>
-        <td class="py-3 px-2 text-right text-green-400 tabular-nums whitespace-nowrap">{props.session.frame_count} fr</td>
+        <td class="py-3 px-2 text-right text-metric-integration tabular-nums whitespace-nowrap">{formatHours(props.session.integration_seconds)}</td>
+        <td class="py-3 px-2 text-right text-metric-frames tabular-nums whitespace-nowrap">{props.session.frame_count} fr</td>
         <Show when={props.visibleColumns?.hfr ?? true}>
-          <td class="py-3 px-2 text-right text-amber-400 tabular-nums whitespace-nowrap">{props.session.median_hfr?.toFixed(1) ?? "—"}</td>
+          <td class="py-3 px-2 text-right text-metric-hfr tabular-nums whitespace-nowrap">{props.session.median_hfr?.toFixed(1) ?? "—"}</td>
         </Show>
         <Show when={props.visibleColumns?.eccentricity ?? true}>
-          <td class="py-3 px-2 text-right text-purple-400 tabular-nums whitespace-nowrap">{props.session.median_eccentricity?.toFixed(2) ?? "—"}</td>
+          <td class="py-3 px-2 text-right text-metric-eccentricity tabular-nums whitespace-nowrap">{props.session.median_eccentricity?.toFixed(2) ?? "—"}</td>
         </Show>
         <Show when={props.visibleColumns?.fwhm ?? false}>
-          <td class="py-3 px-2 text-right text-sky-400 tabular-nums whitespace-nowrap">{props.session.median_fwhm?.toFixed(2) ?? "—"}</td>
+          <td class="py-3 px-2 text-right text-metric-fwhm tabular-nums whitespace-nowrap">{props.session.median_fwhm?.toFixed(2) ?? "—"}</td>
         </Show>
         <Show when={props.visibleColumns?.detected_stars ?? false}>
-          <td class="py-3 px-2 text-right text-teal-400 tabular-nums whitespace-nowrap">{props.session.median_detected_stars?.toFixed(0) ?? "—"}</td>
+          <td class="py-3 px-2 text-right text-metric-stars tabular-nums whitespace-nowrap">{props.session.median_detected_stars?.toFixed(0) ?? "—"}</td>
         </Show>
         <Show when={props.visibleColumns?.guiding_rms ?? false}>
-          <td class="py-3 px-2 text-right text-rose-400 tabular-nums whitespace-nowrap">
+          <td class="py-3 px-2 text-right text-metric-guiding tabular-nums whitespace-nowrap">
             {props.session.median_guiding_rms_arcsec !== null ? `${props.session.median_guiding_rms_arcsec?.toFixed(2)}"` : "—"}
           </td>
         </Show>
@@ -123,7 +123,7 @@ const SessionAccordionCard: Component<{
           </div>
         </td>
         <td class="py-3 px-2">
-          <span class="px-2.5 py-1 border border-gray-600 rounded text-[11px] text-astro-muted hover:text-white hover:border-astro-accent transition-colors">
+          <span class="px-2.5 py-1 border border-theme-border-em rounded text-[11px] text-theme-text-secondary hover:text-theme-text-primary hover:border-theme-accent transition-colors">
             {props.isExpanded ? "Collapse" : "Expand"}
           </span>
         </td>
@@ -131,10 +131,10 @@ const SessionAccordionCard: Component<{
 
       {/* Expanded content row */}
       <Show when={props.isExpanded}>
-        <tr class="bg-astro-panel">
-          <td colspan="12" class="px-4 pb-4 border-b border-astro-accent">
+        <tr class="bg-theme-surface">
+          <td colspan="12" class="px-4 pb-4 border-b border-theme-accent">
           <Show when={!props.detail}>
-            <div class="py-4 text-astro-muted text-sm">Loading session data...</div>
+            <div class="py-4 text-theme-text-secondary text-sm">Loading session data...</div>
           </Show>
 
           <Show when={props.detail}>
@@ -145,7 +145,7 @@ const SessionAccordionCard: Component<{
                   <div class="w-[110px] flex-shrink-0 flex items-center justify-center">
                     <ReferenceThumbnail url={detail().thumbnail_url} />
                   </div>
-                  <div class="flex-1 bg-astro-dark rounded-lg overflow-hidden">
+                  <div class="flex-1 bg-theme-base rounded-lg overflow-hidden">
                     <table class="w-full text-xs table-fixed" style={{ "border-collapse": "collapse" }}>
                       <colgroup>
                         {/* Session: label + value */}
@@ -167,28 +167,28 @@ const SessionAccordionCard: Component<{
                         <col style={{ width: "40px" }} />
                       </colgroup>
                       <thead>
-                        <tr class="text-[9px] text-gray-500 uppercase tracking-wider border-b border-[#2a2a3a]">
+                        <tr class="text-[9px] text-theme-text-tertiary uppercase tracking-wider border-b border-theme-border">
                           <th class="text-left px-3 pb-1.5 pt-2.5" colspan={2}>Session</th>
-                          <th class="text-left px-2 pb-1.5 pt-2.5 border-l border-[#2a2a3a]" colspan={5}>Filters</th>
-                          <th class="text-left px-2 pb-1.5 pt-2.5 border-l border-[#2a2a3a]" colspan={3}>
-                            <span class="text-green-400">★ Best Frame</span>
+                          <th class="text-left px-2 pb-1.5 pt-2.5 border-l border-theme-border" colspan={5}>Filters</th>
+                          <th class="text-left px-2 pb-1.5 pt-2.5 border-l border-theme-border" colspan={3}>
+                            <span class="text-metric-best">★ Best Frame</span>
                           </th>
-                          <th class="text-left px-2 pb-1.5 pt-2.5 border-l border-[#2a2a3a]" colspan={3}>
-                            <span class="text-red-400">▼ Worst Frame</span>
+                          <th class="text-left px-2 pb-1.5 pt-2.5 border-l border-theme-border" colspan={3}>
+                            <span class="text-metric-worst">▼ Worst Frame</span>
                           </th>
                         </tr>
-                        <tr class="text-[9px] text-gray-600 border-b border-[#2a2a3a]">
+                        <tr class="text-[9px] text-theme-text-tertiary border-b border-theme-border">
                           <th class="px-3 pb-1"></th>
                           <th class="px-2 pb-1"></th>
-                          <th class="px-2 pb-1 border-l border-[#2a2a3a]"></th>
+                          <th class="px-2 pb-1 border-l border-theme-border"></th>
                           <th class="px-2 pb-1 text-left">Frames</th>
                           <th class="px-2 pb-1 text-right">HFR</th>
                           <th class="px-2 pb-1 text-right">Ecc</th>
                           <th class="px-2 pb-1 text-right">Exp</th>
-                          <th class="px-2 pb-1 text-left border-l border-[#2a2a3a]">File</th>
+                          <th class="px-2 pb-1 text-left border-l border-theme-border">File</th>
                           <th class="px-2 pb-1 text-right">HFR</th>
                           <th class="px-2 pb-1 text-right">Ecc</th>
-                          <th class="px-2 pb-1 text-left border-l border-[#2a2a3a]">File</th>
+                          <th class="px-2 pb-1 text-left border-l border-theme-border">File</th>
                           <th class="px-2 pb-1 text-right">HFR</th>
                           <th class="px-2 pb-1 text-right">Ecc</th>
                         </tr>
@@ -196,13 +196,13 @@ const SessionAccordionCard: Component<{
                       <tbody>
                         {(() => {
                           const metrics = [
-                            { label: "Integration", value: formatHours(detail().integration_seconds), color: "text-blue-400" },
-                            { label: "Frames", value: String(detail().frame_count), color: "text-green-400" },
-                            { label: "HFR", value: detail().median_hfr?.toFixed(2) ?? "—", color: "text-amber-400", subtitle: detail().min_hfr !== null ? `${detail().min_hfr?.toFixed(1)}–${detail().max_hfr?.toFixed(1)}` : undefined },
-                            { label: "Eccentricity", value: detail().median_eccentricity?.toFixed(2) ?? "—", color: "text-purple-400", subtitle: detail().min_eccentricity !== null ? `${detail().min_eccentricity?.toFixed(2)}–${detail().max_eccentricity?.toFixed(2)}` : undefined },
-                            { label: "Sensor Temp", value: detail().sensor_temp !== null ? `${detail().sensor_temp?.toFixed(0)}°C` : "—", color: "text-sky-300", subtitle: detail().sensor_temp_min !== null ? `${detail().sensor_temp_min?.toFixed(0)} to ${detail().sensor_temp_max?.toFixed(0)}` : undefined },
-                            { label: "Gain / Exp", value: `${detail().gain !== null ? detail().gain : "—"} / ${detail().exposure_time !== null ? detail().exposure_time + "s" : "—"}`, color: "text-green-300" },
-                            { label: "Time Span", value: detail().first_frame_time ? `${formatTime(detail().first_frame_time!)} → ${detail().last_frame_time ? formatTime(detail().last_frame_time!) : ""}` : "—", color: "text-red-300" },
+                            { label: "Integration", value: formatHours(detail().integration_seconds), color: "text-metric-integration" },
+                            { label: "Frames", value: String(detail().frame_count), color: "text-metric-frames" },
+                            { label: "HFR", value: detail().median_hfr?.toFixed(2) ?? "—", color: "text-metric-hfr", subtitle: detail().min_hfr !== null ? `${detail().min_hfr?.toFixed(1)}–${detail().max_hfr?.toFixed(1)}` : undefined },
+                            { label: "Eccentricity", value: detail().median_eccentricity?.toFixed(2) ?? "—", color: "text-metric-eccentricity", subtitle: detail().min_eccentricity !== null ? `${detail().min_eccentricity?.toFixed(2)}–${detail().max_eccentricity?.toFixed(2)}` : undefined },
+                            { label: "Sensor Temp", value: detail().sensor_temp !== null ? `${detail().sensor_temp?.toFixed(0)}°C` : "—", color: "text-metric-temp", subtitle: detail().sensor_temp_min !== null ? `${detail().sensor_temp_min?.toFixed(0)} to ${detail().sensor_temp_max?.toFixed(0)}` : undefined },
+                            { label: "Gain / Exp", value: `${detail().gain !== null ? detail().gain : "—"} / ${detail().exposure_time !== null ? detail().exposure_time + "s" : "—"}`, color: "text-metric-gain" },
+                            { label: "Time Span", value: detail().first_frame_time ? `${formatTime(detail().first_frame_time!)} → ${detail().last_frame_time ? formatTime(detail().last_frame_time!) : ""}` : "—", color: "text-metric-time" },
                           ];
                           const filters = detail().filter_details;
                           const maxRows = Math.max(metrics.length, filters.length);
@@ -211,13 +211,13 @@ const SessionAccordionCard: Component<{
                             const m = metrics[i];
                             const f = filters[i];
                             rows.push(
-                              <tr class="border-b border-[#1d1d2d]">
+                              <tr class="border-b border-theme-border">
                                 {m ? (
                                   <>
-                                    <td class="py-1.5 px-3 text-gray-400">{m.label}</td>
+                                    <td class="py-1.5 px-3 text-theme-text-secondary">{m.label}</td>
                                     <td class="py-1.5 px-2 text-right whitespace-nowrap">
                                       <span class={`font-bold ${m.color}`}>{m.value}</span>
-                                      {m.subtitle && <span class="text-gray-600 text-[10px] ml-1">{m.subtitle}</span>}
+                                      {m.subtitle && <span class="text-theme-text-tertiary text-[10px] ml-1">{m.subtitle}</span>}
                                     </td>
                                   </>
                                 ) : (
@@ -228,23 +228,23 @@ const SessionAccordionCard: Component<{
                                 )}
                                 {f ? (
                                   <>
-                                    <td class="py-1.5 px-2 font-bold text-white border-l border-[#2a2a3a]">{f.filter_name}</td>
-                                    <td class="py-1.5 px-2 text-gray-400">{f.frame_count} · {formatHours(f.integration_seconds)}</td>
-                                    <td class="py-1.5 px-2 text-right text-amber-400">{f.median_hfr?.toFixed(1) ?? "—"}</td>
-                                    <td class="py-1.5 px-2 text-right text-purple-400">{f.median_eccentricity?.toFixed(2) ?? "—"}</td>
-                                    <td class="py-1.5 px-2 text-right text-gray-400">{f.exposure_time ?? "—"}s</td>
-                                    <td class="py-1.5 px-2 text-[10px] font-mono text-gray-400 truncate border-l border-[#2a2a3a]">{f.best_frame?.file_name ?? ""}</td>
-                                    <td class="py-1.5 px-2 text-right text-green-400 font-bold">{f.best_frame?.median_hfr?.toFixed(1) ?? ""}</td>
-                                    <td class="py-1.5 px-2 text-right text-green-400 font-bold">{f.best_frame?.eccentricity?.toFixed(2) ?? ""}</td>
-                                    <td class="py-1.5 px-2 text-[10px] font-mono text-gray-400 truncate border-l border-[#2a2a3a]">{f.worst_frame?.file_name ?? ""}</td>
-                                    <td class="py-1.5 px-2 text-right text-red-400 font-bold">{f.worst_frame?.median_hfr?.toFixed(1) ?? ""}</td>
-                                    <td class="py-1.5 px-2 text-right text-red-400 font-bold">{f.worst_frame?.eccentricity?.toFixed(2) ?? ""}</td>
+                                    <td class="py-1.5 px-2 font-bold text-theme-text-primary border-l border-theme-border">{f.filter_name}</td>
+                                    <td class="py-1.5 px-2 text-theme-text-secondary">{f.frame_count} · {formatHours(f.integration_seconds)}</td>
+                                    <td class="py-1.5 px-2 text-right text-metric-hfr">{f.median_hfr?.toFixed(1) ?? "—"}</td>
+                                    <td class="py-1.5 px-2 text-right text-metric-eccentricity">{f.median_eccentricity?.toFixed(2) ?? "—"}</td>
+                                    <td class="py-1.5 px-2 text-right text-theme-text-secondary">{f.exposure_time ?? "—"}s</td>
+                                    <td class="py-1.5 px-2 text-[10px] font-mono text-theme-text-secondary truncate border-l border-theme-border">{f.best_frame?.file_name ?? ""}</td>
+                                    <td class="py-1.5 px-2 text-right text-metric-best font-bold">{f.best_frame?.median_hfr?.toFixed(1) ?? ""}</td>
+                                    <td class="py-1.5 px-2 text-right text-metric-best font-bold">{f.best_frame?.eccentricity?.toFixed(2) ?? ""}</td>
+                                    <td class="py-1.5 px-2 text-[10px] font-mono text-theme-text-secondary truncate border-l border-theme-border">{f.worst_frame?.file_name ?? ""}</td>
+                                    <td class="py-1.5 px-2 text-right text-metric-worst font-bold">{f.worst_frame?.median_hfr?.toFixed(1) ?? ""}</td>
+                                    <td class="py-1.5 px-2 text-right text-metric-worst font-bold">{f.worst_frame?.eccentricity?.toFixed(2) ?? ""}</td>
                                   </>
                                 ) : (
                                   <>
-                                    <td class="py-1.5 border-l border-[#2a2a3a]" colspan={5}></td>
-                                    <td class="py-1.5 border-l border-[#2a2a3a]" colspan={3}></td>
-                                    <td class="py-1.5 border-l border-[#2a2a3a]" colspan={3}></td>
+                                    <td class="py-1.5 border-l border-theme-border" colspan={5}></td>
+                                    <td class="py-1.5 border-l border-theme-border" colspan={3}></td>
+                                    <td class="py-1.5 border-l border-theme-border" colspan={3}></td>
                                   </>
                                 )}
                               </tr>
@@ -260,8 +260,8 @@ const SessionAccordionCard: Component<{
                 {/* Row 3: Session Insights */}
                 <Show when={detail().insights.length > 0}>
                   <div>
-                    <h4 class="text-xs font-bold text-white mb-2">Session Insights</h4>
-                    <div class="bg-astro-dark rounded-lg p-3 space-y-1">
+                    <h4 class="text-xs font-bold text-theme-text-primary mb-2">Session Insights</h4>
+                    <div class="bg-theme-base rounded-lg p-3 space-y-1">
                       <For each={detail().insights}>
                         {(insight) => (
                           <div class={`text-xs ${INSIGHT_STYLES[insight.level]}`}>
@@ -276,21 +276,21 @@ const SessionAccordionCard: Component<{
                 {/* Row 4: Per-Frame Table (collapsed) */}
                 <div>
                   <button
-                    class="flex justify-between items-center w-full text-xs py-2.5 px-3 -mx-3 rounded-lg hover:bg-[#2a2a2a] transition-colors cursor-pointer"
+                    class="flex justify-between items-center w-full text-xs py-2.5 px-3 -mx-3 rounded-lg hover:bg-theme-elevated transition-colors cursor-pointer"
                     onClick={() => setShowFrames(!showFrames())}
                   >
-                    <span class="font-bold text-white">
-                      Per-Frame Data <span class="text-astro-muted font-normal">({detail().frames.length} frames)</span>
+                    <span class="font-bold text-theme-text-primary">
+                      Per-Frame Data <span class="text-theme-text-secondary font-normal">({detail().frames.length} frames)</span>
                     </span>
-                    <span class="px-2.5 py-1 border border-gray-600 rounded text-[11px] text-astro-muted hover:text-white hover:border-astro-accent transition-colors">
+                    <span class="px-2.5 py-1 border border-theme-border-em rounded text-[11px] text-theme-text-secondary hover:text-theme-text-primary hover:border-theme-accent transition-colors">
                       {showFrames() ? "Collapse" : "Expand"}
                     </span>
                   </button>
                   <Show when={showFrames()}>
-                    <div class="bg-astro-dark rounded-lg overflow-x-auto max-h-[600px] overflow-y-auto mt-2">
+                    <div class="bg-theme-base rounded-lg overflow-x-auto max-h-[600px] overflow-y-auto mt-2">
                       <table class="w-full text-[11px]">
-                        <thead class="sticky top-0 bg-astro-dark">
-                          <tr class="text-astro-muted border-b border-[#2d2d2d]">
+                        <thead class="sticky top-0 bg-theme-base">
+                          <tr class="text-theme-text-secondary border-b border-theme-border">
                             <SortHeader label="Time" column="timestamp" current={sortColumn()} asc={sortAsc()} onSort={toggleSort} />
                             <SortHeader label="Filter" column="filter_used" current={sortColumn()} asc={sortAsc()} onSort={toggleSort} align="center" />
                             <SortHeader label="Exp" column="exposure_time" current={sortColumn()} asc={sortAsc()} onSort={toggleSort} align="right" />
@@ -380,109 +380,109 @@ const SessionAccordionCard: Component<{
                         <tbody>
                           <For each={sortedFrames()}>
                             {(frame) => (
-                              <tr class={`border-b border-[#2d2d2d]/30 ${isOutlier(frame) ? "bg-red-900/20" : ""}`}>
-                                <td class="py-1 px-2 text-white">{formatTime(frame.timestamp)}</td>
-                                <td class="py-1 px-2 text-white text-center">{frame.filter_used ?? "—"}</td>
-                                <td class="py-1 px-2 text-white text-right tabular-nums">{frame.exposure_time ?? "—"}s</td>
+                              <tr class={`border-b border-theme-border/30 ${isOutlier(frame) ? "bg-theme-error/20" : ""}`}>
+                                <td class="py-1 px-2 text-theme-text-primary">{formatTime(frame.timestamp)}</td>
+                                <td class="py-1 px-2 text-theme-text-primary text-center">{frame.filter_used ?? "—"}</td>
+                                <td class="py-1 px-2 text-theme-text-primary text-right tabular-nums">{frame.exposure_time ?? "—"}s</td>
                                 <Show when={visible("quality", "hfr")}>
-                                  <td class={`py-1 px-2 text-right tabular-nums ${isOutlier(frame) ? "text-red-400 font-bold" : "text-white"}`}>
+                                  <td class={`py-1 px-2 text-right tabular-nums ${isOutlier(frame) ? "text-theme-error font-bold" : "text-theme-text-primary"}`}>
                                     {frame.median_hfr?.toFixed(2) ?? "\u2014"}
                                   </td>
                                 </Show>
                                 <Show when={visible("quality", "eccentricity")}>
-                                  <td class="py-1 px-2 text-white text-right tabular-nums">{frame.eccentricity?.toFixed(2) ?? "\u2014"}</td>
+                                  <td class="py-1 px-2 text-theme-text-primary text-right tabular-nums">{frame.eccentricity?.toFixed(2) ?? "\u2014"}</td>
                                 </Show>
                                 <Show when={visible("quality", "fwhm")}>
-                                  <td class="py-1 px-2 text-white text-right tabular-nums">{frame.fwhm?.toFixed(2) ?? "\u2014"}</td>
+                                  <td class="py-1 px-2 text-theme-text-primary text-right tabular-nums">{frame.fwhm?.toFixed(2) ?? "\u2014"}</td>
                                 </Show>
                                 <Show when={visible("quality", "detected_stars")}>
-                                  <td class="py-1 px-2 text-white text-right tabular-nums">{frame.detected_stars ?? "\u2014"}</td>
+                                  <td class="py-1 px-2 text-theme-text-primary text-right tabular-nums">{frame.detected_stars ?? "\u2014"}</td>
                                 </Show>
                                 <Show when={visible("guiding", "rms_total")}>
-                                  <td class="py-1 px-2 text-white text-right">
+                                  <td class="py-1 px-2 text-theme-text-primary text-right">
                                     {frame.guiding_rms_arcsec !== null ? `${frame.guiding_rms_arcsec?.toFixed(2)}"` : "\u2014"}
                                   </td>
                                 </Show>
                                 <Show when={visible("guiding", "rms_ra")}>
-                                  <td class="py-1 px-2 text-white text-right">
+                                  <td class="py-1 px-2 text-theme-text-primary text-right">
                                     {frame.guiding_rms_ra_arcsec !== null ? `${frame.guiding_rms_ra_arcsec?.toFixed(2)}"` : "\u2014"}
                                   </td>
                                 </Show>
                                 <Show when={visible("guiding", "rms_dec")}>
-                                  <td class="py-1 px-2 text-white text-right">
+                                  <td class="py-1 px-2 text-theme-text-primary text-right">
                                     {frame.guiding_rms_dec_arcsec !== null ? `${frame.guiding_rms_dec_arcsec?.toFixed(2)}"` : "\u2014"}
                                   </td>
                                 </Show>
                                 <Show when={visible("adu", "mean")}>
-                                  <td class="py-1 px-2 text-white text-right tabular-nums">{frame.adu_mean?.toFixed(2) ?? "\u2014"}</td>
+                                  <td class="py-1 px-2 text-theme-text-primary text-right tabular-nums">{frame.adu_mean?.toFixed(2) ?? "\u2014"}</td>
                                 </Show>
                                 <Show when={visible("adu", "median")}>
-                                  <td class="py-1 px-2 text-white text-right tabular-nums">{frame.adu_median?.toFixed(2) ?? "\u2014"}</td>
+                                  <td class="py-1 px-2 text-theme-text-primary text-right tabular-nums">{frame.adu_median?.toFixed(2) ?? "\u2014"}</td>
                                 </Show>
                                 <Show when={visible("adu", "stdev")}>
-                                  <td class="py-1 px-2 text-white text-right tabular-nums">{frame.adu_stdev?.toFixed(2) ?? "\u2014"}</td>
+                                  <td class="py-1 px-2 text-theme-text-primary text-right tabular-nums">{frame.adu_stdev?.toFixed(2) ?? "\u2014"}</td>
                                 </Show>
                                 <Show when={visible("adu", "min")}>
-                                  <td class="py-1 px-2 text-white text-right tabular-nums">{frame.adu_min ?? "\u2014"}</td>
+                                  <td class="py-1 px-2 text-theme-text-primary text-right tabular-nums">{frame.adu_min ?? "\u2014"}</td>
                                 </Show>
                                 <Show when={visible("adu", "max")}>
-                                  <td class="py-1 px-2 text-white text-right tabular-nums">{frame.adu_max ?? "\u2014"}</td>
+                                  <td class="py-1 px-2 text-theme-text-primary text-right tabular-nums">{frame.adu_max ?? "\u2014"}</td>
                                 </Show>
                                 <Show when={visible("focuser", "position")}>
-                                  <td class="py-1 px-2 text-white text-right tabular-nums">{frame.focuser_position ?? "\u2014"}</td>
+                                  <td class="py-1 px-2 text-theme-text-primary text-right tabular-nums">{frame.focuser_position ?? "\u2014"}</td>
                                 </Show>
                                 <Show when={visible("focuser", "temp")}>
-                                  <td class="py-1 px-2 text-white text-right">
+                                  <td class="py-1 px-2 text-theme-text-primary text-right">
                                     {frame.focuser_temp !== null ? `${frame.focuser_temp?.toFixed(1)}\u00b0` : "\u2014"}
                                   </td>
                                 </Show>
                                 <Show when={visible("weather", "ambient_temp")}>
-                                  <td class="py-1 px-2 text-white text-right">
+                                  <td class="py-1 px-2 text-theme-text-primary text-right">
                                     {frame.ambient_temp !== null ? `${frame.ambient_temp?.toFixed(1)}\u00b0` : "\u2014"}
                                   </td>
                                 </Show>
                                 <Show when={visible("weather", "dew_point")}>
-                                  <td class="py-1 px-2 text-white text-right">
+                                  <td class="py-1 px-2 text-theme-text-primary text-right">
                                     {frame.dew_point !== null ? `${frame.dew_point?.toFixed(1)}\u00b0` : "\u2014"}
                                   </td>
                                 </Show>
                                 <Show when={visible("weather", "humidity")}>
-                                  <td class="py-1 px-2 text-white text-right">
+                                  <td class="py-1 px-2 text-theme-text-primary text-right">
                                     {frame.humidity !== null ? `${frame.humidity?.toFixed(1)}%` : "\u2014"}
                                   </td>
                                 </Show>
                                 <Show when={visible("weather", "pressure")}>
-                                  <td class="py-1 px-2 text-white text-right tabular-nums">{frame.pressure?.toFixed(2) ?? "\u2014"}</td>
+                                  <td class="py-1 px-2 text-theme-text-primary text-right tabular-nums">{frame.pressure?.toFixed(2) ?? "\u2014"}</td>
                                 </Show>
                                 <Show when={visible("weather", "wind_speed")}>
-                                  <td class="py-1 px-2 text-white text-right tabular-nums">{frame.wind_speed?.toFixed(1) ?? "\u2014"}</td>
+                                  <td class="py-1 px-2 text-theme-text-primary text-right tabular-nums">{frame.wind_speed?.toFixed(1) ?? "\u2014"}</td>
                                 </Show>
                                 <Show when={visible("weather", "wind_direction")}>
-                                  <td class="py-1 px-2 text-white text-right tabular-nums">{frame.wind_direction?.toFixed(1) ?? "\u2014"}</td>
+                                  <td class="py-1 px-2 text-theme-text-primary text-right tabular-nums">{frame.wind_direction?.toFixed(1) ?? "\u2014"}</td>
                                 </Show>
                                 <Show when={visible("weather", "wind_gust")}>
-                                  <td class="py-1 px-2 text-white text-right tabular-nums">{frame.wind_gust?.toFixed(1) ?? "\u2014"}</td>
+                                  <td class="py-1 px-2 text-theme-text-primary text-right tabular-nums">{frame.wind_gust?.toFixed(1) ?? "\u2014"}</td>
                                 </Show>
                                 <Show when={visible("weather", "cloud_cover")}>
-                                  <td class="py-1 px-2 text-white text-right">
+                                  <td class="py-1 px-2 text-theme-text-primary text-right">
                                     {frame.cloud_cover !== null ? `${frame.cloud_cover?.toFixed(1)}%` : "\u2014"}
                                   </td>
                                 </Show>
                                 <Show when={visible("weather", "sky_quality")}>
-                                  <td class="py-1 px-2 text-white text-right tabular-nums">{frame.sky_quality?.toFixed(2) ?? "\u2014"}</td>
+                                  <td class="py-1 px-2 text-theme-text-primary text-right tabular-nums">{frame.sky_quality?.toFixed(2) ?? "\u2014"}</td>
                                 </Show>
                                 <Show when={visible("mount", "airmass")}>
-                                  <td class="py-1 px-2 text-white text-right tabular-nums">{frame.airmass?.toFixed(2) ?? "\u2014"}</td>
+                                  <td class="py-1 px-2 text-theme-text-primary text-right tabular-nums">{frame.airmass?.toFixed(2) ?? "\u2014"}</td>
                                 </Show>
                                 <Show when={visible("mount", "pier_side")}>
-                                  <td class="py-1 px-2 text-white text-center">{frame.pier_side ?? "\u2014"}</td>
+                                  <td class="py-1 px-2 text-theme-text-primary text-center">{frame.pier_side ?? "\u2014"}</td>
                                 </Show>
                                 <Show when={visible("mount", "rotator_position")}>
-                                  <td class="py-1 px-2 text-white text-right tabular-nums">{frame.rotator_position?.toFixed(2) ?? "\u2014"}</td>
+                                  <td class="py-1 px-2 text-theme-text-primary text-right tabular-nums">{frame.rotator_position?.toFixed(2) ?? "\u2014"}</td>
                                 </Show>
-                                <td class="py-1 px-2 text-white text-right tabular-nums">{frame.sensor_temp?.toFixed(0) ?? "—"}°C</td>
-                                <td class="py-1 px-2 text-white text-right tabular-nums">{frame.gain ?? "—"}</td>
-                                <td class="py-1 px-2 text-astro-muted text-right truncate max-w-[150px]">{frame.file_name}</td>
+                                <td class="py-1 px-2 text-theme-text-primary text-right tabular-nums">{frame.sensor_temp?.toFixed(0) ?? "—"}°C</td>
+                                <td class="py-1 px-2 text-theme-text-primary text-right tabular-nums">{frame.gain ?? "—"}</td>
+                                <td class="py-1 px-2 text-theme-text-secondary text-right truncate max-w-[150px]">{frame.file_name}</td>
                               </tr>
                             )}
                           </For>
@@ -515,7 +515,7 @@ const SortHeader: Component<{
   align?: "left" | "right" | "center";
 }> = (props) => (
   <th
-    class={`${props.align === "right" ? "text-right" : props.align === "center" ? "text-center" : "text-left"} py-1.5 px-2 font-normal cursor-pointer hover:text-white transition-colors`}
+    class={`${props.align === "right" ? "text-right" : props.align === "center" ? "text-center" : "text-left"} py-1.5 px-2 font-normal cursor-pointer hover:text-theme-text-primary transition-colors`}
     onClick={() => props.onSort(props.column)}
   >
     {props.label}

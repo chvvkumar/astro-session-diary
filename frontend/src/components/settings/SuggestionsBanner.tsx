@@ -11,8 +11,8 @@ interface Props {
 export const SuggestionsBanner: Component<Props> = (props) => {
   return (
     <Show when={props.suggestions.length > 0}>
-      <div class="bg-yellow-900/30 border border-yellow-700/50 rounded-lg p-4 space-y-3">
-        <p class="text-sm text-yellow-200">
+      <div class="bg-theme-warning/20 border border-theme-warning/50 rounded-lg p-4 space-y-3">
+        <p class="text-sm text-theme-warning">
           Found {props.suggestions.length} possible duplicate{props.suggestions.length > 1 ? "s" : ""}
         </p>
         <For each={props.suggestions}>
@@ -46,11 +46,11 @@ const MergeGroup: Component<{ group: SuggestionGroup; onMerge: (canonical: strin
             class={`px-2 py-1 rounded border text-xs transition-colors ${
               selected() === name
                 ? "border-astro-accent bg-astro-accent/20 text-white"
-                : "border-gray-600 text-gray-400 hover:border-gray-400"
+                : "border-theme-border text-theme-text-secondary hover:border-theme-border"
             }`}
           >
             {name}
-            <span class="ml-1 text-gray-500">({props.group.counts[name] || 0})</span>
+            <span class="ml-1 text-theme-text-tertiary">({props.group.counts[name] || 0})</span>
           </button>
         )}
       </For>
@@ -63,7 +63,7 @@ const MergeGroup: Component<{ group: SuggestionGroup; onMerge: (canonical: strin
       <Show when={props.onDismiss}>
         <button
           onClick={() => props.onDismiss?.(props.group)}
-          class="px-2 py-1 border border-gray-600 text-gray-400 text-xs rounded hover:border-red-500 hover:text-red-400 transition-colors"
+          class="px-2 py-1 border border-theme-border text-theme-text-secondary text-xs rounded hover:border-theme-error hover:text-theme-error transition-colors"
         >
           Dismiss
         </button>

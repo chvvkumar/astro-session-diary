@@ -10,28 +10,28 @@ const NavBar: Component = () => {
   const { targetData } = useCatalog();
 
   return (
-    <header class="border-b border-[#2d2d2d] px-6 py-3 flex items-center gap-6">
-      <h1 class="text-white font-bold text-lg whitespace-nowrap">GalactiLog</h1>
+    <header class="border-b border-theme-border px-6 py-3 flex items-center gap-6">
+      <h1 class="text-theme-text-primary font-bold text-lg whitespace-nowrap">GalactiLog</h1>
       <nav class="flex gap-4">
         <A
           href="/"
-          class="text-sm text-astro-muted hover:text-white transition-colors"
-          activeClass="text-white font-medium"
+          class="text-sm text-theme-text-secondary hover:text-theme-text-primary transition-colors"
+          activeClass="text-theme-text-primary font-medium"
           end
         >
           Dashboard
         </A>
         <A
           href="/admin"
-          class="text-sm text-astro-muted hover:text-white transition-colors"
-          activeClass="text-white font-medium"
+          class="text-sm text-theme-text-secondary hover:text-theme-text-primary transition-colors"
+          activeClass="text-theme-text-primary font-medium"
         >
           Admin & Stats
         </A>
         <A
           href="/settings"
-          class="text-astro-muted hover:text-white transition-colors text-sm"
-          activeClass="text-white font-medium"
+          class="text-theme-text-secondary hover:text-theme-text-primary transition-colors text-sm"
+          activeClass="text-theme-text-primary font-medium"
         >
           Settings
         </A>
@@ -39,16 +39,16 @@ const NavBar: Component = () => {
       <Show when={targetData()}>
         {(data) => (
           <div class="ml-auto flex gap-5 text-sm items-end">
-            <span class="text-astro-muted">
-              Integration <span class="text-white font-semibold">{formatHours(data().aggregates.total_integration_seconds)}</span>
+            <span class="text-theme-text-secondary">
+              Integration <span class="text-theme-text-primary font-semibold">{formatHours(data().aggregates.total_integration_seconds)}</span>
             </span>
-            <span class="text-astro-muted">
-              Targets <span class="text-white font-semibold">{String(data().aggregates.target_count)}</span>
+            <span class="text-theme-text-secondary">
+              Targets <span class="text-theme-text-primary font-semibold">{String(data().aggregates.target_count)}</span>
             </span>
-            <span class="text-astro-muted">
-              Frames <span class="text-white font-semibold">{data().aggregates.total_frames.toLocaleString()}</span>
+            <span class="text-theme-text-secondary">
+              Frames <span class="text-theme-text-primary font-semibold">{data().aggregates.total_frames.toLocaleString()}</span>
             </span>
-            <span class="text-[10px] text-astro-muted/60 italic">filtered</span>
+            <span class="text-[10px] text-theme-text-tertiary italic">filtered</span>
           </div>
         )}
       </Show>

@@ -51,8 +51,8 @@ export default function DisplayTab() {
 
   return (
     <div class="space-y-4">
-      <p class="text-sm text-astro-muted">Choose which metric groups and individual fields appear on target detail pages.</p>
-      <Show when={local()} fallback={<p class="text-astro-muted">Loading...</p>}>
+      <p class="text-sm text-theme-text-secondary">Choose which metric groups and individual fields appear on target detail pages.</p>
+      <Show when={local()} fallback={<p class="text-theme-text-secondary">Loading...</p>}>
         {(settings) => (
           <>
             <For each={GROUP_META}>
@@ -60,13 +60,13 @@ export default function DisplayTab() {
                 const gs = (): MetricGroupSettings => settings()[group.key];
                 const isCollapsed = () => !!collapsed()[group.key];
                 return (
-                  <div class="rounded-lg bg-astro-panel border border-white/10">
+                  <div class="rounded-lg bg-theme-surface border border-theme-border">
                     <div class="flex items-center justify-between px-4 py-3">
-                      <button type="button" class="flex items-center gap-2 text-sm font-medium text-white hover:text-white/80" onClick={() => toggleCollapsed(group.key)}>
+                      <button type="button" class="flex items-center gap-2 text-sm font-medium text-theme-text-primary hover:text-theme-text-secondary" onClick={() => toggleCollapsed(group.key)}>
                         <svg class={`w-4 h-4 transition-transform ${isCollapsed() ? "-rotate-90" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
                         {group.label}
                       </button>
-                      <button type="button" role="switch" aria-checked={gs().enabled} class={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${gs().enabled ? "bg-blue-500" : "bg-white/20"}`} onClick={() => toggleGroupEnabled(group.key)}>
+                      <button type="button" role="switch" aria-checked={gs().enabled} class={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${gs().enabled ? "bg-theme-accent" : "bg-theme-text-tertiary"}`} onClick={() => toggleGroupEnabled(group.key)}>
                         <span class={`pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${gs().enabled ? "translate-x-4" : "translate-x-0"}`} />
                       </button>
                     </div>
@@ -74,8 +74,8 @@ export default function DisplayTab() {
                       <div class={`px-4 pb-3 grid grid-cols-2 sm:grid-cols-3 gap-2 ${!gs().enabled ? "opacity-40" : ""}`}>
                         <For each={Object.entries(group.fieldLabels)}>
                           {([fieldKey, fieldLabel]) => (
-                            <label class="flex items-center gap-2 text-sm text-white/90 cursor-pointer">
-                              <input type="checkbox" checked={gs().fields[fieldKey] ?? false} disabled={!gs().enabled} onChange={() => toggleField(group.key, fieldKey)} class="rounded border-white/30 bg-astro-dark text-blue-500 focus:ring-blue-500 focus:ring-offset-0 h-4 w-4" />
+                            <label class="flex items-center gap-2 text-sm text-theme-text-primary cursor-pointer">
+                              <input type="checkbox" checked={gs().fields[fieldKey] ?? false} disabled={!gs().enabled} onChange={() => toggleField(group.key, fieldKey)} class="rounded border-theme-border bg-theme-base text-theme-accent focus:ring-theme-accent focus:ring-offset-0 h-4 w-4" />
                               {fieldLabel}
                             </label>
                           )}
@@ -87,7 +87,7 @@ export default function DisplayTab() {
               }}
             </For>
             <div class="flex justify-end pt-2">
-              <button type="button" class="px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 hover:bg-blue-500 text-white disabled:opacity-50" disabled={saving()} onClick={handleSave}>
+              <button type="button" class="px-4 py-2 text-sm font-medium rounded-lg bg-theme-accent hover:bg-theme-accent-hover text-theme-text-primary disabled:opacity-50" disabled={saving()} onClick={handleSave}>
                 {saving() ? "Saving..." : "Save"}
               </button>
             </div>

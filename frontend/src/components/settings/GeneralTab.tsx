@@ -60,11 +60,11 @@ export const GeneralTab: Component = () => {
     <div class="space-y-6 max-w-lg">
       {/* Auto-scan toggle */}
       <div class="flex justify-between items-center">
-        <label class="text-sm text-white">Auto-scan enabled</label>
+        <label class="text-sm text-theme-text-primary">Auto-scan enabled</label>
         <button
           onClick={() => setLocal((p) => ({ ...p, auto_scan_enabled: !p.auto_scan_enabled }))}
           class={`relative w-10 h-5 rounded-full transition-colors ${
-            local().auto_scan_enabled ? "bg-astro-accent" : "bg-gray-600"
+            local().auto_scan_enabled ? "bg-theme-accent" : "bg-theme-text-tertiary"
           }`}
         >
           <span
@@ -77,13 +77,13 @@ export const GeneralTab: Component = () => {
 
       {/* Auto-scan interval */}
       <div class="space-y-1">
-        <label class="text-sm text-white">Scan interval</label>
+        <label class="text-sm text-theme-text-primary">Scan interval</label>
         <select
           value={local().auto_scan_interval}
           onChange={(e) =>
             setLocal((p) => ({ ...p, auto_scan_interval: parseInt(e.currentTarget.value) }))
           }
-          class="w-full px-3 py-2 bg-astro-dark border border-gray-700 rounded text-sm text-white focus:outline-none focus:border-astro-accent"
+          class="w-full px-3 py-2 bg-theme-base border border-theme-border rounded text-sm text-theme-text-primary focus:outline-none focus:border-theme-accent"
         >
           {INTERVALS.map((opt) => (
             <option value={opt.value}>{opt.label}</option>
@@ -93,7 +93,7 @@ export const GeneralTab: Component = () => {
 
       {/* Thumbnail width */}
       <div class="space-y-1">
-        <label class="text-sm text-white">Thumbnail max width (px)</label>
+        <label class="text-sm text-theme-text-primary">Thumbnail max width (px)</label>
         <input
           type="number"
           min={200}
@@ -103,19 +103,19 @@ export const GeneralTab: Component = () => {
           onInput={(e) =>
             setLocal((p) => ({ ...p, thumbnail_width: parseInt(e.currentTarget.value) || 800 }))
           }
-          class="w-full px-3 py-2 bg-astro-dark border border-gray-700 rounded text-sm text-white focus:outline-none focus:border-astro-accent"
+          class="w-full px-3 py-2 bg-theme-base border border-theme-border rounded text-sm text-theme-text-primary focus:outline-none focus:border-theme-accent"
         />
       </div>
 
       {/* Default page size */}
       <div class="space-y-1">
-        <label class="text-sm text-white">Default page size</label>
+        <label class="text-sm text-theme-text-primary">Default page size</label>
         <select
           value={local().default_page_size}
           onChange={(e) =>
             setLocal((p) => ({ ...p, default_page_size: parseInt(e.currentTarget.value) }))
           }
-          class="w-full px-3 py-2 bg-astro-dark border border-gray-700 rounded text-sm text-white focus:outline-none focus:border-astro-accent"
+          class="w-full px-3 py-2 bg-theme-base border border-theme-border rounded text-sm text-theme-text-primary focus:outline-none focus:border-theme-accent"
         >
           {PAGE_SIZES.map((s) => (
             <option value={s}>{s}</option>
@@ -125,14 +125,14 @@ export const GeneralTab: Component = () => {
 
       {/* Filter badge style */}
       <div class="space-y-1">
-        <label class="text-sm text-white">Filter badge style</label>
+        <label class="text-sm text-theme-text-primary">Filter badge style</label>
         <div class="flex items-center gap-4">
           <select
             value={local().filter_style || "solid"}
             onChange={(e) =>
               setLocal((p) => ({ ...p, filter_style: e.currentTarget.value }))
             }
-            class="px-3 py-2 bg-astro-dark border border-gray-700 rounded text-sm text-white focus:outline-none focus:border-astro-accent"
+            class="px-3 py-2 bg-theme-base border border-theme-border rounded text-sm text-theme-text-primary focus:outline-none focus:border-theme-accent"
           >
             <For each={FILTER_STYLE_OPTIONS}>
               {(opt) => <option value={opt.value}>{opt.label}</option>}
@@ -163,7 +163,7 @@ export const GeneralTab: Component = () => {
       <button
         onClick={handleSave}
         disabled={saving()}
-        class="px-4 py-2 bg-astro-accent text-white rounded text-sm hover:opacity-90 disabled:opacity-50 transition-opacity"
+        class="px-4 py-2 bg-theme-accent text-theme-text-primary rounded text-sm hover:opacity-90 disabled:opacity-50 transition-opacity"
       >
         {saving() ? "Saving..." : "Save"}
       </button>
