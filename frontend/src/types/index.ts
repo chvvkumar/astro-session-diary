@@ -168,6 +168,15 @@ export interface ScanStatus {
   failed_files?: FailedFile[];
 }
 
+export interface RebuildStatus {
+  state: "idle" | "running" | "complete" | "error";
+  mode: string;
+  message: string;
+  started_at: number | null;
+  completed_at: number | null;
+  details: Record<string, number>;
+}
+
 // === Search ===
 
 export interface TargetSearchResult {

@@ -8,7 +8,7 @@ type FrameFilter = "all" | "light_only";
 const ScanManager: Component = () => {
   const { scanStatus, scanError, isActive, startScan, startRegeneration, resetScan, stopPolling } = useScan();
   const { settings } = useSettingsContext();
-  const [expanded, setExpanded] = createSignal(false);
+  const [expanded, setExpanded] = createSignal(true);
   const [frameFilter, setFrameFilter] = createSignal<FrameFilter>("all");
 
   // Sync frameFilter from server settings once loaded
@@ -165,7 +165,17 @@ const ScanManager: Component = () => {
       <Show when={!isActive() && scanStatus().state === "complete"}>
         <div class="flex justify-between items-center text-xs">
           <span class="text-green-400">Complete</span>
-          <span class="text-astro-muted">{scanStatus().completed} ingested</span>
+          <span class="text-astro-muted">
+            {scanStatus().completed} ingested
+            {scanStatus().completed_at ? ` \u00b7 ${new Date(scanStatus().completed_at! * 1000).toLocaleString()}` : ""}
+          </span>
+        </div>
+      </Show>
+
+      <Show when={!isActive() && scanStatus().state === "idle" && scanStatus().completed_at}>
+        <div class="text-xs text-astro-muted">
+          Last scan: {new Date(scanStatus().completed_at! * 1000).toLocaleString()}
+          {scanStatus().completed > 0 ? ` \u00b7 ${scanStatus().completed} ingested` : ""}
         </div>
       </Show>
 
@@ -223,21 +233,62 @@ const ScanManager: Component = () => {
 
 const RebuildTargetsSection: Component<{ disabled: boolean }> = (props) => {
   const [showFullConfirm, setShowFullConfirm] = createSignal(false);
-  const [busy, setBusy] = createSignal(false);
-  const [result, setResult] = createSignal<string | null>(null);
+  const [rebuildState, setRebuildState] = createSignal<import("../types").RebuildStatus>({
+    state: "idle", mode: "", message: "", started_at: null, completed_at: null, details: {},
+  });
+  let pollTimer: ReturnType<typeof setInterval> | null = null;
 
-  const runAction = async (action: () => Promise<{ message?: string }>, label: string) => {
-    setShowFullConfirm(false);
-    setBusy(true);
-    setResult(null);
+  const fetchRebuildStatus = async () => {
     try {
-      const res = await action();
-      setResult(res.message || `${label} queued successfully`);
+      const status = await api.getRebuildStatus();
+      setRebuildState(status);
+      if (status.state !== "running") {
+        if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+      }
+    } catch { /* ignore */ }
+  };
+
+  // Check on mount if a rebuild is running
+  onCleanup(() => { if (pollTimer) clearInterval(pollTimer); });
+  fetchRebuildStatus();
+
+  const startPolling = () => {
+    if (pollTimer) return;
+    fetchRebuildStatus();
+    pollTimer = setInterval(fetchRebuildStatus, 2000);
+  };
+
+  const isRunning = () => rebuildState().state === "running";
+
+  const runAction = async (action: () => Promise<any>) => {
+    setShowFullConfirm(false);
+    try {
+      await action();
+      startPolling();
     } catch (e: any) {
-      setResult(`Error: ${e?.message || `Failed to start ${label.toLowerCase()}`}`);
-    } finally {
-      setBusy(false);
+      setRebuildState((prev) => ({
+        ...prev, state: "error" as const, message: e?.message || "Failed to start",
+      }));
     }
+  };
+
+  const detailEntries = () => {
+    const d = rebuildState().details;
+    if (!d || Object.keys(d).length === 0) return [];
+    const labels: Record<string, string> = {
+      resolved: "Targets resolved",
+      failed: "Failed to resolve",
+      total: "Total object names",
+      redirected_merged: "Orphaned images fixed",
+      linked_unresolved: "Unresolved images linked",
+      aliases_updated: "Target aliases updated",
+      rederived: "Targets re-derived from cache",
+      names_rebuilt: "Names rebuilt",
+      stale_candidates_removed: "Stale candidates removed",
+    };
+    return Object.entries(d)
+      .filter(([, v]) => v > 0)
+      .map(([k, v]) => ({ label: labels[k] || k, value: v }));
   };
 
   return (
@@ -253,11 +304,11 @@ const RebuildTargetsSection: Component<{ disabled: boolean }> = (props) => {
           </p>
         </div>
         <button
-          onClick={() => runAction(api.smartRebuildTargets, "Quick fix")}
-          disabled={props.disabled || busy()}
+          onClick={() => runAction(api.smartRebuildTargets)}
+          disabled={props.disabled || isRunning()}
           class="px-3 py-1.5 border border-gray-600 text-astro-muted rounded text-sm disabled:opacity-50 hover:text-white hover:border-astro-accent transition-colors"
         >
-          {busy() ? "Running..." : "Quick Fix"}
+          {isRunning() && rebuildState().mode === "smart" ? "Running..." : "Quick Fix"}
         </button>
       </div>
 
@@ -271,10 +322,10 @@ const RebuildTargetsSection: Component<{ disabled: boolean }> = (props) => {
         </div>
         <button
           onClick={() => setShowFullConfirm(true)}
-          disabled={props.disabled || busy()}
+          disabled={props.disabled || isRunning()}
           class="px-3 py-1.5 border border-red-600/50 text-red-400 rounded text-sm disabled:opacity-50 hover:bg-red-600/20 hover:text-red-300 transition-colors"
         >
-          {busy() ? "Running..." : "Full Rebuild"}
+          {isRunning() && rebuildState().mode === "full" ? "Running..." : "Full Rebuild"}
         </button>
       </div>
 
@@ -288,7 +339,7 @@ const RebuildTargetsSection: Component<{ disabled: boolean }> = (props) => {
           </p>
           <div class="flex gap-2 pt-1">
             <button
-              onClick={() => runAction(api.rebuildTargets, "Full rebuild")}
+              onClick={() => runAction(api.rebuildTargets)}
               class="px-3 py-1.5 bg-red-600 text-white rounded text-xs font-medium hover:bg-red-700 transition-colors"
             >
               Yes, rebuild everything
@@ -303,10 +354,44 @@ const RebuildTargetsSection: Component<{ disabled: boolean }> = (props) => {
         </div>
       </Show>
 
-      <Show when={result()}>
-        <p class={`text-xs ${result()!.startsWith("Error") ? "text-red-400" : "text-green-400"}`}>
-          {result()}
-        </p>
+      {/* Status / Progress */}
+      <Show when={rebuildState().state === "running"}>
+        <div class="bg-astro-dark rounded p-2 space-y-1">
+          <div class="flex items-center gap-2">
+            <div class="w-2 h-2 bg-astro-accent rounded-full animate-pulse" />
+            <span class="text-xs text-white">{rebuildState().message || "Running..."}</span>
+          </div>
+        </div>
+      </Show>
+
+      {/* Results */}
+      <Show when={rebuildState().state === "complete"}>
+        <div class="bg-astro-dark rounded p-2 space-y-1">
+          <div class="flex justify-between items-center">
+            <span class="text-xs text-green-400">{rebuildState().message}</span>
+            <span class="text-xs text-astro-muted">
+              {rebuildState().completed_at
+                ? new Date(rebuildState().completed_at! * 1000).toLocaleString()
+                : ""}
+            </span>
+          </div>
+          <Show when={detailEntries().length > 0}>
+            <div class="grid grid-cols-2 gap-x-4 gap-y-0.5 mt-1">
+              <For each={detailEntries()}>
+                {(e) => (
+                  <>
+                    <span class="text-xs text-astro-muted">{e.label}</span>
+                    <span class="text-xs text-white">{e.value}</span>
+                  </>
+                )}
+              </For>
+            </div>
+          </Show>
+        </div>
+      </Show>
+
+      <Show when={rebuildState().state === "error"}>
+        <p class="text-xs text-red-400">{rebuildState().message}</p>
       </Show>
     </div>
   );

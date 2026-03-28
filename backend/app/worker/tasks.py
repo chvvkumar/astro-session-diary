@@ -33,6 +33,7 @@ from app.config import get_sync_redis
 from app.services.scan_state import (
     increment_completed_sync, increment_failed_sync,
     start_scanning_sync, set_ingesting_sync, set_idle_sync,
+    set_rebuild_running_sync, set_rebuild_progress_sync, set_rebuild_complete_sync,
 )
 
 _redis = get_sync_redis()
@@ -361,6 +362,7 @@ def rebuild_targets(self) -> dict:
     import time
 
     logger.info("rebuild_targets: starting full rebuild")
+    set_rebuild_running_sync(_redis, "full", "Clearing existing targets...")
 
     # Phase 1: Clear everything
     with Session(_sync_engine) as session:
@@ -385,13 +387,15 @@ def rebuild_targets(self) -> dict:
         """))
         object_names = result.all()
 
-    logger.info("rebuild_targets: found %d unique OBJECT names", len(object_names))
+    total = len(object_names)
+    logger.info("rebuild_targets: found %d unique OBJECT names", total)
+    set_rebuild_progress_sync(_redis, f"Resolving 0/{total} object names...")
 
     resolved = 0
     failed = 0
 
     # Phase 3: Resolve each and link images
-    for obj_name, img_count in object_names:
+    for i, (obj_name, img_count) in enumerate(object_names):
         target_id = _resolve_or_cache_target(obj_name)
 
         if target_id:
@@ -409,13 +413,22 @@ def rebuild_targets(self) -> dict:
             failed += 1
             logger.info("rebuild_targets: FAILED %s (%d images)", obj_name, img_count)
 
+        if (i + 1) % 5 == 0 or i + 1 == total:
+            set_rebuild_progress_sync(_redis, f"Resolving {i + 1}/{total} object names...")
+
         time.sleep(0.3)  # Rate limit SIMBAD
 
     # Phase 4: Queue duplicate detection
     detect_duplicate_targets.apply_async(countdown=10)
 
+    details = {"resolved": resolved, "failed": failed, "total": total}
+    set_rebuild_complete_sync(
+        _redis,
+        f"Resolved {resolved} targets, {failed} failed out of {total} object names",
+        details,
+    )
     logger.info("rebuild_targets: done — resolved=%d, failed=%d", resolved, failed)
-    return {"status": "complete", "resolved": resolved, "failed": failed, "total": len(object_names)}
+    return {"status": "complete", **details}
 
 
 @celery_app.task(bind=True)
@@ -431,6 +444,7 @@ def smart_rebuild_targets(self) -> dict:
     6. Stale merge candidates → clean up
     """
     logger.info("smart_rebuild: starting")
+    set_rebuild_running_sync(_redis, "smart", "Running quick fix...")
     stats = {}
 
     with Session(_sync_engine) as session:
@@ -562,5 +576,16 @@ def smart_rebuild_targets(self) -> dict:
     # Queue duplicate detection
     detect_duplicate_targets.apply_async(countdown=5)
 
+    # Build summary message
+    parts = []
+    if stats.get("redirected_merged"): parts.append(f"{stats['redirected_merged']} orphaned images fixed")
+    if stats.get("linked_unresolved"): parts.append(f"{stats['linked_unresolved']} unresolved images linked")
+    if stats.get("aliases_updated"): parts.append(f"{stats['aliases_updated']} target aliases updated")
+    if stats.get("rederived"): parts.append(f"{stats['rederived']} targets re-derived from cache")
+    if stats.get("names_rebuilt"): parts.append(f"{stats['names_rebuilt']} names rebuilt")
+    if stats.get("stale_candidates_removed"): parts.append(f"{stats['stale_candidates_removed']} stale candidates removed")
+    message = "; ".join(parts) if parts else "No issues found"
+
+    set_rebuild_complete_sync(_redis, message, stats)
     logger.info("smart_rebuild: done — %s", stats)
     return {"status": "complete", **stats}

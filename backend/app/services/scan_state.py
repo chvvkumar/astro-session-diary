@@ -182,3 +182,78 @@ def set_idle_sync(r: sync_redis.Redis) -> None:
         "completed_at": time.time(),
     })
     r.expire(SCAN_KEY, EXPIRE_AFTER_COMPLETE)
+
+
+# ── Rebuild status (Quick Fix / Full Rebuild) ────────────────────────────
+
+REBUILD_KEY = "rebuild:status"
+REBUILD_EXPIRE = 3600  # 1 hour
+
+
+@dataclass
+class RebuildStatus:
+    state: str  # idle | running | complete | error
+    mode: str  # smart | full
+    message: str
+    started_at: float | None
+    completed_at: float | None
+    details: dict
+
+    def to_dict(self) -> dict:
+        return {
+            "state": self.state,
+            "mode": self.mode,
+            "message": self.message,
+            "started_at": self.started_at,
+            "completed_at": self.completed_at,
+            "details": self.details,
+        }
+
+
+def _parse_rebuild(data: dict | None) -> RebuildStatus:
+    if not data or "state" not in data:
+        return RebuildStatus(
+            state="idle", mode="", message="", started_at=None,
+            completed_at=None, details={},
+        )
+    import json
+    return RebuildStatus(
+        state=data.get("state", "idle"),
+        mode=data.get("mode", ""),
+        message=data.get("message", ""),
+        started_at=float(data["started_at"]) if data.get("started_at") else None,
+        completed_at=float(data["completed_at"]) if data.get("completed_at") else None,
+        details=json.loads(data["details"]) if data.get("details") else {},
+    )
+
+
+async def get_rebuild_state(r: aioredis.Redis) -> RebuildStatus:
+    data = await r.hgetall(REBUILD_KEY)
+    return _parse_rebuild(data)
+
+
+def set_rebuild_running_sync(r: sync_redis.Redis, mode: str, message: str) -> None:
+    r.hset(REBUILD_KEY, mapping={
+        "state": "running",
+        "mode": mode,
+        "message": message,
+        "started_at": time.time(),
+        "completed_at": "",
+        "details": "{}",
+    })
+    r.persist(REBUILD_KEY)
+
+
+def set_rebuild_progress_sync(r: sync_redis.Redis, message: str) -> None:
+    r.hset(REBUILD_KEY, "message", message)
+
+
+def set_rebuild_complete_sync(r: sync_redis.Redis, message: str, details: dict) -> None:
+    import json
+    r.hset(REBUILD_KEY, mapping={
+        "state": "complete",
+        "message": message,
+        "completed_at": time.time(),
+        "details": json.dumps(details),
+    })
+    r.expire(REBUILD_KEY, REBUILD_EXPIRE)

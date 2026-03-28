@@ -10,6 +10,7 @@ from app.database import get_session
 from app.models import Image, Target
 from app.services.scan_state import (
     get_scan_state, get_failed_files, start_scanning, set_ingesting, set_idle, reset_scan,
+    get_rebuild_state,
 )
 from app.services.simbad import resolve_target_name, normalize_object_name
 from app.worker.tasks import regenerate_thumbnail, run_scan, rebuild_targets, smart_rebuild_targets
@@ -277,6 +278,17 @@ async def trigger_smart_rebuild():
 
         smart_rebuild_targets.delay()
         return {"status": "accepted", "message": "Smart rebuild queued as background task"}
+    finally:
+        await r.aclose()
+
+
+@router.get("/rebuild-status")
+async def rebuild_status():
+    """Return current rebuild task state from Redis."""
+    r = get_async_redis()
+    try:
+        state = await get_rebuild_state(r)
+        return state.to_dict()
     finally:
         await r.aclose()
 
