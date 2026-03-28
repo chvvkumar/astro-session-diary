@@ -1,7 +1,7 @@
 import logging
 from pathlib import Path
 
-from sqlalchemy import create_engine, select
+from sqlalchemy import create_engine, select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -345,3 +345,74 @@ def _resolve_or_cache_target(object_name: str) -> str | None:
             stmt = select(Target).where(Target.primary_name == result["primary_name"])
             existing = session.execute(stmt).scalar_one_or_none()
             return str(existing.id) if existing else None
+
+
+@celery_app.task(bind=True)
+def rebuild_targets(self) -> dict:
+    """Full target database rebuild: delete all targets, re-resolve from FITS headers.
+
+    1. Clear resolved_target_id on all images
+    2. Delete all targets and merge candidates
+    3. Clear negative cache
+    4. Get distinct OBJECT names from LIGHT frames
+    5. Re-resolve each through SIMBAD (reusing _resolve_or_cache_target)
+    6. Re-link images to new targets
+    """
+    import time
+
+    logger.info("rebuild_targets: starting full rebuild")
+
+    # Phase 1: Clear everything
+    with Session(_sync_engine) as session:
+        session.execute(text("UPDATE images SET resolved_target_id = NULL"))
+        session.execute(text("DELETE FROM merge_candidates"))
+        session.execute(text("DELETE FROM targets"))
+        session.commit()
+    logger.info("rebuild_targets: cleared all targets and links")
+
+    _simbad_negative_cache.clear()
+
+    # Phase 2: Get distinct OBJECT names from LIGHT frames
+    with Session(_sync_engine) as session:
+        result = session.execute(text("""
+            SELECT raw_headers->>'OBJECT' AS obj, COUNT(*) AS cnt
+            FROM images
+            WHERE image_type = 'LIGHT'
+              AND raw_headers->>'OBJECT' IS NOT NULL
+              AND raw_headers->>'OBJECT' != ''
+            GROUP BY raw_headers->>'OBJECT'
+            ORDER BY cnt DESC
+        """))
+        object_names = result.all()
+
+    logger.info("rebuild_targets: found %d unique OBJECT names", len(object_names))
+
+    resolved = 0
+    failed = 0
+
+    # Phase 3: Resolve each and link images
+    for obj_name, img_count in object_names:
+        target_id = _resolve_or_cache_target(obj_name)
+
+        if target_id:
+            with Session(_sync_engine) as session:
+                session.execute(text("""
+                    UPDATE images
+                    SET resolved_target_id = :tid
+                    WHERE resolved_target_id IS NULL
+                      AND raw_headers->>'OBJECT' = :obj_name
+                """), {"tid": target_id, "obj_name": obj_name})
+                session.commit()
+            resolved += 1
+            logger.info("rebuild_targets: %s -> %s (%d images)", obj_name, target_id, img_count)
+        else:
+            failed += 1
+            logger.info("rebuild_targets: FAILED %s (%d images)", obj_name, img_count)
+
+        time.sleep(0.3)  # Rate limit SIMBAD
+
+    # Phase 4: Queue duplicate detection
+    detect_duplicate_targets.apply_async(countdown=10)
+
+    logger.info("rebuild_targets: done — resolved=%d, failed=%d", resolved, failed)
+    return {"status": "complete", "resolved": resolved, "failed": failed, "total": len(object_names)}

@@ -100,6 +100,9 @@ export const api = {
   resetScan: () =>
     fetchJson<{ status: string }>("/scan/reset", { method: "POST" }),
 
+  rebuildTargets: () =>
+    fetchJson<{ status: string; message: string }>("/scan/rebuild-targets", { method: "POST" }),
+
   getAutoScan: () =>
     fetchJson<{ enabled: boolean; interval_minutes: number }>("/scan/autoscan"),
 

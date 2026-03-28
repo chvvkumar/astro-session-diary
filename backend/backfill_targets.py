@@ -52,13 +52,19 @@ async def backfill_existing_targets():
             )
             fits_names = [row[0] for row in fits_result.all() if row[0]]
 
-            # Use catalog_id for TAP lookup (idempotent), fall back to primary_name
-            lookup_name = target.catalog_id or target.primary_name
+            # Extract a clean SIMBAD-compatible name for TAP lookup.
+            # catalog_id may contain mangled values like "IC 1805 - Heart Nebula Panel 1"
+            # from a previous backfill run — strip everything after " - " to get "IC 1805".
+            raw_lookup = target.catalog_id or target.primary_name
+            lookup_name = raw_lookup.split(" - ")[0].strip()
             raw_aliases = await _fetch_tap_aliases(lookup_name)
 
             if not raw_aliases:
                 # TAP failed — try with normalized name
                 raw_aliases = await _fetch_tap_aliases(_normalize_ws(lookup_name))
+            if not raw_aliases and lookup_name != raw_lookup:
+                # Try the full value as last resort
+                raw_aliases = await _fetch_tap_aliases(raw_lookup)
 
             if raw_aliases:
                 catalog_id = extract_catalog_id(raw_aliases, lookup_name)

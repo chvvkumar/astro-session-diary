@@ -1,6 +1,7 @@
 import { Component, Show, For, createSignal, createEffect, onCleanup } from "solid-js";
 import { useScan } from "../store/scan";
 import { useSettingsContext } from "./SettingsProvider";
+import { api } from "../api/client";
 
 type FrameFilter = "all" | "light_only";
 
@@ -212,8 +213,84 @@ const ScanManager: Component = () => {
         </div>
       </Show>
 
+      {/* Rebuild Target Database */}
+      <RebuildTargetsSection disabled={isActive()} />
+
     </div>
   );
 };
+
+
+const RebuildTargetsSection: Component<{ disabled: boolean }> = (props) => {
+  const [showConfirm, setShowConfirm] = createSignal(false);
+  const [rebuilding, setRebuilding] = createSignal(false);
+  const [result, setResult] = createSignal<string | null>(null);
+
+  const handleRebuild = async () => {
+    setShowConfirm(false);
+    setRebuilding(true);
+    setResult(null);
+    try {
+      const res = await api.rebuildTargets();
+      setResult(res.message || "Rebuild queued successfully");
+    } catch (e: any) {
+      setResult(`Error: ${e?.message || "Failed to start rebuild"}`);
+    } finally {
+      setRebuilding(false);
+    }
+  };
+
+  return (
+    <div class="border-t border-gray-700 pt-3 mt-3 space-y-2">
+      <div class="flex justify-between items-center">
+        <div>
+          <h4 class="text-white text-sm font-medium">Rebuild Target Database</h4>
+          <p class="text-xs text-astro-muted mt-0.5">
+            Delete all targets and re-resolve from FITS headers via SIMBAD.
+          </p>
+        </div>
+        <button
+          onClick={() => setShowConfirm(true)}
+          disabled={props.disabled || rebuilding()}
+          class="px-3 py-1.5 border border-red-600/50 text-red-400 rounded text-sm disabled:opacity-50 hover:bg-red-600/20 hover:text-red-300 transition-colors"
+        >
+          {rebuilding() ? "Rebuilding..." : "Rebuild Targets"}
+        </button>
+      </div>
+
+      <Show when={showConfirm()}>
+        <div class="bg-red-900/30 border border-red-600/50 rounded-lg p-3 space-y-2">
+          <p class="text-sm text-red-300 font-medium">Are you sure?</p>
+          <p class="text-xs text-red-200/70">
+            This will delete all target records, merge history, and suggested merges.
+            All targets will be re-resolved from scratch using SIMBAD. This may take
+            several minutes depending on how many unique object names exist.
+          </p>
+          <div class="flex gap-2 pt-1">
+            <button
+              onClick={handleRebuild}
+              class="px-3 py-1.5 bg-red-600 text-white rounded text-xs font-medium hover:bg-red-700 transition-colors"
+            >
+              Yes, rebuild everything
+            </button>
+            <button
+              onClick={() => setShowConfirm(false)}
+              class="px-3 py-1.5 border border-gray-600 text-gray-300 rounded text-xs hover:border-white hover:text-white transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </Show>
+
+      <Show when={result()}>
+        <p class={`text-xs ${result()!.startsWith("Error") ? "text-red-400" : "text-green-400"}`}>
+          {result()}
+        </p>
+      </Show>
+    </div>
+  );
+};
+
 
 export default ScanManager;

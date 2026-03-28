@@ -12,7 +12,7 @@ from app.services.scan_state import (
     get_scan_state, get_failed_files, start_scanning, set_ingesting, set_idle, reset_scan,
 )
 from app.services.simbad import resolve_target_name, normalize_object_name
-from app.worker.tasks import regenerate_thumbnail, run_scan
+from app.worker.tasks import regenerate_thumbnail, run_scan, rebuild_targets
 
 logger = logging.getLogger(__name__)
 
@@ -234,6 +234,28 @@ async def backfill_targets(
         "failed_names": failed_names,
         "images_updated": total_images_updated,
     }
+
+
+@router.post("/rebuild-targets")
+async def trigger_rebuild_targets():
+    """Delete all targets and re-resolve from FITS headers via SIMBAD.
+
+    This is a destructive operation that clears all targets, merge history,
+    and re-resolves everything from scratch. Runs as a background Celery task.
+    """
+    r = get_async_redis()
+    try:
+        state = await get_scan_state(r)
+        if state.state in ("scanning", "ingesting"):
+            raise HTTPException(
+                status_code=409,
+                detail="A scan is already running. Wait for it to complete first.",
+            )
+
+        rebuild_targets.delay()
+        return {"status": "accepted", "message": "Target rebuild queued as background task"}
+    finally:
+        await r.aclose()
 
 
 VALID_INTERVALS = {60, 120, 240, 480, 720, 1440}
