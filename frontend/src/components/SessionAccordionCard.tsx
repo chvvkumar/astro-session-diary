@@ -77,27 +77,33 @@ const SessionAccordionCard: Component<{
     >
       {/* Collapsed header — always visible */}
       <div
-        class="px-4 py-3 flex justify-between items-center cursor-pointer hover:bg-[#2a2a2a] transition-colors rounded-lg"
+        class="px-4 py-3 grid cursor-pointer hover:bg-[#2a2a2a] transition-colors rounded-lg items-center text-xs"
+        style={{ "grid-template-columns": "1fr auto auto auto" }}
         onClick={props.onToggle}
       >
+        {/* Left: date + equipment */}
         <div>
-          <span class="font-bold text-white">{props.session.session_date}</span>
-          <span class="text-xs text-astro-muted ml-3">
+          <span class="font-bold text-white text-sm">{props.session.session_date}</span>
+          <span class="text-astro-muted ml-3">
             {props.session.camera ?? ""} · {props.session.telescope ?? ""}
           </span>
         </div>
-        <div class="flex items-center text-xs whitespace-nowrap gap-2">
-          <span class="text-blue-400 tabular-nums w-10 text-right">{formatHours(props.session.integration_seconds)}</span>
-          <span class="text-[#333]">|</span>
+        {/* Middle: fixed-width metrics */}
+        <div class="flex items-center whitespace-nowrap">
+          <span class="text-blue-400 tabular-nums w-12 text-right">{formatHours(props.session.integration_seconds)}</span>
+          <span class="text-[#333] mx-1.5">|</span>
           <span class="text-green-400 tabular-nums w-12 text-right">{props.session.frame_count} fr</span>
-          <span class="text-[#333]">|</span>
-          <span class="text-amber-400 tabular-nums w-14 text-right">HFR {props.session.median_hfr?.toFixed(1) ?? "—"}</span>
-          <span class="text-[#333]">|</span>
-          <span class="text-purple-400 tabular-nums w-16 text-right">Ecc {props.session.median_eccentricity?.toFixed(2) ?? "—"}</span>
-          <span class="text-[#333]">|</span>
-          <FilterBadges distribution={Object.fromEntries(props.session.filters_used.map(f => [f, 0]))} compact />
-          <span class="text-astro-muted">{props.isExpanded ? "▼" : "▶"}</span>
+          <span class="text-[#333] mx-1.5">|</span>
+          <span class="text-amber-400 tabular-nums w-16 text-right">HFR {props.session.median_hfr?.toFixed(1) ?? "—"}</span>
+          <span class="text-[#333] mx-1.5">|</span>
+          <span class="text-purple-400 tabular-nums w-[4.5rem] text-right">Ecc {props.session.median_eccentricity?.toFixed(2) ?? "—"}</span>
         </div>
+        {/* Right: filter badges */}
+        <div class="flex justify-end ml-4">
+          <FilterBadges distribution={Object.fromEntries(props.session.filters_used.map(f => [f, 0]))} compact />
+        </div>
+        {/* Expand toggle */}
+        <span class="text-astro-muted ml-3">{props.isExpanded ? "▼" : "▶"}</span>
       </div>
 
       {/* Expanded content */}
