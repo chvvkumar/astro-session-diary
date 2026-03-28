@@ -74,8 +74,8 @@ export function getFilterBadgeStyle(
     case "muted-bright":
       return {
         style: {
-          "background-color": hexToRgba(hexColor, 0.3),
-          color: hexColor,
+          "background-color": hexToRgba(hexColor, 0.57),
+          color: contrastText(hexColor),
         },
       };
     case "outlined":
@@ -120,9 +120,9 @@ export function getFilterBadgeStyle(
     case "tint-border-bright":
       return {
         style: {
-          "background-color": hexToRgba(hexColor, 0.2),
-          border: `1px solid ${hexToRgba(hexColor, 0.5)}`,
-          color: hexColor,
+          "background-color": hexToRgba(hexColor, 0.55),
+          border: `1px solid ${hexToRgba(hexColor, 0.65)}`,
+          color: contrastText(hexColor),
         },
       };
   }
