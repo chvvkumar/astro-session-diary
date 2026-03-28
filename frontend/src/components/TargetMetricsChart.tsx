@@ -14,7 +14,7 @@ const TARGET_METRICS = METRIC_DEFINITIONS.filter((m) => m.overviewField !== "");
 
 interface Props {
   sessions: SessionOverview[];
-  selectedDates: Set<string>;
+  selectedDates: string[];
   onToggleDate: (date: string) => void;
   onSelectAll: () => void;
   onSelectNone: () => void;
@@ -32,11 +32,12 @@ export default function TargetMetricsChart(props: Props) {
     return [...filterSet].sort();
   });
 
-  const selectedSessions = createMemo(() =>
-    [...props.sessions]
-      .filter((s) => props.selectedDates.has(s.session_date))
-      .sort((a, b) => a.session_date.localeCompare(b.session_date))
-  );
+  const selectedSessions = createMemo(() => {
+    const dateSet = new Set(props.selectedDates);
+    return [...props.sessions]
+      .filter((s) => dateSet.has(s.session_date))
+      .sort((a, b) => a.session_date.localeCompare(b.session_date));
+  });
 
   const chartData = createMemo((): ChartData<"line"> => {
     const enabledMetrics = graphSettings().enabled_metrics;

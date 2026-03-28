@@ -32,14 +32,14 @@ const TargetDetailPage: Component = () => {
   const [expandedSessions, setExpandedSessions] = createSignal<Set<string>>(new Set());
   const [sessionCache, setSessionCache] = createSignal<Record<string, SessionDetail>>({});
   const [targetChartExpanded, setTargetChartExpanded] = createSignal(graphSettings().target_chart_expanded);
-  const [selectedChartDates, setSelectedChartDates] = createSignal<Set<string>>(new Set());
+  const [selectedChartDates, setSelectedChartDates] = createSignal<string[]>([]);
 
   let chartDatesInitialized = false;
   createEffect(() => {
     const detail = targetDetail();
     if (detail && !chartDatesInitialized) {
       chartDatesInitialized = true;
-      setSelectedChartDates(new Set(detail.sessions.map((s: any) => s.session_date)));
+      setSelectedChartDates(detail.sessions.map((s) => s.session_date));
     }
   });
 
@@ -50,20 +50,17 @@ const TargetDetailPage: Component = () => {
   };
 
   const toggleChartDate = (date: string) => {
-    setSelectedChartDates((prev) => {
-      const next = new Set(prev);
-      if (next.has(date)) next.delete(date);
-      else next.add(date);
-      return next;
-    });
+    setSelectedChartDates((prev) =>
+      prev.includes(date) ? prev.filter((d) => d !== date) : [...prev, date]
+    );
   };
 
   const selectAllDates = () => {
     const detail = targetDetail();
-    if (detail) setSelectedChartDates(new Set(detail.sessions.map((s: any) => s.session_date)));
+    if (detail) setSelectedChartDates(detail.sessions.map((s) => s.session_date));
   };
 
-  const selectNoDates = () => setSelectedChartDates(new Set());
+  const selectNoDates = () => setSelectedChartDates([]);
 
   const loadSessionDetail = async (date: string) => {
     if (sessionCache()[date]) return;
@@ -261,7 +258,7 @@ const TargetDetailPage: Component = () => {
                               <div class="flex items-center px-2 py-1">
                                 <input
                                   type="checkbox"
-                                  checked={selectedChartDates().has(session.session_date)}
+                                  checked={selectedChartDates().includes(session.session_date)}
                                   onChange={() => toggleChartDate(session.session_date)}
                                   class="w-3.5 h-3.5 rounded border-theme-border cursor-pointer"
                                 />
