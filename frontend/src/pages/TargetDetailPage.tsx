@@ -144,19 +144,23 @@ const TargetDetailPage: Component = () => {
               </div>
             </div>
 
-            {/* Session Accordion */}
-            <div class="px-6 py-4 space-y-2">
-              <For each={detail().sessions}>
-                {(session) => (
-                  <SessionAccordionCard
-                    session={session}
-                    isExpanded={expandedSessions().has(session.session_date)}
-                    onToggle={() => toggleSession(session.session_date)}
-                    detail={sessionCache()[session.session_date] ?? null}
-                    autoScroll={searchParams.session === session.session_date}
-                  />
-                )}
-              </For>
+            {/* Session Table */}
+            <div class="px-6 py-4">
+              <table class="w-full border-collapse">
+                <tbody>
+                  <For each={detail().sessions}>
+                    {(session) => (
+                      <SessionAccordionCard
+                        session={session}
+                        isExpanded={expandedSessions().has(session.session_date)}
+                        onToggle={() => toggleSession(session.session_date)}
+                        detail={sessionCache()[session.session_date] ?? null}
+                        autoScroll={searchParams.session === session.session_date}
+                      />
+                    )}
+                  </For>
+                </tbody>
+              </table>
             </div>
           </>
         )}

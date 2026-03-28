@@ -69,46 +69,37 @@ const SessionAccordionCard: Component<{
   };
 
   return (
-    <div
-      ref={cardRef}
-      class={`bg-astro-panel rounded-lg border ${
-        props.isExpanded ? "border-astro-accent" : "border-[#2d2d2d]"
-      } transition-colors`}
-    >
-      {/* Collapsed header — always visible */}
-      <div
-        class="px-4 py-3 grid cursor-pointer hover:bg-[#2a2a2a] transition-colors rounded-lg items-center text-xs"
-        style={{ "grid-template-columns": "1fr auto auto auto" }}
+    <>
+      {/* Collapsed header row */}
+      <tr
+        ref={cardRef}
+        class={`border-b border-[#2d2d2d] cursor-pointer hover:bg-[#2a2a2a] transition-colors text-xs ${
+          props.isExpanded ? "bg-astro-panel" : ""
+        }`}
         onClick={props.onToggle}
       >
-        {/* Left: date + equipment */}
-        <div>
+        <td class="py-3 px-4">
           <span class="font-bold text-white text-sm">{props.session.session_date}</span>
           <span class="text-astro-muted ml-3">
             {props.session.camera ?? ""} · {props.session.telescope ?? ""}
           </span>
-        </div>
-        {/* Middle: fixed-width metrics */}
-        <div class="flex items-center whitespace-nowrap">
-          <span class="text-blue-400 tabular-nums w-12 text-right">{formatHours(props.session.integration_seconds)}</span>
-          <span class="text-[#333] mx-1.5">|</span>
-          <span class="text-green-400 tabular-nums w-12 text-right">{props.session.frame_count} fr</span>
-          <span class="text-[#333] mx-1.5">|</span>
-          <span class="text-amber-400 tabular-nums w-16 text-right">HFR {props.session.median_hfr?.toFixed(1) ?? "—"}</span>
-          <span class="text-[#333] mx-1.5">|</span>
-          <span class="text-purple-400 tabular-nums w-[4.5rem] text-right">Ecc {props.session.median_eccentricity?.toFixed(2) ?? "—"}</span>
-        </div>
-        {/* Right: filter badges */}
-        <div class="flex justify-end ml-4">
-          <FilterBadges distribution={Object.fromEntries(props.session.filters_used.map(f => [f, 0]))} compact nowrap />
-        </div>
-        {/* Expand toggle */}
-        <span class="text-astro-muted ml-3">{props.isExpanded ? "▼" : "▶"}</span>
-      </div>
+        </td>
+        <td class="py-3 px-2 text-right text-blue-400 tabular-nums whitespace-nowrap">{formatHours(props.session.integration_seconds)}</td>
+        <td class="py-3 px-2 text-right text-green-400 tabular-nums whitespace-nowrap">{props.session.frame_count} fr</td>
+        <td class="py-3 px-2 text-right text-amber-400 tabular-nums whitespace-nowrap">HFR {props.session.median_hfr?.toFixed(1) ?? "—"}</td>
+        <td class="py-3 px-2 text-right text-purple-400 tabular-nums whitespace-nowrap">Ecc {props.session.median_eccentricity?.toFixed(2) ?? "—"}</td>
+        <td class="py-3 px-2">
+          <div class="flex justify-end">
+            <FilterBadges distribution={Object.fromEntries(props.session.filters_used.map(f => [f, 0]))} compact nowrap />
+          </div>
+        </td>
+        <td class="py-3 px-2 text-astro-muted">{props.isExpanded ? "▼" : "▶"}</td>
+      </tr>
 
-      {/* Expanded content */}
+      {/* Expanded content row */}
       <Show when={props.isExpanded}>
-        <div class="px-4 pb-4 border-t border-[#2d2d2d]">
+        <tr class="bg-astro-panel">
+          <td colspan="7" class="px-4 pb-4 border-b border-astro-accent">
           <Show when={!props.detail}>
             <div class="py-4 text-astro-muted text-sm">Loading session data...</div>
           </Show>
@@ -245,9 +236,10 @@ const SessionAccordionCard: Component<{
               </div>
             )}
           </Show>
-        </div>
+          </td>
+        </tr>
       </Show>
-    </div>
+    </>
   );
 };
 
