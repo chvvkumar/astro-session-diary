@@ -4,6 +4,7 @@ import { api } from "../api/client";
 import type { TargetDetailResponse, SessionDetail } from "../types";
 import SessionAccordionCard from "../components/SessionAccordionCard";
 import FilterBadges from "../components/FilterBadges";
+import TargetMetricsChart, { MetricsTrendButton } from "../components/TargetMetricsChart";
 import { useSettingsContext } from "../components/SettingsProvider";
 import { isFieldVisible } from "../utils/displaySettings";
 
@@ -19,7 +20,7 @@ function formatCoord(val: number | null, label: string): string {
 const TargetDetailPage: Component = () => {
   const params = useParams<{ targetId: string }>();
   const [searchParams] = useSearchParams();
-  const { displaySettings } = useSettingsContext();
+  const { displaySettings, graphSettings, saveGraphSettings } = useSettingsContext();
   const visible = (group: Parameters<typeof isFieldVisible>[1], field: string) =>
     isFieldVisible(displaySettings(), group, field);
 
@@ -30,6 +31,37 @@ const TargetDetailPage: Component = () => {
 
   const [expandedSessions, setExpandedSessions] = createSignal<Set<string>>(new Set());
   const [sessionCache, setSessionCache] = createSignal<Record<string, SessionDetail>>({});
+  const [targetChartExpanded, setTargetChartExpanded] = createSignal(graphSettings().target_chart_expanded);
+  const [selectedChartDates, setSelectedChartDates] = createSignal<Set<string>>(new Set());
+
+  createEffect(() => {
+    const detail = targetDetail();
+    if (detail) {
+      setSelectedChartDates(new Set(detail.sessions.map((s: any) => s.session_date)));
+    }
+  });
+
+  const toggleTargetChart = () => {
+    const next = !targetChartExpanded();
+    setTargetChartExpanded(next);
+    saveGraphSettings({ target_chart_expanded: next });
+  };
+
+  const toggleChartDate = (date: string) => {
+    setSelectedChartDates((prev) => {
+      const next = new Set(prev);
+      if (next.has(date)) next.delete(date);
+      else next.add(date);
+      return next;
+    });
+  };
+
+  const selectAllDates = () => {
+    const detail = targetDetail();
+    if (detail) setSelectedChartDates(new Set(detail.sessions.map((s: any) => s.session_date)));
+  };
+
+  const selectNoDates = () => setSelectedChartDates(new Set());
 
   const loadSessionDetail = async (date: string) => {
     if (sessionCache()[date]) return;
@@ -119,7 +151,7 @@ const TargetDetailPage: Component = () => {
               </div>
 
               {/* Cumulative stats bar */}
-              <div class="flex flex-wrap gap-3 mt-4">
+              <div class="flex flex-wrap gap-3 mt-4 items-center">
                 <div class="bg-theme-surface rounded-lg p-3 text-center min-w-[100px]">
                   <div class="text-lg font-bold text-metric-integration">{formatHours(detail().total_integration_seconds)}</div>
                   <div class="text-[10px] text-theme-text-secondary">Total Integration</div>
@@ -174,8 +206,20 @@ const TargetDetailPage: Component = () => {
                   </div>
                   <div class="text-[10px] text-theme-text-secondary">Filters Used</div>
                 </div>
+                <MetricsTrendButton expanded={targetChartExpanded()} onToggle={toggleTargetChart} />
               </div>
             </div>
+
+            {/* Target Metrics Chart */}
+            <Show when={targetDetail()}>
+              <TargetMetricsChart
+                sessions={targetDetail()!.sessions}
+                selectedDates={selectedChartDates()}
+                onToggleDate={toggleChartDate}
+                onSelectAll={selectAllDates}
+                onSelectNone={selectNoDates}
+              />
+            </Show>
 
             {/* Session Table */}
             <div class="px-6 py-4">
@@ -207,20 +251,36 @@ const TargetDetailPage: Component = () => {
                 <tbody>
                   <For each={detail().sessions}>
                     {(session) => (
-                      <SessionAccordionCard
-                        session={session}
-                        isExpanded={expandedSessions().has(session.session_date)}
-                        onToggle={() => toggleSession(session.session_date)}
-                        detail={sessionCache()[session.session_date] ?? null}
-                        autoScroll={searchParams.session === session.session_date}
-                        visibleColumns={{
-                          hfr: visible("quality", "hfr"),
-                          eccentricity: visible("quality", "eccentricity"),
-                          fwhm: visible("quality", "fwhm"),
-                          detected_stars: visible("quality", "detected_stars"),
-                          guiding_rms: visible("guiding", "rms_total"),
-                        }}
-                      />
+                      <>
+                        <Show when={targetChartExpanded()}>
+                          <tr>
+                            <td colspan="12" class="p-0">
+                              <div class="flex items-center px-2 py-1">
+                                <input
+                                  type="checkbox"
+                                  checked={selectedChartDates().has(session.session_date)}
+                                  onChange={() => toggleChartDate(session.session_date)}
+                                  class="w-3.5 h-3.5 rounded border-theme-border cursor-pointer"
+                                />
+                              </div>
+                            </td>
+                          </tr>
+                        </Show>
+                        <SessionAccordionCard
+                          session={session}
+                          isExpanded={expandedSessions().has(session.session_date)}
+                          onToggle={() => toggleSession(session.session_date)}
+                          detail={sessionCache()[session.session_date] ?? null}
+                          autoScroll={searchParams.session === session.session_date}
+                          visibleColumns={{
+                            hfr: visible("quality", "hfr"),
+                            eccentricity: visible("quality", "eccentricity"),
+                            fwhm: visible("quality", "fwhm"),
+                            detected_stars: visible("quality", "detected_stars"),
+                            guiding_rms: visible("guiding", "rms_total"),
+                          }}
+                        />
+                      </>
                     )}
                   </For>
                 </tbody>

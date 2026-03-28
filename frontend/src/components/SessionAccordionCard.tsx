@@ -3,6 +3,7 @@ import type { SessionOverview, SessionDetail, FrameRecord } from "../types";
 import ReferenceThumbnail from "./ReferenceThumbnail";
 import RawHeaderAccordion from "./RawHeaderAccordion";
 import FilterBadges from "./FilterBadges";
+import SessionMetricsChart from "./SessionMetricsChart";
 import { useSettingsContext } from "./SettingsProvider";
 import { isFieldVisible } from "../utils/displaySettings";
 
@@ -148,41 +149,41 @@ const SessionAccordionCard: Component<{
                   <div class="flex-1 bg-theme-base rounded-lg overflow-hidden">
                     <table class="w-full text-xs table-fixed" style={{ "border-collapse": "collapse" }}>
                       <colgroup>
-                        {/* Session: label + value */}
-                        <col style={{ width: "90px" }} />
-                        <col style={{ width: "120px" }} />
-                        {/* Filter: name, frames, hfr, ecc, exp */}
+                        <col style={{ width: "100px" }} />
+                        <col style={{ width: "70px" }} />
+                        <col style={{ width: "70px" }} />
+                        <col style={{ width: "70px" }} />
                         <col style={{ width: "28px" }} />
                         <col style={{ width: "80px" }} />
-                        <col style={{ width: "40px" }} />
-                        <col style={{ width: "40px" }} />
-                        <col style={{ width: "40px" }} />
+                        <col style={{ width: "50px" }} />
+                        <col style={{ width: "50px" }} />
+                        <col style={{ width: "50px" }} />
                       </colgroup>
                       <thead>
                         <tr class="text-[9px] text-theme-text-tertiary uppercase tracking-wider border-b border-theme-border">
-                          <th class="text-left px-3 pb-1.5 pt-2.5" colspan={2}>Session</th>
+                          <th class="text-left px-3 pb-1.5 pt-2.5" colspan={4}>Session Summary</th>
                           <th class="text-left px-2 pb-1.5 pt-2.5 border-l border-theme-border" colspan={5}>Filters</th>
                         </tr>
                         <tr class="text-[9px] text-theme-text-tertiary border-b border-theme-border">
-                          <th class="px-3 pb-1"></th>
-                          <th class="px-2 pb-1"></th>
+                          <th class="px-3 pb-1 text-left"></th>
+                          <th class="px-2 pb-1 text-right">Avg</th>
+                          <th class="px-2 pb-1 text-right">Min</th>
+                          <th class="px-2 pb-1 text-right">Max</th>
                           <th class="px-2 pb-1 border-l border-theme-border"></th>
                           <th class="px-2 pb-1 text-left">Frames</th>
-                          <th class="px-2 pb-1 text-right">HFR</th>
-                          <th class="px-2 pb-1 text-right">Ecc</th>
+                          <th class="px-2 pb-1 text-right">Med. HFR</th>
+                          <th class="px-2 pb-1 text-right">Med. Ecc</th>
                           <th class="px-2 pb-1 text-right">Exp</th>
                         </tr>
                       </thead>
                       <tbody>
                         {(() => {
                           const metrics = [
-                            { label: "Integration", value: formatHours(detail().integration_seconds), color: "text-metric-integration" },
-                            { label: "Frames", value: String(detail().frame_count), color: "text-metric-frames" },
-                            { label: "HFR", value: detail().median_hfr?.toFixed(2) ?? "—", color: "text-metric-hfr", subtitle: detail().min_hfr !== null ? `${detail().min_hfr?.toFixed(1)}–${detail().max_hfr?.toFixed(1)}` : undefined },
-                            { label: "Eccentricity", value: detail().median_eccentricity?.toFixed(2) ?? "—", color: "text-metric-eccentricity", subtitle: detail().min_eccentricity !== null ? `${detail().min_eccentricity?.toFixed(2)}–${detail().max_eccentricity?.toFixed(2)}` : undefined },
-                            { label: "Sensor Temp", value: detail().sensor_temp !== null ? `${detail().sensor_temp?.toFixed(0)}°C` : "—", color: "text-metric-temp", subtitle: detail().sensor_temp_min !== null ? `${detail().sensor_temp_min?.toFixed(0)} to ${detail().sensor_temp_max?.toFixed(0)}` : undefined },
-                            { label: "Gain / Exp", value: `${detail().gain !== null ? detail().gain : "—"} / ${detail().exposure_time !== null ? detail().exposure_time + "s" : "—"}`, color: "text-metric-gain" },
-                            { label: "Time Span", value: detail().first_frame_time ? `${formatTime(detail().first_frame_time!)} → ${detail().last_frame_time ? formatTime(detail().last_frame_time!) : ""}` : "—", color: "text-metric-time" },
+                            { label: "HFR", avg: detail().median_hfr?.toFixed(2) ?? "—", min: detail().min_hfr?.toFixed(2) ?? "—", max: detail().max_hfr?.toFixed(2) ?? "—", color: "text-metric-hfr" },
+                            { label: "Eccentricity", avg: detail().median_eccentricity?.toFixed(2) ?? "—", min: detail().min_eccentricity?.toFixed(2) ?? "—", max: detail().max_eccentricity?.toFixed(2) ?? "—", color: "text-metric-eccentricity" },
+                            { label: "FWHM", avg: detail().median_fwhm?.toFixed(2) ?? "—", min: detail().min_fwhm?.toFixed(2) ?? "—", max: detail().max_fwhm?.toFixed(2) ?? "—", color: "text-metric-fwhm" },
+                            { label: "Sensor Temp", avg: detail().sensor_temp !== null ? `${detail().sensor_temp?.toFixed(0)}°C` : "—", min: detail().sensor_temp_min !== null ? `${detail().sensor_temp_min?.toFixed(0)}°C` : "—", max: detail().sensor_temp_max !== null ? `${detail().sensor_temp_max?.toFixed(0)}°C` : "—", color: "text-metric-temp" },
+                            { label: "Guide RMS", avg: detail().median_guiding_rms !== null ? `${detail().median_guiding_rms?.toFixed(2)}"` : "—", min: detail().min_guiding_rms !== null ? `${detail().min_guiding_rms?.toFixed(2)}"` : "—", max: detail().max_guiding_rms !== null ? `${detail().max_guiding_rms?.toFixed(2)}"` : "—", color: "text-metric-guiding" },
                           ];
                           const filters = detail().filter_details;
                           const maxRows = Math.max(metrics.length, filters.length);
@@ -194,15 +195,16 @@ const SessionAccordionCard: Component<{
                               <tr class="border-b border-theme-border">
                                 {m ? (
                                   <>
-                                    <td class="py-1.5 px-3 text-theme-text-secondary">{m.label}</td>
-                                    <td class="py-1.5 px-2 text-right whitespace-nowrap">
-                                      <span class={`font-bold ${m.color}`}>{m.value}</span>
-                                      {m.subtitle && <span class="text-theme-text-tertiary text-[10px] ml-1">{m.subtitle}</span>}
-                                    </td>
+                                    <td class={`py-1.5 px-3 text-theme-text-secondary`}>{m.label}</td>
+                                    <td class={`py-1.5 px-2 text-right font-bold ${m.color}`}>{m.avg}</td>
+                                    <td class="py-1.5 px-2 text-right text-theme-text-tertiary">{m.min}</td>
+                                    <td class="py-1.5 px-2 text-right text-theme-text-tertiary">{m.max}</td>
                                   </>
                                 ) : (
                                   <>
                                     <td class="py-1.5 px-3"></td>
+                                    <td class="py-1.5 px-2"></td>
+                                    <td class="py-1.5 px-2"></td>
                                     <td class="py-1.5 px-2"></td>
                                   </>
                                 )}
@@ -228,6 +230,33 @@ const SessionAccordionCard: Component<{
                     </table>
                   </div>
                 </div>
+
+                {/* Single-value metrics */}
+                <div class="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-[11px]">
+                  <span>
+                    <span class="text-theme-text-tertiary">Integration:</span>{" "}
+                    <span class="font-bold text-metric-integration">{formatHours(detail().integration_seconds)}</span>
+                  </span>
+                  <span>
+                    <span class="text-theme-text-tertiary">Frames:</span>{" "}
+                    <span class="font-bold text-metric-frames">{detail().frame_count}</span>
+                  </span>
+                  <span>
+                    <span class="text-theme-text-tertiary">Gain / Exp:</span>{" "}
+                    <span class="font-bold text-metric-gain">
+                      {detail().gain !== null ? detail().gain : "—"} / {detail().exposure_time !== null ? detail().exposure_time + "s" : "—"}
+                    </span>
+                  </span>
+                  <span>
+                    <span class="text-theme-text-tertiary">Time:</span>{" "}
+                    <span class="font-bold text-metric-time">
+                      {detail().first_frame_time ? `${formatTime(detail().first_frame_time!)} → ${detail().last_frame_time ? formatTime(detail().last_frame_time!) : ""}` : "—"}
+                    </span>
+                  </span>
+                </div>
+
+                {/* Session Metrics Chart */}
+                <SessionMetricsChart detail={detail()} />
 
                 {/* Row 3: Session Insights */}
                 <Show when={detail().insights.length > 0}>
