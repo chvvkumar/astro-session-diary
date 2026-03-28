@@ -1,5 +1,5 @@
 import { Component, Show, createMemo } from "solid-js";
-import { A } from "@solidjs/router";
+import { A, useNavigate } from "@solidjs/router";
 import type { TargetAggregation } from "../types";
 import { useCatalog } from "../store/catalog";
 import FilterBadges from "./FilterBadges";
@@ -15,6 +15,7 @@ const TargetRow: Component<{
   target: TargetAggregation;
 }> = (props) => {
   const { expandedTargets, toggleExpanded } = useCatalog();
+  const navigate = useNavigate();
 
   const isOpen = () => expandedTargets().has(props.target.target_id);
 
@@ -32,16 +33,10 @@ const TargetRow: Component<{
     <>
       <tr
         class="border-b border-[#2d2d2d] cursor-pointer hover:bg-[#2a2a2a] transition-colors"
-        onClick={() => toggleExpanded(props.target.target_id)}
+        onClick={() => navigate(`/targets/${encodeURIComponent(props.target.target_id)}?view=sessions`)}
       >
-        <td class="py-2.5 px-3 font-bold text-white">
-          <A
-            href={`/targets/${encodeURIComponent(props.target.target_id)}`}
-            class="hover:text-astro-accent transition-colors"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {displayName()}
-          </A>
+        <td class="py-2.5 px-3 font-bold text-white hover:text-astro-accent transition-colors">
+          {displayName()}
         </td>
         <td class="py-2.5 px-3 font-mono text-astro-muted text-xs">
           {props.target.primary_name}
@@ -57,13 +52,12 @@ const TargetRow: Component<{
         </td>
         <td class="py-2.5 px-3 text-astro-accent text-xs">{lastSession()}</td>
         <td class="py-2.5 px-3">
-          <A
-            href={`/targets/${encodeURIComponent(props.target.target_id)}?view=sessions`}
+          <button
             class="px-2.5 py-1 border border-gray-600 rounded text-[11px] text-astro-muted hover:text-white hover:border-astro-accent transition-colors"
-            onClick={(e) => e.stopPropagation()}
+            onClick={(e) => { e.stopPropagation(); toggleExpanded(props.target.target_id); }}
           >
-            Sessions
-          </A>
+            {isOpen() ? "Collapse" : "Expand"}
+          </button>
         </td>
         <Show when={props.target.matched_sessions != null}>
           <td class="py-2.5 px-3 text-xs text-yellow-400">
