@@ -19,6 +19,7 @@ import type {
   SuggestionsResponse,
   DiscoveredResponse,
   DisplaySettings,
+  GraphSettings,
 } from "../types";
 
 const API_BASE = import.meta.env.VITE_API_URL || "/api";
@@ -173,6 +174,12 @@ export const api = {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(display),
+    }),
+
+  updateGraph: (graph: GraphSettings) =>
+    fetchJson<SettingsResponse>("/settings/graph", {
+      method: "PUT",
+      body: JSON.stringify(graph),
     }),
 
   getObjectTypes: () =>

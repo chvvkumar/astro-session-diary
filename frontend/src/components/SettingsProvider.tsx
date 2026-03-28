@@ -1,6 +1,7 @@
 import { createContext, useContext, createEffect, type ParentComponent } from "solid-js";
 import { useSettings, getFilterColorMap, getFilterAliasMap } from "../store/settings";
-import type { SettingsResponse, GeneralSettings, FilterConfig, EquipmentConfig, DisplaySettings } from "../types";
+import { useGraphSettings } from "../store/graphSettings";
+import type { SettingsResponse, GeneralSettings, FilterConfig, EquipmentConfig, DisplaySettings, GraphSettings } from "../types";
 import type { Resource } from "solid-js";
 import type { FilterBadgeStyle } from "../utils/filterStyles";
 import { applyTheme, applyTextSize, DEFAULT_THEME_ID, DEFAULT_TEXT_SIZE } from "../themes";
@@ -16,14 +17,20 @@ interface SettingsContextValue {
   refetchSettings: () => void;
   displaySettings: () => DisplaySettings | undefined;
   saveDisplay: (display: DisplaySettings) => Promise<void>;
+  graphSettings: () => GraphSettings;
+  toggleMetric: (metric: string) => void;
+  toggleFilter: (filter: string) => void;
+  saveGraphSettings: (updates: Partial<GraphSettings>) => Promise<void>;
 }
 
 const SettingsContext = createContext<SettingsContextValue>();
 
 export const SettingsProvider: ParentComponent = (props) => {
   const store = useSettings();
+  const graphStore = useGraphSettings();
 
-  // Apply theme and text size whenever settings change
+  graphStore.loadGraphSettings();
+
   createEffect(() => {
     const themeId = store.settings()?.general.theme ?? DEFAULT_THEME_ID;
     applyTheme(themeId);
@@ -45,6 +52,10 @@ export const SettingsProvider: ParentComponent = (props) => {
     refetchSettings: store.refetchSettings,
     displaySettings: () => store.settings()?.display,
     saveDisplay: store.saveDisplay,
+    graphSettings: graphStore.graphSettings,
+    toggleMetric: graphStore.toggleMetric,
+    toggleFilter: graphStore.toggleFilter,
+    saveGraphSettings: graphStore.saveGraphSettings,
   };
 
   return (
