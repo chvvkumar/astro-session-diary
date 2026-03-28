@@ -12,6 +12,8 @@ def _make_settings_row(
     filters=None,
     equipment=None,
     dismissed_suggestions=None,
+    display=None,
+    graph=None,
 ):
     """Return a MagicMock that looks like a UserSettings ORM row."""
     row = MagicMock()
@@ -20,6 +22,8 @@ def _make_settings_row(
     row.filters = filters if filters is not None else {}
     row.equipment = equipment if equipment is not None else {}
     row.dismissed_suggestions = dismissed_suggestions if dismissed_suggestions is not None else []
+    row.display = display if display is not None else {}
+    row.graph = graph if graph is not None else {}
     return row
 
 

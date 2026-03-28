@@ -13,6 +13,7 @@ from app.schemas.settings import (
     SettingsResponse, SuggestionsResponse, SuggestionGroup,
     DiscoveredItem, DiscoveredResponse,
     DisplaySettings, default_display_settings,
+    GraphSettings, default_graph_settings,
 )
 
 router = APIRouter(prefix="/settings", tags=["settings"])
@@ -76,6 +77,7 @@ def _row_to_response(row: UserSettings) -> SettingsResponse:
     equipment = EquipmentConfig(cameras=eq_cameras, telescopes=eq_telescopes)
 
     display = DisplaySettings(**row.display) if row.display else default_display_settings()
+    graph = GraphSettings(**row.graph) if row.graph else default_graph_settings()
 
     return SettingsResponse(
         general=general,
@@ -83,6 +85,7 @@ def _row_to_response(row: UserSettings) -> SettingsResponse:
         equipment=equipment,
         dismissed_suggestions=row.dismissed_suggestions or [],
         display=display,
+        graph=graph,
     )
 
 
@@ -258,6 +261,17 @@ async def update_display(
 ):
     row = await _get_or_create_settings(session)
     row.display = payload.model_dump()
+    await session.commit()
+    return _row_to_response(row)
+
+
+@router.put("/graph")
+async def update_graph(
+    payload: GraphSettings,
+    session: AsyncSession = Depends(get_session),
+):
+    row = await _get_or_create_settings(session)
+    row.graph = payload.model_dump()
     await session.commit()
     return _row_to_response(row)
 
