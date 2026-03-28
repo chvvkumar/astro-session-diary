@@ -5,6 +5,8 @@ from typing import Any, Iterator
 
 import fitsio
 
+from app.services.csv_metadata import get_csv_metrics
+
 FITS_EXTENSIONS = {".fits", ".fit", ".fts", ".FITS", ".FIT", ".FTS"}
 
 
@@ -84,7 +86,7 @@ def extract_metadata(fits_path: Path) -> dict[str, Any]:
         except ValueError:
             pass
 
-    return {
+    metadata = {
         "file_path": str(fits_path),
         "file_name": fits_path.name,
         "object_name": header.get("OBJECT"),
@@ -100,6 +102,13 @@ def extract_metadata(fits_path: Path) -> dict[str, Any]:
         "capture_date": capture_date,
         "raw_headers": raw_headers,
     }
+
+    # Merge CSV metrics — CSV values take priority for median_hfr and eccentricity
+    csv_metrics = get_csv_metrics(fits_path)
+    if csv_metrics:
+        metadata.update(csv_metrics)
+
+    return metadata
 
 
 def _serialize_header_value(value: Any) -> Any:
