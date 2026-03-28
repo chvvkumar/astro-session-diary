@@ -22,8 +22,8 @@ const QualityMetrics: Component<{
 
 function MetricBox(props: { label: string; value: string }) {
   return (
-    <div class="bg-astro-dark rounded p-2">
-      <div class="text-[10px] text-astro-muted">{props.label}</div>
+    <div class="bg-theme-base rounded p-2">
+      <div class="text-[10px] text-theme-text-secondary">{props.label}</div>
       <div class="text-white font-semibold text-sm">{props.value}</div>
     </div>
   );

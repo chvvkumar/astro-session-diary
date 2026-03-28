@@ -105,48 +105,48 @@ export const GroupingEditor: Component<Props> = (props) => {
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
       {/* Left column — Ungrouped */}
       <div class="space-y-3">
-        <h3 class="text-sm text-astro-muted font-medium uppercase tracking-wide">
+        <h3 class="text-sm text-theme-text-secondary font-medium uppercase tracking-wide">
           Ungrouped ({ungrouped().length})
         </h3>
         <div class="space-y-1 max-h-[400px] overflow-y-auto">
           <For each={ungrouped()}>
             {(item) => (
-              <label class="flex items-center gap-2 px-3 py-1.5 bg-astro-dark/50 rounded cursor-pointer hover:bg-astro-dark/70 transition-colors">
+              <label class="flex items-center gap-2 px-3 py-1.5 bg-theme-base/50 rounded cursor-pointer hover:bg-theme-base/70 transition-colors">
                 <input
                   type="checkbox"
                   checked={checked().has(item.name)}
                   onChange={() => toggleCheck(item.name)}
-                  class="rounded border-gray-600 bg-astro-dark text-astro-accent focus:ring-astro-accent"
+                  class="rounded border-theme-border bg-theme-base text-theme-accent focus:ring-theme-accent"
                 />
-                <span class="text-sm text-white flex-1 truncate">{item.name}</span>
-                <span class="text-xs text-astro-muted">{item.count} frames</span>
+                <span class="text-sm text-theme-text-primary flex-1 truncate">{item.name}</span>
+                <span class="text-xs text-theme-text-secondary">{item.count} frames</span>
               </label>
             )}
           </For>
           <Show when={ungrouped().length === 0}>
-            <p class="text-sm text-astro-muted italic px-3 py-2">All items are grouped</p>
+            <p class="text-sm text-theme-text-secondary italic px-3 py-2">All items are grouped</p>
           </Show>
         </div>
         <div class="flex gap-2">
           <button
             onClick={groupSelected}
             disabled={checkedCount() < 2}
-            class="px-3 py-1.5 bg-astro-accent text-white text-sm rounded hover:opacity-90 disabled:opacity-30 disabled:cursor-not-allowed transition-opacity"
+            class="px-3 py-1.5 bg-theme-accent text-white text-sm rounded hover:opacity-90 disabled:opacity-30 disabled:cursor-not-allowed transition-opacity"
           >
             Group Selected ({checkedCount()})
           </button>
           <Show when={checkedCount() > 0 && props.groups.length > 0}>
             <div class="relative group">
-              <button class="px-3 py-1.5 border border-gray-600 text-gray-300 text-sm rounded hover:border-astro-accent hover:text-white transition-colors">
+              <button class="px-3 py-1.5 border border-theme-border text-theme-text-secondary text-sm rounded hover:border-theme-accent hover:text-theme-text-primary transition-colors">
                 Add to...
               </button>
               <div class="absolute left-0 top-full pt-1 bg-transparent hidden group-hover:block min-w-[180px] z-10">
-                <div class="bg-astro-panel border border-gray-700 rounded shadow-lg">
+                <div class="bg-theme-surface border border-theme-border rounded shadow-lg">
                 <For each={props.groups}>
                   {(g, i) => (
                     <button
                       onClick={() => addToGroup(i())}
-                      class="block w-full text-left px-3 py-1.5 text-sm text-gray-300 hover:bg-astro-dark/50 hover:text-white"
+                      class="block w-full text-left px-3 py-1.5 text-sm text-theme-text-secondary hover:bg-theme-base/50 hover:text-theme-text-primary"
                     >
                       {g.canonical}
                     </button>
@@ -161,13 +161,13 @@ export const GroupingEditor: Component<Props> = (props) => {
 
       {/* Right column — Groups */}
       <div class="space-y-3">
-        <h3 class="text-sm text-astro-muted font-medium uppercase tracking-wide">
+        <h3 class="text-sm text-theme-text-secondary font-medium uppercase tracking-wide">
           Groups ({props.groups.length})
         </h3>
         <div class="space-y-2 max-h-[400px] overflow-y-auto">
           <For each={props.groups}>
             {(group, i) => (
-              <div class="bg-astro-dark/50 rounded px-3 py-2 space-y-1">
+              <div class="bg-theme-base/50 rounded px-3 py-2 space-y-1">
                 <div class="flex items-center gap-2">
                   <Show when={props.showColorPicker}>
                     <input
@@ -177,16 +177,16 @@ export const GroupingEditor: Component<Props> = (props) => {
                       class="w-6 h-6 rounded cursor-pointer border-0 bg-transparent"
                     />
                   </Show>
-                  <span class="text-sm text-white font-medium">{group.canonical}</span>
+                  <span class="text-sm text-theme-text-primary font-medium">{group.canonical}</span>
                 </div>
                 <div class="flex flex-wrap gap-1">
                   <For each={group.aliases}>
                     {(alias) => (
-                      <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-700 rounded text-xs text-gray-300">
+                      <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-theme-elevated rounded text-xs text-theme-text-secondary">
                         {alias}
                         <button
                           onClick={() => removeAlias(i(), alias)}
-                          class="text-gray-500 hover:text-red-400"
+                          class="text-theme-text-tertiary hover:text-theme-error"
                         >
                           x
                         </button>
@@ -198,7 +198,7 @@ export const GroupingEditor: Component<Props> = (props) => {
             )}
           </For>
           <Show when={props.groups.length === 0}>
-            <p class="text-sm text-astro-muted italic px-3 py-2">No groups yet — select items on the left to create one</p>
+            <p class="text-sm text-theme-text-secondary italic px-3 py-2">No groups yet — select items on the left to create one</p>
           </Show>
         </div>
       </div>

@@ -48,15 +48,15 @@ const SearchBar: Component = () => {
         onFocus={() => suggestions().length > 0 && setShowSuggestions(true)}
         onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
         placeholder="M31, NGC 7000..."
-        class="w-full px-3 py-2 bg-theme-base border border-theme-border rounded text-sm text-theme-text-primary placeholder-astro-muted focus:outline-none focus:ring-1 focus:ring-astro-accent"
+        class="w-full px-3 py-2 bg-theme-base border border-theme-border rounded text-sm text-theme-text-primary placeholder-theme-text-secondary focus:outline-none focus:ring-1 focus:ring-theme-accent"
       />
       <Show when={showSuggestions()}>
-        <div class="absolute z-50 w-full mt-1 bg-astro-panel border border-theme-border rounded shadow-lg max-h-48 overflow-y-auto">
+        <div class="absolute z-50 w-full mt-1 bg-theme-surface border border-theme-border rounded shadow-lg max-h-48 overflow-y-auto">
           <For each={suggestions()}>
             {(target) => (
               <button
                 type="button"
-                class="w-full text-left px-3 py-2 hover:bg-astro-accent/20 text-theme-text-primary text-sm"
+                class="w-full text-left px-3 py-2 hover:bg-theme-accent/20 text-theme-text-primary text-sm"
                 onMouseDown={() => selectTarget(target)}
               >
                 <span class="font-medium">{target.primary_name}</span>
@@ -64,7 +64,7 @@ const SearchBar: Component = () => {
                   <span class="text-theme-text-secondary ml-2">({target.object_type})</span>
                 </Show>
                 <Show when={target.match_source}>
-                  <span class="text-astro-accent text-xs ml-2">
+                  <span class="text-theme-accent text-xs ml-2">
                     matched: {target.match_source}
                   </span>
                 </Show>

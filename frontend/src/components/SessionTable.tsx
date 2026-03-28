@@ -25,7 +25,7 @@ const SessionTable: Component<{
         <tbody>
           <For each={props.sessions}>
             {(session) => (
-              <tr class="border-b border-theme-border/50 hover:bg-astro-panel/50">
+              <tr class="border-b border-theme-border/50 hover:bg-theme-surface/50">
                 <td class="py-1.5 px-2 text-theme-text-primary">{session.session_date}</td>
                 <td class="py-1.5 px-2 text-right text-theme-text-primary">{session.frame_count}</td>
                 <td class="py-1.5 px-2 text-right text-theme-text-primary">{formatHours(session.integration_seconds)}</td>
@@ -35,7 +35,7 @@ const SessionTable: Component<{
                 <td class="py-1.5 px-2 text-right">
                   <button
                     onClick={() => props.onDeepDive(session.session_date)}
-                    class="text-astro-accent hover:underline text-[11px]"
+                    class="text-theme-accent hover:underline text-[11px]"
                   >
                     Deep Dive
                   </button>

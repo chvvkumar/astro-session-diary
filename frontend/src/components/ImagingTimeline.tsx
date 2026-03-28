@@ -20,7 +20,7 @@ const ImagingTimeline: Component<{ timeline: TimelineEntry[] }> = (props) => {
   };
 
   return (
-    <div class="bg-astro-panel rounded-lg p-4 space-y-2">
+    <div class="bg-theme-surface rounded-lg p-4 space-y-2">
       <h3 class="text-white font-medium text-sm">Imaging Timeline</h3>
       <div>
         {/* Bars */}
@@ -34,7 +34,7 @@ const ImagingTimeline: Component<{ timeline: TimelineEntry[] }> = (props) => {
                   title={`${formatLabel(entry.month)}: ${(entry.integration_seconds / 3600).toFixed(1)}h`}
                 >
                   <div
-                    class="w-full bg-astro-accent rounded-t min-h-[2px]"
+                    class="w-full bg-theme-accent rounded-t min-h-[2px]"
                     style={{ height: `${pct()}%` }}
                   />
                 </div>
@@ -47,7 +47,7 @@ const ImagingTimeline: Component<{ timeline: TimelineEntry[] }> = (props) => {
           <For each={props.timeline}>
             {(entry, i) => (
               <div class="flex-1 text-center">
-                <span class="text-[7px] text-astro-muted whitespace-nowrap">
+                <span class="text-[7px] text-theme-text-secondary whitespace-nowrap">
                   {i() % labelInterval() === 0 ? formatLabel(entry.month) : ""}
                 </span>
               </div>

@@ -111,7 +111,7 @@ export const EquipmentTab: Component = () => {
       />
 
       <div class="space-y-2">
-        <h2 class="text-sm text-astro-muted font-medium uppercase tracking-wide">Cameras</h2>
+        <h2 class="text-sm text-theme-text-secondary font-medium uppercase tracking-wide">Cameras</h2>
         <GroupingEditor
           discovered={discoveredCameras()}
           groups={cameraGroups()}
@@ -120,7 +120,7 @@ export const EquipmentTab: Component = () => {
       </div>
 
       <div class="space-y-2">
-        <h2 class="text-sm text-astro-muted font-medium uppercase tracking-wide">Telescopes</h2>
+        <h2 class="text-sm text-theme-text-secondary font-medium uppercase tracking-wide">Telescopes</h2>
         <GroupingEditor
           discovered={discoveredTelescopes()}
           groups={telescopeGroups()}
@@ -131,7 +131,7 @@ export const EquipmentTab: Component = () => {
       <button
         onClick={handleSave}
         disabled={saving()}
-        class="px-4 py-2 bg-astro-accent text-white rounded text-sm hover:opacity-90 disabled:opacity-50 transition-opacity"
+        class="px-4 py-2 bg-theme-accent text-white rounded text-sm hover:opacity-90 disabled:opacity-50 transition-opacity"
       >
         {saving() ? "Saving..." : "Save"}
       </button>

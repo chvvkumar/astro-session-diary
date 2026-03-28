@@ -187,7 +187,7 @@ const ScanManager: Component = () => {
       </Show>
 
       <Show when={scanStatus().state !== "idle" && scanStatus().state !== "stalled"}>
-        <button onClick={() => setExpanded((v) => !v)} class="text-xs text-astro-accent hover:underline w-full text-left">
+        <button onClick={() => setExpanded((v) => !v)} class="text-xs text-theme-accent hover:underline w-full text-left">
           {expanded() ? "Hide details" : "Show details"}
         </button>
       </Show>

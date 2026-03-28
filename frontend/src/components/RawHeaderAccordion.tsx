@@ -12,7 +12,7 @@ const RawHeaderAccordion: Component<{ headers: Record<string, unknown> | null }>
     <div class="border-t border-theme-border pt-2">
       <button
         onClick={() => setOpen((v) => !v)}
-        class="text-xs text-astro-accent hover:underline w-full text-left"
+        class="text-xs text-theme-accent hover:underline w-full text-left"
       >
         {open() ? "Hide FITS Headers" : "Show FITS Headers"} ({entries().length} keys)
       </button>

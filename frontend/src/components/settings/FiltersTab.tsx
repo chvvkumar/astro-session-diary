@@ -122,11 +122,11 @@ export const FiltersTab: Component = () => {
           value={newFilterName()}
           onInput={(e) => setNewFilterName(e.currentTarget.value)}
           onKeyDown={(e) => e.key === "Enter" && addFilter()}
-          class="px-3 py-2 bg-astro-dark border border-gray-700 rounded text-sm text-white focus:outline-none focus:border-astro-accent"
+          class="px-3 py-2 bg-theme-base border border-theme-border rounded text-sm text-theme-text-primary focus:outline-none focus:border-theme-accent"
         />
         <button
           onClick={addFilter}
-          class="px-3 py-2 border border-gray-600 text-gray-300 rounded text-sm hover:border-astro-accent hover:text-white transition-colors"
+          class="px-3 py-2 border border-theme-border text-theme-text-secondary rounded text-sm hover:border-theme-accent hover:text-theme-text-primary transition-colors"
         >
           Add Filter
         </button>
@@ -135,7 +135,7 @@ export const FiltersTab: Component = () => {
       <button
         onClick={handleSave}
         disabled={saving()}
-        class="px-4 py-2 bg-astro-accent text-white rounded text-sm hover:opacity-90 disabled:opacity-50 transition-opacity"
+        class="px-4 py-2 bg-theme-accent text-white rounded text-sm hover:opacity-90 disabled:opacity-50 transition-opacity"
       >
         {saving() ? "Saving..." : "Save"}
       </button>

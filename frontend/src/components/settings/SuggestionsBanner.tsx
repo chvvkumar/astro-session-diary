@@ -45,7 +45,7 @@ const MergeGroup: Component<{ group: SuggestionGroup; onMerge: (canonical: strin
             onClick={() => setSelected(name)}
             class={`px-2 py-1 rounded border text-xs transition-colors ${
               selected() === name
-                ? "border-astro-accent bg-astro-accent/20 text-white"
+                ? "border-theme-accent bg-theme-accent/20 text-white"
                 : "border-theme-border text-theme-text-secondary hover:border-theme-border"
             }`}
           >
@@ -56,7 +56,7 @@ const MergeGroup: Component<{ group: SuggestionGroup; onMerge: (canonical: strin
       </For>
       <button
         onClick={handleMerge}
-        class="px-2 py-1 bg-astro-accent text-white text-xs rounded hover:opacity-90"
+        class="px-2 py-1 bg-theme-accent text-white text-xs rounded hover:opacity-90"
       >
         Merge
       </button>

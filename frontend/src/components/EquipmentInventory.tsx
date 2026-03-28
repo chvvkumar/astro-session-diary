@@ -24,7 +24,7 @@ const EquipmentTable: Component<{ title: string; items: EquipmentItem[] }> = (pr
 
 const EquipmentInventory: Component<{ cameras: EquipmentItem[]; telescopes: EquipmentItem[] }> = (props) => {
   return (
-    <div class="bg-astro-panel rounded-lg p-4 space-y-4">
+    <div class="bg-theme-surface rounded-lg p-4 space-y-4">
       <h3 class="text-theme-text-primary font-medium text-sm">Equipment Inventory</h3>
       <EquipmentTable title="Cameras" items={props.cameras} />
       <EquipmentTable title="Telescopes" items={props.telescopes} />

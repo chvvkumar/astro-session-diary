@@ -35,7 +35,7 @@ const TargetRow: Component<{
         class="border-b border-theme-border cursor-pointer hover:bg-theme-elevated transition-colors"
         onClick={() => navigate(`/targets/${encodeURIComponent(props.target.target_id)}?view=sessions`)}
       >
-        <td class="py-2.5 px-3 font-bold text-theme-text-primary hover:text-astro-accent transition-colors">
+        <td class="py-2.5 px-3 font-bold text-theme-text-primary hover:text-theme-accent transition-colors">
           {displayName()}
         </td>
         <td class="py-2.5 px-3 font-mono text-theme-text-secondary text-xs">
@@ -47,10 +47,10 @@ const TargetRow: Component<{
         <td class="py-2.5 px-3 text-theme-text-primary text-xs">
           {formatIntegration(props.target.total_integration_seconds)}
         </td>
-        <td class="py-2.5 px-3 text-astro-accent text-xs">
+        <td class="py-2.5 px-3 text-theme-accent text-xs">
           {props.target.equipment.join(" \u00b7 ")}
         </td>
-        <td class="py-2.5 px-3 text-astro-accent text-xs">{lastSession()}</td>
+        <td class="py-2.5 px-3 text-theme-accent text-xs">{lastSession()}</td>
         <td class="py-2.5 px-3">
           <button
             class="px-2.5 py-1 border border-theme-border-em rounded text-[11px] text-theme-text-secondary hover:text-theme-text-primary hover:border-theme-accent transition-colors"

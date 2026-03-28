@@ -146,7 +146,7 @@ const TargetDetailPage: Component = () => {
                 </Show>
                 <Show when={visible("quality", "fwhm")}>
                   <div class="bg-theme-surface rounded-lg p-3 text-center min-w-[100px]">
-                    <div class="text-lg font-bold text-sky-400">
+                    <div class="text-lg font-bold text-theme-info">
                       {detail().avg_fwhm?.toFixed(2) ?? "—"}
                     </div>
                     <div class="text-[10px] text-theme-text-secondary">Avg FWHM</div>

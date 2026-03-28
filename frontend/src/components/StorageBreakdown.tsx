@@ -16,10 +16,10 @@ const StorageBreakdown: Component<{
   const pct = (v: number) => total() > 0 ? ((v / total()) * 100).toFixed(1) : "0";
 
   return (
-    <div class="bg-astro-panel rounded-lg p-4 space-y-3">
+    <div class="bg-theme-surface rounded-lg p-4 space-y-3">
       <h3 class="text-theme-text-primary font-medium text-sm">Storage Breakdown</h3>
       {/* Stacked bar */}
-      <div class="w-full h-4 bg-astro-dark rounded-full overflow-hidden flex">
+      <div class="w-full h-4 bg-theme-base rounded-full overflow-hidden flex">
         <div class="bg-theme-info h-4" style={{ width: `${pct(props.fitsBytes)}%` }} title="FITS" />
         <div class="bg-theme-success h-4" style={{ width: `${pct(props.thumbnailBytes)}%` }} title="Thumbnails" />
         <div class="bg-theme-warning h-4" style={{ width: `${pct(props.databaseBytes)}%` }} title="Database" />

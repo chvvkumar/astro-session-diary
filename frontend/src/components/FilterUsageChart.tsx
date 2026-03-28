@@ -16,7 +16,7 @@ const FilterUsageChart: Component<{ usage: Record<string, number> }> = (props) =
   const maxVal = () => Math.max(...Object.values(props.usage), 1);
 
   return (
-    <div class="bg-astro-panel rounded-lg p-4 space-y-2">
+    <div class="bg-theme-surface rounded-lg p-4 space-y-2">
       <h3 class="text-white font-medium text-sm">Filter Usage</h3>
       <For each={entries()}>
         {([name, seconds]) => {
@@ -33,7 +33,7 @@ const FilterUsageChart: Component<{ usage: Record<string, number> }> = (props) =
                 </Show>
                 {name}
               </span>
-              <div class="flex-1 bg-astro-dark rounded-full h-4 overflow-hidden">
+              <div class="flex-1 bg-theme-base rounded-full h-4 overflow-hidden">
                 <div
                   class="h-4 rounded-full transition-all"
                   style={{ width: `${(seconds / maxVal()) * 100}%`, "background-color": color }}

@@ -110,7 +110,7 @@ export const MergesTab: Component = () => {
                   <div class="flex-1">
                     <span class="text-theme-text-primary text-sm font-medium">{c.source_name}</span>
                     <span class="text-theme-text-secondary text-xs mx-2">&rarr;</span>
-                    <span class="text-astro-accent text-sm">{c.suggested_target_name}</span>
+                    <span class="text-theme-accent text-sm">{c.suggested_target_name}</span>
                     <div class="text-xs text-theme-text-secondary mt-0.5">
                       {c.method === "simbad" ? "SIMBAD confirmed" : `${Math.round(c.similarity_score * 100)}% match`}
                       {" \u00b7 "}{c.source_image_count} images

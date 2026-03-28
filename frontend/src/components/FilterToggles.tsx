@@ -62,16 +62,16 @@ const FilterToggles: Component = () => {
 
   return (
     <div class="space-y-2">
-      <label class="text-xs text-astro-muted">Filters</label>
+      <label class="text-xs text-theme-text-secondary">Filters</label>
       <div class="space-y-1.5">
         <Show when={groupedFilters().length > 0}>
-          <span class="text-[10px] text-astro-muted">Grouped</span>
+          <span class="text-[10px] text-theme-text-secondary">Grouped</span>
           <div class="flex gap-1.5 flex-wrap">
             <For each={groupedFilters()}>{(f) => renderPill(f)}</For>
           </div>
         </Show>
         <Show when={ungroupedFilters().length > 0}>
-          <span class="text-[10px] text-astro-muted">Ungrouped</span>
+          <span class="text-[10px] text-theme-text-secondary">Ungrouped</span>
           <div class="flex gap-1.5 flex-wrap">
             <For each={ungroupedFilters()}>{(f) => renderPill(f)}</For>
           </div>
