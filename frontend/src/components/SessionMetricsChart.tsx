@@ -122,7 +122,7 @@ export default function SessionMetricsChart(props: Props) {
     // Track reactive dependencies
     graphSettings();
     if (expanded()) {
-      queueMicrotask(buildChart);
+      requestAnimationFrame(buildChart);
     }
   });
 

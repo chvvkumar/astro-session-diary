@@ -212,9 +212,10 @@ const TargetDetailPage: Component = () => {
             {/* Target Metrics Chart */}
             <Show when={targetDetail()}>
               <TargetMetricsChart
-                sessions={targetDetail()!.sessions}
                 selectedDates={selectedChartDates()}
+                sessionDetails={sessionCache()}
                 expanded={targetChartExpanded()}
+                onLoadSession={loadSessionDetail}
               />
             </Show>
 
