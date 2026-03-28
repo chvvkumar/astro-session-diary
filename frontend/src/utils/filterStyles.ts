@@ -44,13 +44,6 @@ function hexToRgba(hex: string, alpha: number): string {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
-/** Returns "black" or "white" based on relative luminance of the background */
-function contrastText(hex: string): string {
-  const [r, g, b] = hexToRgb(hex);
-  // Relative luminance formula (sRGB)
-  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-  return luminance > 0.5 ? "black" : "white";
-}
 
 export function getFilterBadgeStyle(
   styleName: FilterBadgeStyle,
@@ -61,7 +54,7 @@ export function getFilterBadgeStyle(
       return {
         style: {
           "background-color": hexColor,
-          color: contrastText(hexColor),
+          color: "black",
         },
       };
     case "muted":
@@ -75,7 +68,7 @@ export function getFilterBadgeStyle(
       return {
         style: {
           "background-color": hexToRgba(hexColor, 0.57),
-          color: contrastText(hexColor),
+          color: "black",
         },
       };
     case "outlined":
@@ -122,7 +115,7 @@ export function getFilterBadgeStyle(
         style: {
           "background-color": hexToRgba(hexColor, 0.55),
           border: `1px solid ${hexToRgba(hexColor, 0.65)}`,
-          color: contrastText(hexColor),
+          color: "black",
         },
       };
   }
