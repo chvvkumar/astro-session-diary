@@ -34,9 +34,11 @@ const TargetDetailPage: Component = () => {
   const [targetChartExpanded, setTargetChartExpanded] = createSignal(graphSettings().target_chart_expanded);
   const [selectedChartDates, setSelectedChartDates] = createSignal<Set<string>>(new Set());
 
+  let chartDatesInitialized = false;
   createEffect(() => {
     const detail = targetDetail();
-    if (detail) {
+    if (detail && !chartDatesInitialized) {
+      chartDatesInitialized = true;
       setSelectedChartDates(new Set(detail.sessions.map((s: any) => s.session_date)));
     }
   });
