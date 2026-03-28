@@ -13,7 +13,7 @@ from app.services.scan_state import (
     get_rebuild_state,
 )
 from app.services.simbad import resolve_target_name, normalize_object_name
-from app.worker.tasks import regenerate_thumbnail, run_scan, rebuild_targets, smart_rebuild_targets
+from app.worker.tasks import regenerate_thumbnail, run_scan, rebuild_targets, smart_rebuild_targets, backfill_csv_metrics
 
 logger = logging.getLogger(__name__)
 
@@ -278,6 +278,20 @@ async def trigger_smart_rebuild():
 
         smart_rebuild_targets.delay()
         return {"status": "accepted", "message": "Smart rebuild queued as background task"}
+    finally:
+        await r.aclose()
+
+
+@router.post("/backfill-csv")
+async def backfill_csv_metrics_endpoint():
+    """Backfill Image rows with metrics from N.I.N.A. CSV files."""
+    r = get_async_redis()
+    try:
+        state = await get_scan_state(r)
+        if state.state != "idle":
+            return {"status": "already_running", "state": state.state}
+        backfill_csv_metrics.delay()
+        return {"status": "accepted"}
     finally:
         await r.aclose()
 

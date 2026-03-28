@@ -1,13 +1,14 @@
 import logging
 from pathlib import Path
 
-from sqlalchemy import create_engine, select, text
+from sqlalchemy import create_engine, select, text, update as sa_update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.models import Image, Target
 from app.models.user_settings import UserSettings, SETTINGS_ROW_ID
+from app.services.csv_metadata import parse_image_metadata_csv, parse_weather_csv
 from app.services.scanner import extract_metadata
 from app.services.simbad import (
     resolve_target_name, normalize_object_name, resolve_target_name_cached,
@@ -589,3 +590,74 @@ def smart_rebuild_targets(self) -> dict:
     set_rebuild_complete_sync(_redis, message, stats)
     logger.info("smart_rebuild: done — %s", stats)
     return {"status": "complete", **stats}
+
+
+@celery_app.task(bind=True)
+def backfill_csv_metrics(self):
+    """Walk FITS tree and backfill Image rows with CSV metric data."""
+    import redis as _redis
+
+    redis_conn = _redis.from_url(settings.redis_url)
+    root = Path(settings.fits_data_path)
+
+    # Collect all directories containing ImageMetaData.csv
+    csv_dirs = [csv_file.parent for csv_file in root.rglob("ImageMetaData.csv")]
+
+    if not csv_dirs:
+        set_idle_sync(redis_conn)
+        return {"updated": 0, "dirs": 0}
+
+    start_scanning_sync(redis_conn, total=len(csv_dirs))
+    total_updated = 0
+
+    with _sync_engine.connect() as conn:
+        for csv_dir in csv_dirs:
+            try:
+                # Parse CSV data for this directory
+                image_data = parse_image_metadata_csv(csv_dir)
+                if not image_data:
+                    increment_completed_sync(redis_conn)
+                    continue
+
+                weather_data = parse_weather_csv(csv_dir)
+
+                # Query images in this directory missing CSV data
+                dir_prefix = str(csv_dir)
+                stmt = select(Image.id, Image.file_name).where(
+                    Image.file_path.like(f"{dir_prefix}%"),
+                    Image.median_hfr.is_(None),
+                )
+                rows = conn.execute(stmt).fetchall()
+
+                for row in rows:
+                    img_entry = image_data.get(row.file_name)
+                    if img_entry is None:
+                        continue
+
+                    # Build update dict from image CSV data
+                    update_data = dict(img_entry)
+
+                    # Join weather data by ExposureStartUTC
+                    exposure_start = update_data.pop("_exposure_start_utc", None)
+                    if exposure_start and weather_data:
+                        weather_entry = weather_data.get(exposure_start)
+                        if weather_entry:
+                            update_data.update(weather_entry)
+
+                    if update_data:
+                        conn.execute(
+                            sa_update(Image)
+                            .where(Image.id == row.id)
+                            .values(**update_data)
+                        )
+                        total_updated += 1
+
+                conn.commit()
+                increment_completed_sync(redis_conn)
+
+            except Exception:
+                increment_failed_sync(redis_conn)
+                conn.rollback()
+
+    set_idle_sync(redis_conn)
+    return {"updated": total_updated, "dirs": len(csv_dirs)}
