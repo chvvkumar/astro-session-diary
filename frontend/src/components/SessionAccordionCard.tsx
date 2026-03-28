@@ -122,7 +122,11 @@ const SessionAccordionCard: Component<{
             <FilterBadges distribution={Object.fromEntries(props.session.filters_used.map(f => [f, 0]))} compact nowrap />
           </div>
         </td>
-        <td class="py-3 px-2 text-astro-muted text-xs">{props.isExpanded ? "▼ Collapse" : "▶ Expand"}</td>
+        <td class="py-3 px-2">
+          <span class="px-2.5 py-1 border border-gray-600 rounded text-[11px] text-astro-muted hover:text-white hover:border-astro-accent transition-colors">
+            {props.isExpanded ? "Collapse" : "Expand"}
+          </span>
+        </td>
       </tr>
 
       {/* Expanded content row */}
@@ -220,7 +224,9 @@ const SessionAccordionCard: Component<{
                     <span class="font-bold text-white">
                       Per-Frame Data <span class="text-astro-muted font-normal">({detail().frames.length} frames)</span>
                     </span>
-                    <span class="text-astro-muted">{showFrames() ? "▼" : "▶"}</span>
+                    <span class="px-2.5 py-1 border border-gray-600 rounded text-[11px] text-astro-muted hover:text-white hover:border-astro-accent transition-colors">
+                      {showFrames() ? "Collapse" : "Expand"}
+                    </span>
                   </button>
                   <Show when={showFrames()}>
                     <div class="bg-astro-dark rounded-lg overflow-x-auto max-h-[600px] overflow-y-auto mt-2">
