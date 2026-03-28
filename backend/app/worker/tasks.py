@@ -633,7 +633,7 @@ def backfill_csv_metrics(self):
         set_idle_sync(redis_conn)
         return {"updated": 0, "dirs": 0}
 
-    start_scanning_sync(redis_conn, total=len(csv_dirs))
+    set_ingesting_sync(redis_conn, total=len(csv_dirs))
     total_updated = 0
 
     with _sync_engine.connect() as conn:
@@ -651,7 +651,7 @@ def backfill_csv_metrics(self):
                 dir_prefix = str(csv_dir)
                 stmt = select(Image.id, Image.file_name).where(
                     Image.file_path.like(f"{dir_prefix}%"),
-                    Image.median_hfr.is_(None),
+                    Image.detected_stars.is_(None),
                 )
                 rows = conn.execute(stmt).fetchall()
 
