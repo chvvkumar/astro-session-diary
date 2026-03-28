@@ -69,8 +69,8 @@ const TargetTable: Component<{ targets: TargetAggregation[] }> = (props) => {
     return sortDir() === "asc" ? " \u2191" : " \u2193";
   };
 
-  const headerClass = "text-left py-2 px-3 font-medium cursor-pointer select-none hover:text-white transition-colors";
-  const plainHeaderClass = "text-left py-2 px-3 font-medium";
+  const headerClass = "text-left py-2 px-3 font-medium cursor-pointer select-none hover:text-white transition-colors whitespace-nowrap";
+  const plainHeaderClass = "text-left py-2 px-3 font-medium whitespace-nowrap";
 
   return (
     <table class="w-full text-sm border-collapse">
