@@ -172,6 +172,7 @@ const ScanManager: Component = () => {
           <span class="text-green-400">Complete</span>
           <span class="text-astro-muted">
             {scanStatus().completed} ingested
+            {scanStatus().csv_enriched > 0 ? ` \u00b7 ${scanStatus().csv_enriched} with CSV metrics` : ""}
             {scanStatus().completed_at ? ` \u00b7 ${new Date(scanStatus().completed_at! * 1000).toLocaleString()}` : ""}
           </span>
         </div>
@@ -181,6 +182,7 @@ const ScanManager: Component = () => {
         <div class="text-xs text-astro-muted">
           Last scan: {new Date(scanStatus().completed_at! * 1000).toLocaleString()}
           {scanStatus().completed > 0 ? ` \u00b7 ${scanStatus().completed} ingested` : ""}
+          {scanStatus().csv_enriched > 0 ? ` \u00b7 ${scanStatus().csv_enriched} with CSV` : ""}
         </div>
       </Show>
 
@@ -197,6 +199,9 @@ const ScanManager: Component = () => {
             <span class="text-astro-muted">Total</span><span class="text-white">{scanStatus().total}</span>
             <span class="text-astro-muted">Completed</span><span class="text-green-400">{scanStatus().completed}</span>
             <span class="text-astro-muted">Failed</span><span class={scanStatus().failed > 0 ? "text-red-400" : "text-astro-muted"}>{scanStatus().failed}</span>
+            <Show when={scanStatus().csv_enriched > 0}>
+              <span class="text-astro-muted">CSV Enriched</span><span class="text-blue-400">{scanStatus().csv_enriched}</span>
+            </Show>
             <Show when={elapsed() != null}>
               <span class="text-astro-muted">Elapsed</span><span class="text-white">{formatDuration(elapsed()!)}</span>
             </Show>
@@ -231,7 +236,7 @@ const ScanManager: Component = () => {
       {/* Database Summary */}
       <Show when={dbSummary()}>
         <div class="border-t border-gray-700 pt-3 mt-1">
-          <div class="grid grid-cols-4 gap-2 text-center">
+          <div class="grid grid-cols-5 gap-2 text-center">
             <div>
               <div class="text-sm font-medium text-white">{dbSummary()!.total_images.toLocaleString()}</div>
               <div class="text-xs text-astro-muted">Total Images</div>
@@ -249,6 +254,10 @@ const ScanManager: Component = () => {
                 {dbSummary()!.unresolved_images}
               </div>
               <div class="text-xs text-astro-muted">Unresolved</div>
+            </div>
+            <div>
+              <div class="text-sm font-medium text-blue-400">{dbSummary()!.csv_enriched.toLocaleString()}</div>
+              <div class="text-xs text-astro-muted">CSV Enriched</div>
             </div>
           </div>
           <Show when={dbSummary()!.cached_simbad > 0 || dbSummary()!.pending_merges > 0}>
@@ -343,7 +352,8 @@ const RebuildTargetsSection: Component<{ disabled: boolean; onRegenThumbnails: (
         <div>
           <p class="text-xs text-white">Quick Fix</p>
           <p class="text-xs text-astro-muted">
-            Repair links, aliases, and names using cached data. No SIMBAD calls.
+            Re-links orphaned images to existing targets by matching OBJECT headers against known aliases.
+            Updates target names and aliases from SIMBAD cache. Does not contact SIMBAD or create new targets.
           </p>
         </div>
         <button
@@ -360,7 +370,8 @@ const RebuildTargetsSection: Component<{ disabled: boolean; onRegenThumbnails: (
         <div>
           <p class="text-xs text-white">Regenerate Thumbnails</p>
           <p class="text-xs text-astro-muted">
-            Re-create all image thumbnails with current stretch settings.
+            Re-creates all image thumbnails using current stretch settings.
+            Does not affect targets, resolution status, or any database records.
           </p>
         </div>
         <button
@@ -377,7 +388,8 @@ const RebuildTargetsSection: Component<{ disabled: boolean; onRegenThumbnails: (
         <div>
           <p class="text-xs text-white">Full Rebuild</p>
           <p class="text-xs text-astro-muted">
-            Delete all targets and re-resolve from FITS headers via SIMBAD.
+            Deletes all targets, merge history, and suggested merges, then re-resolves every unique
+            OBJECT name from FITS headers via SIMBAD. Uses cached results when available.
           </p>
         </div>
         <button

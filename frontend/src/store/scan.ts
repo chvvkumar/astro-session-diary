@@ -7,6 +7,7 @@ const defaultStatus: ScanStatus = {
   total: 0,
   completed: 0,
   failed: 0,
+  csv_enriched: 0,
   started_at: null,
   completed_at: null,
 };

@@ -32,7 +32,7 @@ Base.metadata.create_all(_sync_engine)
 
 from app.config import get_sync_redis
 from app.services.scan_state import (
-    increment_completed_sync, increment_failed_sync,
+    increment_completed_sync, increment_failed_sync, increment_csv_enriched_sync,
     start_scanning_sync, set_ingesting_sync, set_idle_sync,
     set_rebuild_running_sync, set_rebuild_progress_sync, set_rebuild_complete_sync,
 )
@@ -197,6 +197,8 @@ def ingest_file(self, fits_path: str) -> dict:
             session.commit()
             logger.info("Ingested: %s (target=%s)", path.name, target_id)
             increment_completed_sync(_redis)
+            if meta.get("detected_stars") is not None:
+                increment_csv_enriched_sync(_redis)
             return {"file": str(path), "status": "ok"}
 
     except Exception as exc:

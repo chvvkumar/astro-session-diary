@@ -321,7 +321,8 @@ async def db_summary(session: AsyncSession = Depends(get_session)):
                AND raw_headers->>'OBJECT' != '') AS unresolved_images,
             (SELECT COUNT(*) FROM simbad_cache) AS cached_simbad,
             (SELECT COUNT(*) FROM simbad_cache WHERE main_id IS NULL) AS cached_negative,
-            (SELECT COUNT(*) FROM merge_candidates WHERE status = 'pending') AS pending_merges
+            (SELECT COUNT(*) FROM merge_candidates WHERE status = 'pending') AS pending_merges,
+            (SELECT COUNT(*) FROM images WHERE detected_stars IS NOT NULL) AS csv_enriched
     """))
     row = result.one()
     return {
@@ -332,6 +333,7 @@ async def db_summary(session: AsyncSession = Depends(get_session)):
         "cached_simbad": row[4],
         "cached_negative": row[5],
         "pending_merges": row[6],
+        "csv_enriched": row[7],
     }
 
 

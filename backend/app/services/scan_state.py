@@ -26,6 +26,7 @@ class ScanStateSnapshot:
     failed: int
     started_at: float | None
     completed_at: float | None
+    csv_enriched: int = 0
 
     def to_dict(self) -> dict:
         return {
@@ -35,6 +36,7 @@ class ScanStateSnapshot:
             "failed": self.failed,
             "started_at": self.started_at,
             "completed_at": self.completed_at,
+            "csv_enriched": self.csv_enriched,
         }
 
 
@@ -51,6 +53,7 @@ def _parse_snapshot(data: dict | None) -> ScanStateSnapshot:
         failed=int(data.get("failed", 0)),
         started_at=float(data["started_at"]) if data.get("started_at") else None,
         completed_at=float(data["completed_at"]) if data.get("completed_at") else None,
+        csv_enriched=int(data.get("csv_enriched", 0)),
     )
 
 
@@ -173,6 +176,10 @@ def set_ingesting_sync(r: sync_redis.Redis, total: int) -> None:
         "state": "ingesting",
         "total": total,
     })
+
+
+def increment_csv_enriched_sync(r: sync_redis.Redis) -> None:
+    r.hincrby(SCAN_KEY, "csv_enriched", 1)
 
 
 def set_idle_sync(r: sync_redis.Redis) -> None:

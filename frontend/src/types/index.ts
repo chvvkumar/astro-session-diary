@@ -205,6 +205,7 @@ export interface ScanStatus {
   total: number;
   completed: number;
   failed: number;
+  csv_enriched: number;
   started_at: number | null;
   completed_at: number | null;
   failed_files?: FailedFile[];
@@ -227,6 +228,7 @@ export interface DbSummary {
   cached_simbad: number;
   cached_negative: number;
   pending_merges: number;
+  csv_enriched: number;
 }
 
 // === Search ===
