@@ -214,9 +214,6 @@ const TargetDetailPage: Component = () => {
               <TargetMetricsChart
                 sessions={targetDetail()!.sessions}
                 selectedDates={selectedChartDates()}
-                onToggleDate={toggleChartDate}
-                onSelectAll={selectAllDates}
-                onSelectNone={selectNoDates}
                 expanded={targetChartExpanded()}
               />
             </Show>
@@ -227,7 +224,25 @@ const TargetDetailPage: Component = () => {
                 <thead>
                   <tr class="text-[10px] text-theme-text-secondary uppercase tracking-wider">
                     <Show when={targetChartExpanded()}>
-                      <th class="py-2 pl-4 pr-1 w-8"></th>
+                      <th class="py-2 pl-4 pr-1 w-8">
+                        <input
+                          type="checkbox"
+                          checked={selectedChartDates().length === detail().sessions.length}
+                          ref={(el) => {
+                            createEffect(() => {
+                              const len = selectedChartDates().length;
+                              const total = detail().sessions.length;
+                              el.indeterminate = len > 0 && len < total;
+                            });
+                          }}
+                          onChange={(e) => {
+                            if (e.currentTarget.checked) selectAllDates();
+                            else selectNoDates();
+                          }}
+                          class="w-3.5 h-3.5 rounded border-theme-border cursor-pointer"
+                          title="Select all / none"
+                        />
+                      </th>
                     </Show>
                     <th class="py-2 px-4 text-left font-medium">Date</th>
                     <th class="py-2 px-2 text-right font-medium"></th>

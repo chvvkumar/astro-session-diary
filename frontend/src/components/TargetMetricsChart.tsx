@@ -15,9 +15,6 @@ const TARGET_METRICS = METRIC_DEFINITIONS.filter((m) => m.overviewField !== "");
 interface Props {
   sessions: SessionOverview[];
   selectedDates: string[];
-  onToggleDate: (date: string) => void;
-  onSelectAll: () => void;
-  onSelectNone: () => void;
   expanded: boolean;
 }
 
@@ -133,14 +130,7 @@ export default function TargetMetricsChart(props: Props) {
     <Show when={props.expanded}>
       <div class="border border-theme-border rounded-lg p-3 bg-theme-base mb-4">
         <div class="flex justify-between items-start gap-4 mb-2">
-          <div class="flex items-center gap-3">
-            <div class="text-[9px] text-theme-text-tertiary uppercase tracking-wider">Target Metrics Across Sessions</div>
-            <div class="flex gap-2 text-[9px]">
-              <button class="text-theme-text-secondary hover:text-theme-text-primary cursor-pointer" onClick={props.onSelectAll}>Select All</button>
-              <span class="text-theme-text-tertiary">|</span>
-              <button class="text-theme-text-secondary hover:text-theme-text-primary cursor-pointer" onClick={props.onSelectNone}>None</button>
-            </div>
-          </div>
+          <div class="text-[9px] text-theme-text-tertiary uppercase tracking-wider">Target Metrics Across Sessions</div>
           <MetricTogglePills availableMetrics={availableMetricKeys()} />
         </div>
         <div class="mb-3">
