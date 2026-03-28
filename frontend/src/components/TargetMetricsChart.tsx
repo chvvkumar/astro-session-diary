@@ -1,12 +1,12 @@
 import { createMemo, createEffect, onCleanup, Show } from "solid-js";
-import { Chart, CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Filler } from "chart.js";
+import { Chart, LineController, CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Filler } from "chart.js";
 import type { SessionDetail, FrameRecord } from "../types";
 import { useSettingsContext } from "./SettingsProvider";
 import { METRIC_DEFINITIONS, getMetricColor, getMetricDef } from "../utils/chartConfig";
 import MetricTogglePills from "./MetricTogglePills";
 import FilterTogglePills from "./FilterTogglePills";
 
-Chart.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Filler);
+Chart.register(LineController, CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Filler);
 
 interface Props {
   selectedDates: string[];
@@ -22,6 +22,7 @@ export default function TargetMetricsChart(props: Props) {
   const { graphSettings, filterColorMap } = useSettingsContext();
   let canvasRef: HTMLCanvasElement | undefined;
   let chartInstance: Chart | null = null;
+  let pendingRAF: number | null = null;
 
   // Auto-load session details for selected dates
   createEffect(() => {
@@ -196,12 +197,17 @@ export default function TargetMetricsChart(props: Props) {
     // Track all reactive dependencies
     chartFrameData();
     graphSettings();
+    if (pendingRAF !== null) cancelAnimationFrame(pendingRAF);
     if (props.expanded) {
-      requestAnimationFrame(buildChart);
+      pendingRAF = requestAnimationFrame(() => {
+        pendingRAF = null;
+        buildChart();
+      });
     }
   });
 
   onCleanup(() => {
+    if (pendingRAF !== null) cancelAnimationFrame(pendingRAF);
     if (chartInstance) {
       chartInstance.destroy();
       chartInstance = null;

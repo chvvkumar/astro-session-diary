@@ -1,12 +1,12 @@
 import { createMemo, createSignal, createEffect, onCleanup, Show } from "solid-js";
-import { Chart, CategoryScale, LinearScale, PointElement, LineElement, Tooltip } from "chart.js";
+import { Chart, LineController, CategoryScale, LinearScale, PointElement, LineElement, Tooltip } from "chart.js";
 import type { SessionDetail, FrameRecord } from "../types";
 import { useSettingsContext } from "./SettingsProvider";
 import { METRIC_DEFINITIONS, getMetricColor, getMetricDef } from "../utils/chartConfig";
 import MetricTogglePills from "./MetricTogglePills";
 import FilterTogglePills from "./FilterTogglePills";
 
-Chart.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip);
+Chart.register(LineController, CategoryScale, LinearScale, PointElement, LineElement, Tooltip);
 
 interface Props {
   detail: SessionDetail;
@@ -17,6 +17,7 @@ export default function SessionMetricsChart(props: Props) {
   const [expanded, setExpanded] = createSignal(graphSettings().session_chart_expanded);
   let canvasRef: HTMLCanvasElement | undefined;
   let chartInstance: Chart | null = null;
+  let pendingRAF: number | null = null;
 
   const filters = () => props.detail.filter_details.map((f) => f.filter_name);
 
@@ -121,12 +122,17 @@ export default function SessionMetricsChart(props: Props) {
   createEffect(() => {
     // Track reactive dependencies
     graphSettings();
+    if (pendingRAF !== null) cancelAnimationFrame(pendingRAF);
     if (expanded()) {
-      requestAnimationFrame(buildChart);
+      pendingRAF = requestAnimationFrame(() => {
+        pendingRAF = null;
+        buildChart();
+      });
     }
   });
 
   onCleanup(() => {
+    if (pendingRAF !== null) cancelAnimationFrame(pendingRAF);
     if (chartInstance) {
       chartInstance.destroy();
       chartInstance = null;
